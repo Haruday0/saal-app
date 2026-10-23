@@ -1,5 +1,6 @@
 import React from 'react';
 import { Station } from '../types';
+import { JisSubway, JisBus } from './icons';
 
 interface TransferGuideProps {
   station: Station;
@@ -31,8 +32,9 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
         {/* 地下鉄 */}
         {hasSubway && (
           <div>
-            <div className="font-bold text-slate-800 mb-1 text-xs">
-              仙台市地下鉄
+            <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-1 text-xs">
+              <JisSubway size={15} color="#0085ca" />
+              <span>仙台市地下鉄</span>
             </div>
             <div className="bg-slate-50 p-2 rounded border border-slate-200 space-y-1 text-[11px]">
               <div className="flex justify-between">
@@ -56,8 +58,9 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
         {/* 仙台市営バス */}
         {hasSendaiBus && (
           <div>
-            <div className="font-bold text-slate-800 mb-1 text-xs">
-              仙台市営バス（直近発車）
+            <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-1 text-xs">
+              <JisBus size={15} color="#059669" />
+              <span>仙台市営バス（直近発車）</span>
             </div>
             <div className="bg-slate-50 p-2 rounded border border-slate-200 text-[11px] flex justify-between items-center">
               <div>
@@ -72,8 +75,9 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
         {/* 宮城交通バス */}
         {hasMiyakouBus && (
           <div>
-            <div className="font-bold text-slate-800 mb-1 text-xs">
-              宮城交通バス
+            <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-1 text-xs">
+              <JisBus size={15} color="#b91c1c" />
+              <span>宮城交通バス</span>
             </div>
             <div className="bg-slate-50 p-2 rounded border border-slate-200 text-[11px] flex justify-between">
               <span className="text-slate-600">八木山動物公園駅・山田方面</span>
@@ -85,8 +89,9 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
         {/* なとりん号 */}
         {hasNatoringo && (
           <div>
-            <div className="font-bold text-slate-800 mb-1 text-xs">
-              コミュニティバス「なとりん号」
+            <div className="flex items-center gap-1.5 font-bold text-slate-800 mb-1 text-xs">
+              <JisBus size={15} color="#d97706" />
+              <span>コミュニティバス「なとりん号」</span>
             </div>
             <div className="bg-slate-50 p-2 rounded border border-slate-200 text-[11px] space-y-1">
               <div className="flex justify-between">

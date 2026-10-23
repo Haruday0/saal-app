@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Station, MovingTrain } from '../types';
 import { STATIONS, INITIAL_MOVING_TRAINS } from '../data/mockData';
 import { Icon } from './Icon';
+import { JisTrain, JisSubway } from './icons';
 
 interface RouteMapProps {
   selectedStationId: string | null;
@@ -230,17 +231,19 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                     </span>
                   </div>
 
-                  {/* 特徴タグ（新幹線・地下鉄の乗り換えのみ表示） */}
+                  {/* 特徴タグ（新幹線・地下鉄の乗り換えのみ表示・JISピクトグラム付き） */}
                   {(station.id === 'sendai' || station.id === 'nagamachi') && (
                     <div className="flex items-center gap-1 mt-0.5">
                       {station.id === 'sendai' && (
-                        <span className="text-[9px] text-slate-500 bg-slate-100 px-1 rounded font-medium">
-                          新幹線・地下鉄
+                        <span className="text-[9px] text-slate-600 bg-slate-100 px-1 py-0.2 rounded font-medium flex items-center gap-0.5">
+                          <JisTrain size={10} color="#475569" />
+                          <span>新幹線・地下鉄</span>
                         </span>
                       )}
                       {station.id === 'nagamachi' && (
-                        <span className="text-[9px] text-emerald-700 bg-emerald-50 px-1 rounded font-medium">
-                          地下鉄
+                        <span className="text-[9px] text-emerald-800 bg-emerald-50 px-1 py-0.2 rounded font-medium flex items-center gap-0.5">
+                          <JisSubway size={10} color="#047857" />
+                          <span>地下鉄</span>
                         </span>
                       )}
                     </div>

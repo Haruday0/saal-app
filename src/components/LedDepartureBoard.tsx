@@ -15,7 +15,11 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
   selectedTrain,
   onSelectTrain,
 }) => {
-  const [direction, setDirection] = useState<DirectionType>('up');
+  const isNagamachiTaishido = stationId === 'nagamachi' || stationId === 'taishido';
+  // 長町・太子堂では左側の1番線（下り）を初期選択
+  const [direction, setDirection] = useState<DirectionType>(
+    isNagamachiTaishido ? 'down' : 'up'
+  );
   const [isFullTimetableOpen, setIsFullTimetableOpen] = useState(false);
 
   const departures = MOCK_DEPARTURES[stationId] || { up: [], down: [] };
@@ -23,20 +27,10 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
 
   return (
     <div className="rounded-xl overflow-hidden shadow-lg border border-slate-800">
-      {/* 上り/下り切り替え — シンプルな2分割ピル */}
+      {/* のりば・方面切り替えタブ（長町・太子堂は左:1番線仙台方面、右:2番線空港白石方面） */}
       <div className="bg-slate-950 px-2 py-1.5">
         <div className="grid grid-cols-2 bg-slate-900/80 rounded-lg p-0.5">
-          <button
-            type="button"
-            onClick={() => setDirection('up')}
-            className={`py-1 rounded-md text-[11px] font-bold text-center transition-all ${
-              direction === 'up'
-                ? 'bg-[#0085ca] text-white shadow'
-                : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            上り 空港・白石方面
-          </button>
+          {/* 左側タブ: 1番線（下り） */}
           <button
             type="button"
             onClick={() => setDirection('down')}
@@ -46,13 +40,26 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            下り 仙台方面
+            {isNagamachiTaishido ? '1番線' : '下り 仙台方面'}
+          </button>
+
+          {/* 右側タブ: 2番線（上り） */}
+          <button
+            type="button"
+            onClick={() => setDirection('up')}
+            className={`py-1 rounded-md text-[11px] font-bold text-center transition-all ${
+              direction === 'up'
+                ? 'bg-[#0085ca] text-white shadow'
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            {isNagamachiTaishido ? '2番線' : '上り 空港・白石方面'}
           </button>
         </div>
       </div>
 
       {/* LED盤面 — 黒背景に直置き、余白最小 */}
-      <div className="bg-black px-1.5 py-1.5">
+      <div className="bg-black px-1.5 py-1">
         {trains.length === 0 ? (
           <div className="text-center py-8 text-slate-600 font-led text-xs">
             本日の発車予定はありません

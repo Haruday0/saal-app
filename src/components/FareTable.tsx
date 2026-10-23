@@ -1,6 +1,7 @@
 import React from 'react';
 import { Station } from '../types';
 import { STATIONS } from '../data/mockData';
+import { JisTicketVending } from './icons';
 
 interface FareTableProps {
   currentStation: Station;
@@ -12,9 +13,10 @@ export const FareTable: React.FC<FareTableProps> = ({ currentStation }) => {
   return (
     <div className="bg-white rounded-xl shadow border border-slate-200 overflow-hidden text-xs">
       <div className="bg-slate-800 text-white px-3 py-2 flex items-center justify-between">
-        <span className="font-bold text-sm">
-          {currentStation.name}駅からの運賃（2026年3月改定）
-        </span>
+        <div className="flex items-center gap-1.5 font-bold text-sm">
+          <JisTicketVending size={16} color="#38bdf8" />
+          <span>{currentStation.name}駅からの運賃（2026年3月改定）</span>
+        </div>
         <span className="text-[11px] text-slate-400">税込</span>
       </div>
 

@@ -26,7 +26,35 @@ export default {
       },
       fontFamily: {
         mono: ['"Courier New"', 'Courier', 'monospace'],
+        english: [
+          '"Inter"',
+          '"Helvetica Neue"',
+          'Arial',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'sans-serif',
+        ],
+        track: [
+          '"Hind"',
+          'sans-serif',
+        ],
+        condensed: [
+          '"Barlow Condensed"',
+          '"DIN Alternate"',
+          '"Franklin Gothic Medium"',
+          'sans-serif',
+        ],
+        signboard: [
+          '"BIZ UDPGothic"',
+          '"M PLUS 1"',
+          '"Hiragino Kaku Gothic ProN"',
+          '"Hiragino Sans"',
+          'sans-serif',
+        ],
         sans: [
+          '"BIZ UDPGothic"',
+          '"M PLUS 1"',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',

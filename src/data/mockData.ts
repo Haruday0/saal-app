@@ -225,7 +225,7 @@ export const STATIONS: Station[] = [
     hasTohokuJoban: true,
     transferLines: ['なとりん号（東口・西口）', 'JR東北本線', 'JR常磐線'],
     transfers: [
-      { id: 't-nt-1', type: 'jr', name: 'JR東北本線・常磐線', nameEn: 'Tohoku / Joban Line' },
+      { id: 't-nt-1', type: 'jr', name: 'JR東北本線・常磐線', nameEn: 'Tōhoku / Jōban Line' },
       { id: 't-nt-2', type: 'bus', name: 'なとりん号', nameEn: 'Natoringo Bus' }
     ],
     platforms: {
