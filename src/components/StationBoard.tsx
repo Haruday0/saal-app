@@ -7,7 +7,7 @@ import {
   LINE_COLORS,
 } from '../config/trainLineRules';
 import { JisAirplane } from './icons/JisAirplane';
-import { DotLedText, hasDotFont, formatDepartureTime } from './DotLedText';
+import { DotLedText, hasDotFont } from './DotLedText';
 import { DotLedBitmap, getDestinationDots } from './DotLedBitmap';
 import { LedSlotRow } from './LedSlotRow';
 
@@ -245,11 +245,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
     stationId === 'sendai-airport';
 
   const activeTrack = useMemo(() => {
+    if (isNagamachiTaishido) return direction === 'up' ? '2' : '1';
     if (track) return track;
     if (selectedTrain?.track) return selectedTrain.track;
     if (trains[0]?.track) return trains[0].track;
     if (stationId === 'minami-sendai') return direction === 'up' ? '1' : '2';
-    if (isNagamachiTaishido) return direction === 'up' ? '2' : '1';
     if (stationId === 'natori') return direction === 'up' ? '1' : '2';
     if (isSatStation) {
       return direction === 'up' ? '1' : '2';
@@ -398,7 +398,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
             >
               <div className="flex flex-col gap-0">
                 {sendaiRows.map((train, i) => {
-                  if (!train) return <div key={`e-${i}`} className="w-full h-[24px] sm:h-[26px]" />;
+                  if (!train) return <div key={`e-${i}`} className="w-full h-[25px] sm:h-[26px]" />;
 
                   const cleanDest = train.destination.trim();
                   const isSaal = train.destination === '仙台空港' || train.line === 'saal';
@@ -609,8 +609,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         for Natori &amp; Sendai
                       </span>
                     </div>
-                  ) : stationId === 'morisekinoshita' ? (
-                    /* 杜せきのした駅: 1面1線棒線駅のため両方面（名取・仙台方面 ／ 仙台空港方面） */
+                  ) : (
+                    /* 杜せきのした駅・美田園駅: 両方面併記（名取・仙台方面 ／ 仙台空港方面） */
                     <div className="flex items-center justify-center gap-2">
                       <div className="flex flex-col items-center justify-center text-center">
                         <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
@@ -643,21 +643,6 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           for Sendai Airport
                         </span>
                       </div>
-                    </div>
-                  ) : (
-                    /* 美田園駅 1番線: 仙台空港方面 */
-                    <div className="flex flex-col items-center justify-center text-center">
-                      <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
-                        <span className="text-[16px] font-bold text-slate-900 leading-none">
-                          仙台空港
-                        </span>
-                        <span className="text-[11px] font-semibold text-slate-900 ml-1 leading-none">
-                          方面
-                        </span>
-                      </div>
-                      <span className="text-[8.5px] font-semibold text-slate-900 font-english leading-none mt-[2px] whitespace-nowrap">
-                        for Sendai Airport
-                      </span>
                     </div>
                   )}
                 </div>
@@ -701,8 +686,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         for Natori &amp; Sendai
                       </span>
                     </div>
-                  ) : stationId === 'morisekinoshita' ? (
-                    /* 杜せきのした駅: 1面1線棒線駅のため両方面（名取・仙台方面 ／ 仙台空港方面） */
+                  ) : (
+                    /* 杜せきのした駅・美田園駅: 両方面併記（名取・仙台方面 ／ 仙台空港方面） */
                     <div className="flex items-center justify-center gap-2">
                       <div className="flex flex-col items-center justify-center text-center">
                         <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
@@ -735,21 +720,6 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           for Sendai Airport
                         </span>
                       </div>
-                    </div>
-                  ) : (
-                    /* 美田園駅 1番線: 仙台空港方面 */
-                    <div className="flex flex-col items-center justify-center text-center">
-                      <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
-                        <span className="text-[16px] font-bold text-slate-900 leading-none">
-                          仙台空港
-                        </span>
-                        <span className="text-[11px] font-semibold text-slate-900 ml-1 leading-none">
-                          方面
-                        </span>
-                      </div>
-                      <span className="text-[8.5px] font-semibold text-slate-900 font-english leading-none mt-[2px] whitespace-nowrap">
-                        for Sendai Airport
-                      </span>
                     </div>
                   )}
                 </div>
@@ -809,13 +779,13 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         })()}
                       </div>
 
-                      {/* 2. 時刻: 白色LED、1桁時刻は先頭スペース付き右揃え（実機通りコロン・分位置完全統一） */}
+                      {/* 2. 時刻: 白色LED、1桁時刻は先頭スペース付き右揃え */}
                       <div className={`flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
                         {hasDotFont(stationId, train.departureTime) ? (
                           <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-auto" />
                         ) : (
                           <span className="font-led font-bold whitespace-pre tracking-normal">
-                            {formatDepartureTime(train.departureTime)}
+                            {train.departureTime.length === 4 ? ` ${train.departureTime}` : train.departureTime}
                           </span>
                         )}
                       </div>
@@ -844,7 +814,6 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                             return <span className="tracking-normal whitespace-nowrap">{cleanDest}</span>;
                           }
                           return (
-                            /* 4文字（仙台空港）: 横に引き延ばさず文字をキュッと詰めて自然に配置 */
                             <span className="tracking-tight whitespace-nowrap">{cleanDest}</span>
                           );
                         })()}
@@ -883,11 +852,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
      ───────────────────────────────────────────────────────────── */
   if (hasIntegratedSignboard) {
     const isUpboundVariant =
-      ((stationId === 'nagamachi' || stationId === 'taishido') && activeTrack === '2') ||
+      ((stationId === 'nagamachi' || stationId === 'taishido') && (activeTrack === '2' || direction === 'up')) ||
       ((stationId === 'natori' || stationId === 'minami-sendai') && activeTrack === '1');
 
     const isDownboundLeftVariant =
-      ((stationId === 'nagamachi' || stationId === 'taishido') && activeTrack === '1') ||
+      ((stationId === 'nagamachi' || stationId === 'taishido') && (activeTrack === '1' || direction === 'down')) ||
       (stationId === 'minami-sendai' && activeTrack === '2');
 
     const isDownboundRightVariant =
@@ -1169,54 +1138,47 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
                   // Case A: nagamachi / taishido
                   if (isNagamachiTaishido) {
+                    const paddedTime = train.departureTime.length === 4 ? `\u2007${train.departureTime}` : train.departureTime;
                     return (
                       <div
                         key={train.id}
-                        className="w-full h-[24px] text-[21.33px] font-bold leading-[24px] grid grid-cols-[repeat(13,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default"
+                        className="w-full h-[25px] text-[24px] font-bold leading-none grid grid-cols-[repeat(13,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default"
                       >
-                        {/* 1〜3マス目: 種別（両端に若干のスペースを持たせて均等配置・高さ20dot完全維持） */}
-                        <div className={`col-span-3 h-full flex items-center justify-around px-0.5 leading-[24px] ${LED_COLOR_CLASSES[theme.typeColor]}`}>
-                          {(() => {
-                            const typeDots = getDestinationDots(stationId, train.trainType);
-                            if (typeDots) {
-                              return <DotLedBitmap dots={typeDots} className="h-full w-auto max-w-full" ariaLabel={train.trainType} />;
-                            }
-                            return (
-                              <>
-                                <span>{train.trainType[0] ?? '普'}</span>
-                                <span>{train.trainType[1] ?? '通'}</span>
-                              </>
-                            );
-                          })()}
+                        {/* 1〜3マス目: 種別（両端に若干のスペースを持たせて均等配置） */}
+                        <div className={`col-span-3 flex items-center justify-around px-0.5 ${LED_COLOR_CLASSES[theme.typeColor]}`}>
+                          <span>{train.trainType[0] ?? '普'}</span>
+                          <span>{train.trainType[1] ?? '通'}</span>
                         </div>
 
-                        {/* 4〜5マス目: 両数（2文字幅で「数字」「両」・高さ20dot完全維持） */}
-                        <div className={`col-span-2 h-full flex items-center justify-center leading-[24px] ${LED_COLOR_CLASSES[theme.carsColor]}`}>
-                          {(() => {
-                            const carsText = `${train.cars}両`;
-                            const carsDots = getDestinationDots(stationId, carsText);
-                            if (carsDots) {
-                              return <DotLedBitmap dots={carsDots} className="h-full w-auto max-w-full" ariaLabel={carsText} />;
-                            }
-                            return (
-                              <div className="w-full grid grid-cols-2 text-center items-center">
-                                <span>{toFW(train.cars)}</span>
-                                <span>両</span>
-                              </div>
-                            );
-                          })()}
+                        {/* 4〜5マス目: 両数（2文字幅で「数字」「両」） */}
+                        <div className={`col-span-2 grid grid-cols-2 text-center ${LED_COLOR_CLASSES[theme.carsColor]}`}>
+                          <span>{toFW(train.cars)}</span>
+                          <span>両</span>
                         </div>
 
                         {/* 6マス目: 中央余白（両数と時刻の間の空きすぎを解消した1文字幅枠） */}
                         <span className="col-span-1" />
 
-                        {/* 7〜9マス目: 発車時刻（行先の手前・3文字幅・長町太子堂名取専用手打ちドット・上下2dot余白込みで完全フィット） */}
-                        <div className={`col-span-3 h-full flex items-center justify-end pr-0.5 ${LED_COLOR_CLASSES[theme.timeColor]}`}>
-                          <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-auto" />
-                        </div>
+                        {/* 7〜9マス目: 発車時刻（行先の手前・3文字幅） */}
+                        <span className={`col-span-3 text-right pr-0.5 tracking-wider whitespace-pre ${LED_COLOR_CLASSES[theme.timeColor]}`}>
+                          {paddedTime}
+                        </span>
 
-                        {/* 10〜13マス目: 行先（右端から4文字幅枠・高さ20dot完全維持） */}
-                        {renderDestGrid(train.destination, dc, stationId)}
+                        {/* 10〜13マス目: 行先（右端から4文字幅枠） */}
+                        <div className={`col-span-4 text-center ${LED_COLOR_CLASSES[dc]}`}>
+                          {train.destination.length === 2 ? (
+                            <span className="tracking-wider">{train.destination[0]}　{train.destination[1]}</span>
+                          ) : train.destination.length === 3 ? (
+                            <span className="tracking-normal">{train.destination}</span>
+                          ) : (
+                            <div className="grid grid-cols-4 text-center">
+                              <span>{train.destination[0]}</span>
+                              <span>{train.destination[1]}</span>
+                              <span>{train.destination[2]}</span>
+                              <span>{train.destination[3]}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   }

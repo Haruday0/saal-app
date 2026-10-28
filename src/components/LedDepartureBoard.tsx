@@ -79,12 +79,15 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
     if (!selectedTrain) return;
     if (isSendai && (selectedTrain.line === 'tohoku' || selectedTrain.line === 'joban' || selectedTrain.line === 'saal')) {
       setSendaiLine(selectedTrain.line);
+    } else if (isNagamachiTaishido && selectedTrain.direction) {
+      setDirection(selectedTrain.direction);
+      setSelectedTrack(selectedTrain.direction === 'down' ? '1' : '2');
     } else if ((isSatStation || isNatoriMinamiSendai) && selectedTrain.track) {
       if (selectedTrain.track === '1' || selectedTrain.track === '2' || selectedTrain.track === '3') {
         setSelectedTrack(selectedTrain.track as '1' | '2' | '3');
       }
     }
-  }, [selectedTrain, isSendai, isSatStation, isNatoriMinamiSendai]);
+  }, [selectedTrain, isSendai, isNagamachiTaishido, isSatStation, isNatoriMinamiSendai]);
 
   const rawDepartures = MOCK_DEPARTURES[stationId] || { up: [], down: [] };
 
@@ -164,8 +167,9 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
 
   const effectiveTrack: string = useMemo(() => {
     if (isSendai) return sendaiLine;
+    if (isNagamachiTaishido) return direction === 'down' ? '1' : '2';
     return selectedTrack;
-  }, [isSendai, sendaiLine, selectedTrack]);
+  }, [isSendai, sendaiLine, isNagamachiTaishido, direction, selectedTrack]);
 
   const effectiveDirection: DirectionType = useMemo(() => {
     if (isSendai) return 'up';
@@ -200,6 +204,7 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
 
   const handleNagamachiTaishidoDirClick = (dir: DirectionType) => {
     setDirection(dir);
+    setSelectedTrack(dir === 'down' ? '1' : '2');
     const nextTrains = departures[dir] || [];
     const nextUpcoming = nextTrains.filter((t) => toRailwayMinutes(t.departureTime) >= currentMinutes);
     const target = nextUpcoming.length > 0 ? nextUpcoming[0] : (nextTrains[0] || null);
