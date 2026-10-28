@@ -42,6 +42,13 @@ export interface PlatformInfo {
   notes?: string;
 }
 
+export interface FareDetail {
+  ticket: number | null;
+  ticketChild: number | null;
+  ic: number | null;
+  icChild: number | null;
+}
+
 export interface Station {
   id: string;
   name: string;
@@ -56,10 +63,7 @@ export interface Station {
     down: PlatformInfo;
   };
   fares: {
-    [stationId: string]: {
-      ticket: number;
-      ic: number;
-    };
+    [stationId: string]: FareDetail;
   };
 }
 
@@ -69,14 +73,15 @@ export interface DepartureTrain {
   line: LineType;
   lineName: string;
   direction: DirectionType;
-  trainType: '普通' | '快速'; // 2026年3月ダイヤ改正でアクセス線は普通のみ
+  trainType: '普通' | '快速' | '特急'; // 2026年3月ダイヤ改正でアクセス線は普通のみ
   departureTime: string; // "14:23"
   destination: string; // "仙台空港", "仙台", "白石", "原ノ町", "利府" など
   track: string; // 番線
-  cars: 2 | 4 | 6; // 両数
+  cars: 2 | 4 | 6 | 10; // 両数
   status: 'normal' | 'delay';
   delayMinutes?: number;
   remarks?: string;
+  calendar?: 'all' | 'weekday' | 'holiday';
 }
 
 export interface MovingTrain {
@@ -88,6 +93,6 @@ export interface MovingTrain {
   nextStationId?: string; // 次の駅
   progress: number; // 0.0 (currentStation) ~ 1.0 (nextStation)
   destination: string;
-  cars: 2 | 4 | 6;
+  cars: 2 | 4 | 6 | 10;
   isAtStation: boolean;
 }

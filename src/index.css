@@ -1,10 +1,171 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* Tailwind の dark: バリアントを OS設定(prefers-color-scheme) ではなく
+   Mantine のカラースキーム属性に連動させる（ヘッダーのテーマ切替ボタンと完全同期） */
+@custom-variant dark (&:where([data-mantine-color-scheme="dark"], [data-mantine-color-scheme="dark"] *));
+
+@font-face {
+  font-family: 'EnkaDotGothic24';
+  src: url('/fonts/EnkaDotGothic24.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: '縁架ドットゴシック24';
+  src: url('/fonts/EnkaDotGothic24.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JF-Dot-jiskan24h';
+  src: url('/fonts/JF-Dot-jiskan24h.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JFドットjiskan24h';
+  src: url('/fonts/JF-Dot-jiskan24h.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-saal-blue: #0085ca;
+  --color-saal-accent: #00a3e0;
+  --color-saal-dark: #0f172a;
+  --color-jr-green: #008000;
+  --color-jr-joban: #006699;
+  --color-led-bg: #0c0f12;
+  --color-led-orange: #f59e0b;
+  --color-led-green: #00e676;
+  --color-led-red: #ef4444;
+  --color-led-dim: #262626;
+
+  --font-led: "DotGothic16", "Share Tech Mono", monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --font-english: "Inter", "Helvetica Neue", Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", "BIZ UDPGothic", "M PLUS 1", sans-serif;
+  --font-track: "Hind", sans-serif;
+  --font-condensed: "Barlow Condensed", "DIN Alternate", "Franklin Gothic Medium", sans-serif;
+  --font-signboard: "BIZ UDPGothic", "M PLUS 1", "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+  --font-sans: "BIZ UDPGothic", "M PLUS 1", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+
+  --shadow-glass: 0 10px 30px rgba(22, 49, 67, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.64);
+  --shadow-glass-lg: 0 20px 54px rgba(22, 49, 67, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  --shadow-glass-card: 0 8px 24px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  --shadow-glass-sm: 0 4px 14px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  --radius-sheet: 28px;
+}
+
+/* Tailwind v3 border-color compatibility so bare `border` stays gray-200 instead of currentColor */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, #e2e8f0);
+  }
+}
+
+/* ====================================================
+   仙台バスマップ v2 準拠 — Glassmorphism Design Tokens
+   ==================================================== */
+:root {
+  /* --- Brand Colors --- */
+  --color-brand-50: hsl(221, 90%, 95%);
+  --color-brand-100: hsl(221, 85%, 88%);
+  --color-brand-200: hsl(221, 85%, 78%);
+  --color-brand-300: hsl(221, 83%, 68%);
+  --color-brand-400: hsl(221, 83%, 58%);
+  --color-brand-500: #2563eb;
+  --color-brand-600: #1d4ed8;
+  --color-brand-700: #1e40af;
+
+  /* --- Neutral --- */
+  --color-neutral-0: hsl(220, 20%, 99%);
+  --color-neutral-50: hsl(220, 18%, 97%);
+  --color-neutral-100: hsl(220, 15%, 94%);
+  --color-neutral-200: hsl(220, 12%, 88%);
+  --color-neutral-300: hsl(220, 10%, 76%);
+  --color-neutral-400: hsl(220, 9%, 60%);
+  --color-neutral-500: hsl(220, 9%, 46%);
+  --color-neutral-600: hsl(220, 10%, 32%);
+  --color-neutral-700: hsl(220, 12%, 22%);
+  --color-neutral-800: hsl(220, 14%, 14%);
+  --color-neutral-900: hsl(220, 16%, 9%);
+
+  /* --- Glass / Surface --- */
+  --glass-bg: rgba(255, 255, 255, 0.58);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.72);
+  --glass-border-subtle: rgba(255, 255, 255, 0.45);
+  --glass-shadow:
+    0 10px 30px rgba(22, 49, 67, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.64);
+  --glass-shadow-lg:
+    0 20px 54px rgba(22, 49, 67, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  --glass-shadow-card:
+    0 8px 24px rgba(22, 49, 67, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+
+  /* --- Backdrop --- */
+  --backdrop-blur: blur(20px) saturate(155%);
+  --backdrop-blur-sm: blur(12px) saturate(145%);
+
+  /* --- Radius --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
+  --radius-pill: 999px;
+
+  /* --- Typography --- */
+  --font-sans: "BIZ UDPGothic", "M PLUS 1", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+
+  /* --- Transition --- */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 0.35s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* Mantine Dark Color Scheme Overrides */
+[data-mantine-color-scheme="dark"] {
+  --glass-bg: rgba(17, 24, 39, 0.82);
+  --glass-bg-strong: rgba(17, 24, 39, 0.94);
+  --glass-border: rgba(148, 163, 184, 0.16);
+  --glass-border-subtle: rgba(148, 163, 184, 0.1);
+  --glass-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --glass-shadow-lg:
+    0 20px 54px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --glass-shadow-card:
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+[data-mantine-color-scheme="dark"] body,
+[data-mantine-color-scheme="dark"] #root {
+  background-color: var(--mantine-color-dark-8);
+  color: var(--mantine-color-text);
+}
 
 html,
 body,
 #root {
+  font-family: var(--font-sans);
   height: 100%;
   width: 100%;
   margin: 0;
@@ -16,6 +177,87 @@ body,
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism surface utility classes */
+.glass-surface {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-surface-strong {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  -webkit-backdrop-filter: var(--backdrop-blur-sm);
+  backdrop-filter: var(--backdrop-blur-sm);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: var(--glass-shadow-card);
+  border-radius: var(--radius-lg);
+}
+
+.glass-pill {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-pill);
+}
+
+.glass-btn {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 8px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-pill);
+  transition: all var(--transition-fast);
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4px 14px rgba(22, 49, 67, 0.14);
+  transform: translateY(-0.5px);
+}
+
+.glass-btn:active {
+  background: rgba(255, 255, 255, 0.65);
+  transform: translateY(0.5px);
+}
+
+/* 閉じるボタン（sendai-bus-map-v2 .close-btn 準拠） */
+.glass-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  box-shadow: 0 2px 6px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-neutral-600);
+  transition: all var(--transition-fast);
+}
+
+.glass-close-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--color-neutral-800);
+  transform: scale(1.06);
+}
+
+.glass-close-btn:active {
+  background: rgba(255, 255, 255, 0.6);
+  transform: scale(0.95);
 }
 
 /* LED発車標用等幅フォント */
@@ -52,40 +294,44 @@ body,
    Material 3 (M3) Motion Tokens - Bottom Sheet Animations
    ========================================================================== */
 
+/* 常時GPUハードウェアアクセラレーション（開閉中・静止中問わずGPUレイヤーを維持して再アロケーションのjankを完全ゼロ化） */
+.m3-bottom-sheet {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.m3-scrim {
+  will-change: opacity;
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
 /* M3 Emphasized Decelerate: cubic-bezier(0.05, 0.7, 0.1, 1.0) - 450ms */
 .m3-sheet-enter {
   animation: m3SheetEnter 450ms cubic-bezier(0.05, 0.7, 0.1, 1.0);
-  will-change: transform;
 }
 
 @keyframes m3SheetEnter {
   from {
-    transform: translateY(100%);
+    transform: translate3d(0, 100%, 0);
   }
   to {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 /* M3 Emphasized Accelerate: cubic-bezier(0.3, 0.0, 0.8, 0.15) - 260ms */
 .m3-sheet-exit {
-  animation: m3SheetExit 260ms cubic-bezier(0.3, 0.0, 0.8, 0.15) forwards;
-  will-change: transform;
-}
-
-@keyframes m3SheetExit {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(100%);
-  }
+  transform: translate3d(0, 100%, 0) !important;
+  transition: transform 260ms cubic-bezier(0.3, 0.0, 0.8, 0.15) !important;
 }
 
 /* M3 Scrim Fade In - 350ms */
 .m3-scrim-enter {
-  animation: m3ScrimEnter 350ms cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards;
-  will-change: opacity;
+  animation: m3ScrimEnter 350ms cubic-bezier(0.05, 0.7, 0.1, 1.0);
 }
 
 @keyframes m3ScrimEnter {
@@ -99,15 +345,6 @@ body,
 
 /* M3 Scrim Fade Out - 240ms */
 .m3-scrim-exit {
-  animation: m3ScrimExit 240ms cubic-bezier(0.3, 0.0, 0.8, 0.15) forwards;
-  will-change: opacity;
-}
-
-@keyframes m3ScrimExit {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+  opacity: 0 !important;
+  transition: opacity 240ms cubic-bezier(0.3, 0.0, 0.8, 0.15) !important;
 }

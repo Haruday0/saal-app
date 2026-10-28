@@ -3,6 +3,18 @@ import { LineType, DirectionType } from '../types';
 export type LedColor = 'amber' | 'green' | 'red' | 'white';
 
 /**
+ * 公式路線シンボルカラー（ラインカラー）
+ * - 仙台空港アクセス線: #2A5CAA
+ * - 東北本線: #3CB371
+ * - 常磐線: #0067C0
+ */
+export const LINE_COLORS = {
+  saal: '#2A5CAA',
+  tohoku: '#3CB371',
+  joban: '#0067C0',
+} as const;
+
+/**
  * 行先から路線（アクセス線 / 東北本線 / 常磐線）を判定するマッピング
  * 後から自由に行先を追加・変更できます
  */

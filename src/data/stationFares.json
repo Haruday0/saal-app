@@ -1,0 +1,402 @@
+{
+  "sendai": {
+    "sendai": {
+      "ticket": null,
+      "ticketChild": null,
+      "ic": null,
+      "icChild": null
+    },
+    "nagamachi": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "taishido": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "minami-sendai": {
+      "ticket": 210,
+      "ticketChild": 100,
+      "ic": 209,
+      "icChild": 104
+    },
+    "natori": {
+      "ticket": 260,
+      "ticketChild": 130,
+      "ic": 253,
+      "icChild": 126
+    },
+    "morisekinoshita": {
+      "ticket": 440,
+      "ticketChild": 220,
+      "ic": 431,
+      "icChild": 215
+    },
+    "mitazono": {
+      "ticket": 480,
+      "ticketChild": 240,
+      "ic": 473,
+      "icChild": 236
+    },
+    "sendai-airport": {
+      "ticket": 680,
+      "ticketChild": 340,
+      "ic": 672,
+      "icChild": 335
+    }
+  },
+  "nagamachi": {
+    "sendai": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "nagamachi": {
+      "ticket": null,
+      "ticketChild": null,
+      "ic": null,
+      "icChild": null
+    },
+    "taishido": {
+      "ticket": 160,
+      "ticketChild": 80,
+      "ic": 155,
+      "icChild": 77
+    },
+    "minami-sendai": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "natori": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "morisekinoshita": {
+      "ticket": 380,
+      "ticketChild": 190,
+      "ic": 377,
+      "icChild": 188
+    },
+    "mitazono": {
+      "ticket": 420,
+      "ticketChild": 210,
+      "ic": 419,
+      "icChild": 209
+    },
+    "sendai-airport": {
+      "ticket": 620,
+      "ticketChild": 310,
+      "ic": 618,
+      "icChild": 308
+    }
+  },
+  "taishido": {
+    "sendai": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "nagamachi": {
+      "ticket": 160,
+      "ticketChild": 80,
+      "ic": 155,
+      "icChild": 77
+    },
+    "taishido": {
+      "ticket": null,
+      "ticketChild": null,
+      "ic": null,
+      "icChild": null
+    },
+    "minami-sendai": {
+      "ticket": 160,
+      "ticketChild": 80,
+      "ic": 155,
+      "icChild": 77
+    },
+    "natori": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "morisekinoshita": {
+      "ticket": 380,
+      "ticketChild": 190,
+      "ic": 377,
+      "icChild": 188
+    },
+    "mitazono": {
+      "ticket": 420,
+      "ticketChild": 210,
+      "ic": 419,
+      "icChild": 209
+    },
+    "sendai-airport": {
+      "ticket": 620,
+      "ticketChild": 310,
+      "ic": 618,
+      "icChild": 308
+    }
+  },
+  "minami-sendai": {
+    "sendai": {
+      "ticket": 210,
+      "ticketChild": 100,
+      "ic": 209,
+      "icChild": 104
+    },
+    "nagamachi": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "taishido": {
+      "ticket": 160,
+      "ticketChild": 80,
+      "ic": 155,
+      "icChild": 77
+    },
+    "minami-sendai": {
+      "ticket": null,
+      "ticketChild": null,
+      "ic": null,
+      "icChild": null
+    },
+    "natori": {
+      "ticket": 160,
+      "ticketChild": 80,
+      "ic": 155,
+      "icChild": 77
+    },
+    "morisekinoshita": {
+      "ticket": 340,
+      "ticketChild": 170,
+      "ic": 333,
+      "icChild": 166
+    },
+    "mitazono": {
+      "ticket": 380,
+      "ticketChild": 190,
+      "ic": 375,
+      "icChild": 187
+    },
+    "sendai-airport": {
+      "ticket": 580,
+      "ticketChild": 290,
+      "ic": 574,
+      "icChild": 286
+    }
+  },
+  "natori": {
+    "sendai": {
+      "ticket": 260,
+      "ticketChild": 130,
+      "ic": 253,
+      "icChild": 126
+    },
+    "nagamachi": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "taishido": {
+      "ticket": 200,
+      "ticketChild": 100,
+      "ic": 199,
+      "icChild": 99
+    },
+    "minami-sendai": {
+      "ticket": 160,
+      "ticketChild": 80,
+      "ic": 155,
+      "icChild": 77
+    },
+    "natori": {
+      "ticket": null,
+      "ticketChild": null,
+      "ic": null,
+      "icChild": null
+    },
+    "morisekinoshita": {
+      "ticket": 180,
+      "ticketChild": 90,
+      "ic": 178,
+      "icChild": 89
+    },
+    "mitazono": {
+      "ticket": 220,
+      "ticketChild": 110,
+      "ic": 220,
+      "icChild": 110
+    },
+    "sendai-airport": {
+      "ticket": 420,
+      "ticketChild": 210,
+      "ic": 419,
+      "icChild": 209
+    }
+  },
+  "morisekinoshita": {
+    "sendai": {
+      "ticket": 440,
+      "ticketChild": 220,
+      "ic": 431,
+      "icChild": 215
+    },
+    "nagamachi": {
+      "ticket": 380,
+      "ticketChild": 190,
+      "ic": 377,
+      "icChild": 188
+    },
+    "taishido": {
+      "ticket": 380,
+      "ticketChild": 190,
+      "ic": 377,
+      "icChild": 188
+    },
+    "minami-sendai": {
+      "ticket": 340,
+      "ticketChild": 170,
+      "ic": 333,
+      "icChild": 166
+    },
+    "natori": {
+      "ticket": 180,
+      "ticketChild": 90,
+      "ic": 178,
+      "icChild": 89
+    },
+    "morisekinoshita": {
+      "ticket": null,
+      "ticketChild": null,
+      "ic": null,
+      "icChild": null
+    },
+    "mitazono": {
+      "ticket": 180,
+      "ticketChild": 90,
+      "ic": 178,
+      "icChild": 89
+    },
+    "sendai-airport": {
+      "ticket": 310,
+      "ticketChild": 160,
+      "ic": 314,
+      "icChild": 157
+    }
+  },
+  "mitazono": {
+    "sendai": {
+      "ticket": 480,
+      "ticketChild": 240,
+      "ic": 473,
+      "icChild": 236
+    },
+    "nagamachi": {
+      "ticket": 420,
+      "ticketChild": 210,
+      "ic": 419,
+      "icChild": 209
+    },
+    "taishido": {
+      "ticket": 420,
+      "ticketChild": 210,
+      "ic": 419,
+      "icChild": 209
+    },
+    "minami-sendai": {
+      "ticket": 380,
+      "ticketChild": 190,
+      "ic": 375,
+      "icChild": 187
+    },
+    "natori": {
+      "ticket": 220,
+      "ticketChild": 110,
+      "ic": 220,
+      "icChild": 110
+    },
+    "morisekinoshita": {
+      "ticket": 180,
+      "ticketChild": 90,
+      "ic": 178,
+      "icChild": 89
+    },
+    "mitazono": {
+      "ticket": null,
+      "ticketChild": null,
+      "ic": null,
+      "icChild": null
+    },
+    "sendai-airport": {
+      "ticket": 220,
+      "ticketChild": 110,
+      "ic": 220,
+      "icChild": 110
+    }
+  },
+  "sendai-airport": {
+    "sendai": {
+      "ticket": 680,
+      "ticketChild": 340,
+      "ic": 672,
+      "icChild": 335
+    },
+    "nagamachi": {
+      "ticket": 620,
+      "ticketChild": 310,
+      "ic": 618,
+      "icChild": 308
+    },
+    "taishido": {
+      "ticket": 620,
+      "ticketChild": 310,
+      "ic": 618,
+      "icChild": 308
+    },
+    "minami-sendai": {
+      "ticket": 580,
+      "ticketChild": 290,
+      "ic": 574,
+      "icChild": 286
+    },
+    "natori": {
+      "ticket": 420,
+      "ticketChild": 210,
+      "ic": 419,
+      "icChild": 209
+    },
+    "morisekinoshita": {
+      "ticket": 310,
+      "ticketChild": 160,
+      "ic": 314,
+      "icChild": 157
+    },
+    "mitazono": {
+      "ticket": 220,
+      "ticketChild": 110,
+      "ic": 220,
+      "icChild": 110
+    },
+    "sendai-airport": {
+      "ticket": null,
+      "ticketChild": null,
+      "ic": null,
+      "icChild": null
+    }
+  }
+}

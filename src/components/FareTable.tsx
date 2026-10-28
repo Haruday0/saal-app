@@ -1,4 +1,5 @@
 import React from 'react';
+import { Paper, Table, Text, Group, Box } from '@mantine/core';
 import { Station } from '../types';
 import { STATIONS } from '../data/mockData';
 import { JisTicketVending } from './icons';
@@ -7,66 +8,105 @@ interface FareTableProps {
   currentStation: Station;
 }
 
-export const FareTable: React.FC<FareTableProps> = ({ currentStation }) => {
-  const otherStations = STATIONS.filter((s) => s.id !== currentStation.id);
-
+/** 大人運賃（大）＋小児運賃（小）の2段表示 */
+const FareCell: React.FC<{ adult?: number | null; child?: number | null; accent?: boolean }> = ({
+  adult,
+  child,
+  accent,
+}) => {
+  if (adult == null) {
+    return (
+      <Text fz="xs" c="dimmed" className="font-english">
+        -
+      </Text>
+    );
+  }
   return (
-    <div className="bg-white rounded-xl shadow border border-slate-200 overflow-hidden text-xs">
-      <div className="bg-slate-800 text-white px-3 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 font-bold text-sm">
-          <JisTicketVending size={16} color="#38bdf8" />
-          <span>{currentStation.name}駅からの運賃（2026年3月改定）</span>
-        </div>
-        <span className="text-[11px] text-slate-400">税込</span>
-      </div>
+    <Box ta="right">
+      <Text fz="sm" fw={700} c={accent ? 'saal' : undefined} className="font-english tabular-nums" lh={1.3}>
+        {adult}
+        <Text component="span" fz={11} fw={400} c="dimmed" ml={2}>
+          円
+        </Text>
+      </Text>
+      <Text fz={11} c="dimmed" className="font-english tabular-nums" lh={1.3}>
+        <Text component="span" fz={10} mr={2}>
+          小
+        </Text>
+        {child}
+        <Text component="span" fz={10} ml={2}>
+          円
+        </Text>
+      </Text>
+    </Box>
+  );
+};
 
-      <div className="p-3">
-        <div className="border border-slate-200 rounded overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 text-slate-600 border-b border-slate-200">
-              <tr>
-                <th className="py-1.5 px-3">着駅</th>
-                <th className="py-1.5 px-3 text-right">きっぷ</th>
-                <th className="py-1.5 px-3 text-right">IC運賃</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {otherStations.map((station) => {
-                const fare = currentStation.fares[station.id];
-                const isSpecial =
-                  station.id === 'sendai-airport' || station.id === 'sendai';
+export const FareTable: React.FC<FareTableProps> = ({ currentStation }) => {
+  return (
+    <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+      {/* ヘッダー */}
+      <Group
+        gap="xs"
+        wrap="nowrap"
+        px={14}
+        py={10}
+        style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
+      >
+        <JisTicketVending size={16} />
+        <Text fw={800} fz="xs" truncate>
+          {currentStation.name}駅からの運賃
+        </Text>
+        <Text fz={10} c="dimmed" className="shrink-0">
+          （2026年3月現行）
+        </Text>
+      </Group>
 
-                return (
-                  <tr
-                    key={station.id}
-                    className={isSpecial ? 'bg-sky-50/60 font-medium' : ''}
-                  >
-                    <td className="py-1.5 px-3 text-slate-800">
-                      {station.name}
-                    </td>
-                    <td className="py-1.5 px-3 text-right font-mono text-slate-600">
-                      {fare ? `${fare.ticket}円` : '-'}
-                    </td>
-                    <td className="py-1.5 px-3 text-right font-mono font-medium text-slate-900">
-                      {fare ? `${fare.ic}円` : '-'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* 運賃テーブル（Mantine Table） */}
+      <Table verticalSpacing={6} horizontalSpacing="sm" withColumnBorders fz="xs">
+        <Table.Thead bg="var(--mantine-color-default-hover)">
+          <Table.Tr>
+            <Table.Th w="34%">ご利用駅</Table.Th>
+            <Table.Th w="33%" ta="right">
+              きっぷ運賃
+            </Table.Th>
+            <Table.Th w="33%" ta="right" c="saal">
+              ICカード運賃
+            </Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {STATIONS.map((station) => {
+            const isCurrent = station.id === currentStation.id;
+            const fare = currentStation.fares[station.id];
+            const isTerminal = station.id === 'sendai' || station.id === 'sendai-airport';
 
-        {/* フリーパス注意事項 */}
-        <div className="mt-3 bg-slate-50 p-2.5 rounded border border-slate-200 text-[11px] text-slate-600 space-y-1">
-          <div>
-            ・<strong className="text-slate-800">仙台まるごとパス</strong>：全線（仙台〜仙台空港）乗り降り自由です。
-          </div>
-          <div>
-            ・<strong className="text-slate-800">青春18きっぷ / 小さな旅ホリデー・パス</strong>：名取〜仙台空港間は別途運賃420円（IC 418円）が必要です。
-          </div>
-        </div>
-      </div>
-    </div>
+            return (
+              <Table.Tr key={station.id} bg={isCurrent ? 'var(--mantine-color-saal-light)' : undefined}>
+                <Table.Td>
+                  <Text fz={isCurrent ? 'sm' : 'xs'} fw={isCurrent ? 900 : isTerminal ? 700 : 500}>
+                    {station.name}
+                  </Text>
+                </Table.Td>
+                <Table.Td ta="right">
+                  {isCurrent ? (
+                    <Text fz="xs" c="dimmed">-</Text>
+                  ) : (
+                    <FareCell adult={fare?.ticket} child={fare?.ticketChild} />
+                  )}
+                </Table.Td>
+                <Table.Td ta="right">
+                  {isCurrent ? (
+                    <Text fz="xs" c="dimmed">-</Text>
+                  ) : (
+                    <FareCell adult={fare?.ic} child={fare?.icChild} accent />
+                  )}
+                </Table.Td>
+              </Table.Tr>
+            );
+          })}
+        </Table.Tbody>
+      </Table>
+    </Paper>
   );
 };

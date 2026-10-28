@@ -1,0 +1,3070 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LED発車標 エディター</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 1200px;
+      margin: 0 auto;
+      user-select: none;
+    }
+
+    /* ヘッダー */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 10px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f0f6fc;
+    }
+
+    /* タブ切り替え */
+    .nav-tabs {
+      display: flex;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 5px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .nav-tabs button {
+      background: transparent;
+      border: none;
+      color: #8b949e;
+      padding: 5px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .nav-tabs button.active {
+      background: #1f6feb;
+      color: #ffffff;
+    }
+
+    /* 汎用ボタンスタイル */
+    button, select, input {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      outline: none;
+    }
+    button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #30363d; color: #fff; border-color: #58a6ff; }
+    button.primary { background: #1f6feb; border-color: #388bfd; color: #fff; }
+    button.primary:hover { background: #1a56db; }
+    button.success { background: #238636; border-color: #2ea043; color: #fff; }
+    button.success:hover { background: #2ea043; }
+    button.danger { background: #3c1e1e; border-color: #f85149; color: #f85149; }
+    button.danger:hover { background: #5c2626; color: #fff; }
+    
+    button.digit-btn {
+      width: 28px;
+      padding: 4px 0;
+      text-align: center;
+      font-family: monospace;
+      font-weight: 700;
+      position: relative;
+    }
+    button.digit-btn.active {
+      background: #1f6feb;
+      border-color: #388bfd;
+      color: #fff;
+    }
+    button.digit-btn.has-data::after {
+      content: "";
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #2ea043;
+    }
+
+    /* カード・枠 */
+    .section-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-right: 1px solid #30363d;
+      padding-right: 10px;
+    }
+    .tool-group:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+    .label {
+      font-size: 11.5px;
+      color: #8b949e;
+      font-weight: 600;
+    }
+
+    /* 保存先設定カード（目立つヘッダー） */
+    .target-card {
+      background: #13171f;
+      border: 1px solid #388bfd;
+      border-radius: 6px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* キャンバス */
+    .canvas-container {
+      background: #040608;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      overflow-y: auto;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    :root {
+      --cell-size: 14px;
+    }
+    #dot-grid {
+      display: inline-grid;
+      gap: 1.5px;
+      background: #000;
+      padding: 8px;
+      border: 1px solid #161e2b;
+      touch-action: none;
+      margin: auto;
+      flex-shrink: 0;
+      grid-auto-rows: var(--cell-size);
+    }
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      background: #111620;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .cell:hover { outline: 1px solid #58a6ff; }
+    .cell.guide-col { border-right: 1px dashed rgba(56, 139, 253, 0.45); margin-right: 1.5px; }
+
+    /* 原寸プレビュー */
+    .preview-box {
+      background: #000;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .preview-box > * {
+      margin: auto;
+      flex-shrink: 0;
+    }
+
+    /* 全体枠レイアウト */
+    .board-housing {
+      background: #000;
+      border: 2px solid #30363d;
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-x: auto;
+    }
+    .board-slots-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 54px;
+      background: #05070a;
+      border: 1px solid #161e2b;
+      padding: 6px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .slot-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #111620;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 4px 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .slot-item:hover { border-color: #58a6ff; }
+    .slot-item.active {
+      border-color: #388bfd;
+      background: #1f6feb22;
+      box-shadow: 0 0 8px rgba(56, 139, 253, 0.3);
+    }
+    .slot-title {
+      font-size: 10.5px;
+      color: #8b949e;
+      margin-bottom: 4px;
+      white-space: nowrap;
+    }
+    .slot-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      padding: 2px 4px;
+      border-radius: 2px;
+    }
+
+    /* メッセージトースト */
+    .status-msg {
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 3px;
+      display: inline-block;
+      min-height: 20px;
+    }
+    .status-msg.ok { background: #23863633; color: #3fb950; border: 1px solid #2ea043; }
+    .status-msg.warn { background: #bb800933; color: #d29922; border: 1px solid #bb8009; }
+
+    /* モーダル */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-content {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 16px;
+      width: 90%;
+      max-width: 650px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      background: #0d1117;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 11px;
+      resize: vertical;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 最上部ヘッダー -->
+  <header>
+    <div class="header-left">
+      <h1>LED発車標 エディター</h1>
+      <div class="nav-tabs">
+        <button type="button" class="active" id="tab-edit">ドット編集</button>
+        <button type="button" id="tab-layout">全体枠レイアウト</button>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button type="button" class="primary" id="btn-fetch-server" style="background: #238636; color: #fff; font-weight: 700;">サーバーから最新を取り込む</button>
+      <input type="file" id="file-import-json" accept=".json" style="display: none;">
+      <button type="button" id="btn-file-import">ファイルからインポート</button>
+      <button type="button" class="danger" id="btn-reset-all">全データ初期化</button>
+      <button type="button" id="btn-io">JSONコピペ / 書出</button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       VIEW 1: ドット編集タブ
+       ========================================================================= -->
+  <main id="view-edit" style="display: flex; flex-direction: column; gap: 14px;">
+    
+    <!-- 1. 保存先・読出ターゲット指定カード -->
+    <div class="target-card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 12.5px; font-weight: 700; color: #58a6ff;">保存先・読出ターゲットの指定</span>
+        <span id="target-status-msg" class="status-msg"></span>
+      </div>
+
+      <div class="toolbar-row">
+        <!-- 駅系統選択 -->
+        <div class="tool-group">
+          <span class="label">駅系統（型）:</span>
+          <select id="sel-target-system" style="font-weight: 700; color: #f0f6fc;">
+            <option value="nagamachi">長町・太子堂・名取型</option>
+            <option value="sendai">仙台型</option>
+            <option value="minami-sendai">南仙台型</option>
+            <option value="sat">アクセス線型 (SAT)</option>
+          </select>
+        </div>
+
+        <!-- 駅系統ごとの数字・コロン幅設定 -->
+        <div class="tool-group" id="group-digit-widths">
+          <span class="label">数字幅:</span>
+          <input type="number" id="num-sys-digit-width" value="18" min="4" max="48" style="width: 48px;">
+          <span class="label">dot</span>
+          <span class="label" style="margin-left: 4px;">コロン幅:</span>
+          <input type="number" id="num-sys-colon-width" value="12" min="2" max="24" style="width: 48px;">
+          <span class="label">dot</span>
+        </div>
+
+        <!-- 種類選択 -->
+        <div class="tool-group">
+          <span class="label">種類:</span>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;">
+            <input type="radio" name="target-kind" value="digits" id="kind-digits" checked> 数字 (0〜9, :)
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; margin-left: 6px;">
+            <input type="radio" name="target-kind" value="parts" id="kind-parts"> パーツ (行先・種別・両数)
+          </label>
+        </div>
+
+        <!-- A: 数字セレクター -->
+        <div class="tool-group" id="group-target-digits">
+          <span class="label">文字:</span>
+          <div style="display: flex; gap: 3px;" id="digit-buttons">
+            <!-- 0〜9, : をJS生成 -->
+          </div>
+        </div>
+
+        <!-- B: パーツセレクター（手入力または既存選択） -->
+        <div class="tool-group" id="group-target-parts" style="display: none;">
+          <span class="label">カテゴリ:</span>
+          <select id="sel-part-category" style="width: 80px; font-weight: 600;">
+            <option value="種別">種別</option>
+            <option value="行先">行先</option>
+            <option value="両数">両数</option>
+            <option value="その他">その他</option>
+          </select>
+          <span class="label" style="margin-left: 4px;">パーツ名:</span>
+          <input type="text" id="input-part-name" placeholder="パーツ名 (例: 普通, 仙台空港)" style="width: 150px;">
+          <select id="sel-existing-parts" style="width: 150px;">
+            <option value="">(登録済から選ぶ)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- アクションボタン群 -->
+      <div class="toolbar-row" style="border-top: 1px solid #21262d; pt: 8px; justify-content: space-between;">
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="success" id="btn-save-to-target">このターゲットに保存</button>
+          <button type="button" class="primary" id="btn-load-from-target">このターゲットから読込</button>
+          <button type="button" class="danger" id="btn-delete-target">削除</button>
+        </div>
+        <div style="font-size: 11px; color: #8b949e;">
+          ※ 型や文字を選び変えても、キャンバスの内容は勝手に消えません。「保存」で反映、「読込」で展開されます。
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. キャンバス作業エリア -->
+    <div class="section-card">
+      <div class="toolbar-row">
+        <div class="tool-group">
+          <span class="label">キャンバス幅:</span>
+          <input type="number" id="num-canvas-width" value="16" min="2" max="256" step="1" style="width: 58px;">
+          <span class="label">dot</span>
+          <button type="button" id="btn-fit-width" style="font-size: 11px; padding: 3px 6px;">標準幅に合わせる</button>
+        </div>
+
+        <div class="tool-group">
+          <span class="label">表示倍率:</span>
+          <select id="sel-cell-size" style="font-size: 11.5px;">
+            <option value="9">縮小 (9px・96dot用)</option>
+            <option value="12">中 (12px)</option>
+            <option value="14" selected>標準 (14px)</option>
+            <option value="18">拡大 (18px)</option>
+          </select>
+        </div>
+
+        <div class="tool-group">
+          <span class="label">色:</span>
+          <select id="sel-color">
+            <option value="#f59e0b">橙 (Amber)</option>
+            <option value="#00e676">緑 (Green)</option>
+            <option value="#ef4444">赤 (Red)</option>
+            <option value="#ffffff">白 (White)</option>
+          </select>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer; margin-left: 6px;">
+            <input type="checkbox" id="chk-half"> 半点灯(50%)
+          </label>
+        </div>
+
+        <div class="tool-group">
+          <button type="button" id="btn-undo">元に戻す</button>
+          <button type="button" id="btn-clear">クリア</button>
+        </div>
+
+        <div class="tool-group">
+          <span class="label">移動:</span>
+          <button type="button" id="btn-shift-left">←</button>
+          <button type="button" id="btn-shift-up">↑</button>
+          <button type="button" id="btn-shift-down">↓</button>
+          <button type="button" id="btn-shift-right">→</button>
+        </div>
+
+        <div style="margin-left: auto; font-size: 11.5px; color: #58a6ff; font-weight: 600;">
+          左クリック: 点灯 / 右クリック: 消灯
+        </div>
+      </div>
+
+      <!-- キャンバス -->
+      <div class="canvas-container">
+        <div id="dot-grid"></div>
+      </div>
+
+      <!-- 原寸プレビュー -->
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="label">原寸点灯プレビュー:</span>
+          <span id="preview-meta" style="font-size: 11px; color: #8b949e;"></span>
+        </div>
+        <div class="preview-box">
+          <div id="part-preview"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       VIEW 2: 全体枠レイアウトタブ
+       ========================================================================= -->
+  <main id="view-layout" style="display: none; flex-direction: column; gap: 14px;">
+    
+    <div class="section-card">
+      <div class="toolbar-row" style="border-bottom: 1px solid #21262d; padding-bottom: 8px; justify-content: space-between;">
+        <div class="tool-group">
+          <span class="label">表示する駅系統:</span>
+          <select id="sel-layout-system" style="font-weight: 700; color: #58a6ff;">
+            <option value="nagamachi">長町・太子堂・名取型</option>
+            <option value="sendai">仙台型</option>
+            <option value="minami-sendai">南仙台型</option>
+            <option value="sat">アクセス線型 (SAT)</option>
+          </select>
+        </div>
+        <div class="tool-group" style="padding-left: 12px; border-left: 1px solid #30363d;">
+          <span class="label">テンプレ読込:</span>
+          <select id="sel-layout-preset" style="font-weight: 600; color: #e6edf3;">
+            <option value="minami-sendai-normal">南仙台型 (通常時 240dot)</option>
+            <option value="minami-sendai-saal">南仙台型 (仙台空港行 240dot)</option>
+            <option value="sendai-concourse">仙台型 (コンコース大型 384dot)</option>
+            <option value="nagamachi-13">長町・太子堂型 (中型 312dot)</option>
+          </select>
+          <button type="button" class="primary" id="btn-apply-preset">テンプレ適用</button>
+        </div>
+        <div style="font-size: 12px; font-weight: 700; color: #388bfd;" id="board-total-width-header">
+          全体合計幅: 0 dot
+        </div>
+      </div>
+
+      <div class="toolbar-row">
+        <button type="button" class="primary" id="btn-add-slot">+ 枠を追加</button>
+        <button type="button" class="danger" id="btn-remove-slot">枠を削除</button>
+        <div class="tool-group">
+          <button type="button" id="btn-slot-left">← 左へ</button>
+          <button type="button" id="btn-slot-right">右へ →</button>
+        </div>
+        <div class="tool-group">
+          <span class="label">枠名:</span>
+          <input type="text" id="input-slot-name" placeholder="枠名 (例: 時刻, 行先)" style="width: 80px;">
+        </div>
+        <div class="tool-group">
+          <span class="label">役割 (コード連動):</span>
+          <select id="sel-slot-role" style="font-weight: 700; color: #58a6ff;">
+            <option value="space">余白 / 空白 (space)</option>
+            <option value="type">種別 (type)</option>
+            <option value="cars">両数 (cars)</option>
+            <option value="time">発車時刻 (time)</option>
+            <option value="dest">行先 (dest)</option>
+            <option value="track">番線 (track)</option>
+          </select>
+        </div>
+        <div class="tool-group">
+          <span class="label">表示パーツ:</span>
+          <select id="sel-slot-part" style="min-width: 120px;">
+            <option value="">(空白)</option>
+          </select>
+        </div>
+        <div class="tool-group">
+          <span class="label">色:</span>
+          <select id="sel-slot-color">
+            <option value="#f59e0b">橙</option>
+            <option value="#00e676">緑</option>
+            <option value="#ef4444">赤</option>
+            <option value="#ffffff">白</option>
+          </select>
+        </div>
+        <div class="tool-group">
+          <span class="label">幅:</span>
+          <input type="number" id="num-slot-width" value="48" min="8" max="192" step="4" style="width: 55px;">
+          <span class="label">dot</span>
+        </div>
+        <button type="button" id="btn-edit-slot-part" style="margin-left: auto;">このパーツをドット編集で開く</button>
+      </div>
+
+      <!-- 全体枠シミュレーター -->
+      <div class="board-housing">
+        <div class="board-slots-container" id="board-slots-list">
+          <!-- JSでスロット要素を生成 -->
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #8b949e; text-align: right;" id="board-total-width">
+        全体幅: 0 dot
+      </div>
+    </div>
+  </main>
+
+  <!-- JSON読込 / 書出モーダル -->
+  <div class="modal-backdrop" id="io-modal">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; font-weight: 700; color: #f0f6fc;">データ読込 / 書出 (stationLedData.json)</span>
+        <button type="button" id="btn-close-modal">閉じる</button>
+      </div>
+      <p style="font-size: 11.5px; color: #8b949e;">
+        このJSONをコピーしてプロジェクトの <code>src/data/stationLedData.json</code> に貼り付けると、アプリ側に一括反映されます。
+      </p>
+      <textarea id="io-textarea"></textarea>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="danger" id="btn-modal-reset">データを完全に空にする</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="btn-download-json">ファイル保存 (stationLedData.json)</button>
+          <button type="button" id="btn-copy-json">クリップボードにコピー</button>
+          <button type="button" class="primary" id="btn-apply-json">読み込んで反映</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // データ初期化 (完全な空の構造・推測データゼロ)
+    // =========================================================================
+    const STORAGE_KEY = "saal_station_led_data_v4";
+
+            function getEmptyData() {
+      return {
+        "nagamachi": {
+                "name": "長町・太子堂・名取型",
+                "digitWidth": 16,
+                "colonWidth": 7,
+                "digits": {
+                        "0": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "....########....",
+                                "...###....###...",
+                                "..###......###..",
+                                "..###......###..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###......###..",
+                                "..###......###..",
+                                "...###....###...",
+                                "....########....",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "1": [
+                                "................",
+                                "................",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".....#####......",
+                                "...#######......",
+                                "...###.###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                ".......###......",
+                                "................",
+                                "................"
+                        ],
+                        "2": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...##########...",
+                                "..####....####..",
+                                "..###......####.",
+                                ".###........###.",
+                                ".###........###.",
+                                "............###.",
+                                "............###.",
+                                "...........###..",
+                                "..........####..",
+                                ".........####...",
+                                "........####....",
+                                ".......####.....",
+                                ".....####.......",
+                                "....####........",
+                                "...####.........",
+                                "..####..........",
+                                "..###...........",
+                                ".##############.",
+                                ".##############.",
+                                "................",
+                                "................"
+                        ],
+                        "3": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...#########....",
+                                "..###.....###...",
+                                ".###.......###..",
+                                ".###.......###..",
+                                "...........###..",
+                                "...........###..",
+                                ".........####...",
+                                "......#####.....",
+                                "......#######...",
+                                "..........####..",
+                                "...........###..",
+                                "............###.",
+                                "............###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###......###..",
+                                "..####....####..",
+                                "...##########...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "4": [
+                                "................",
+                                "................",
+                                ".........###....",
+                                ".........###....",
+                                "........####....",
+                                ".......#####....",
+                                "......##.###....",
+                                "......##.###....",
+                                ".....##..###....",
+                                "....##...###....",
+                                "...##....###....",
+                                "...##....###....",
+                                "..##.....###....",
+                                ".##......###....",
+                                "##.......###....",
+                                "###############.",
+                                "###############.",
+                                "..........##....",
+                                "..........##....",
+                                "..........##....",
+                                "..........##....",
+                                "..........##....",
+                                "................",
+                                "................"
+                        ],
+                        "5": [
+                                "................",
+                                "................",
+                                "...###########..",
+                                "...###########..",
+                                "...###..........",
+                                "...###..........",
+                                "...###..........",
+                                "..####..........",
+                                "..###...........",
+                                "..###.#####.....",
+                                "..###########...",
+                                "..####....####..",
+                                "..##.......###..",
+                                "............###.",
+                                "............###.",
+                                "............###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###......###..",
+                                "..####....####..",
+                                "...##########...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "6": [
+                                "................",
+                                "................",
+                                "......######....",
+                                "....#########...",
+                                "...####....###..",
+                                "..####......###.",
+                                "..###.......###.",
+                                "..###...........",
+                                ".###............",
+                                ".###..#####.....",
+                                ".###.########...",
+                                ".#####....####..",
+                                ".####......###..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###.......###.",
+                                "..###......###..",
+                                "...###....####..",
+                                "....#########...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "7": [
+                                "................",
+                                "................",
+                                ".##############.",
+                                ".##############.",
+                                "............###.",
+                                "...........###..",
+                                "...........###..",
+                                "..........###...",
+                                "..........###...",
+                                ".........###....",
+                                ".........###....",
+                                ".........###....",
+                                "........###.....",
+                                "........###.....",
+                                ".......###......",
+                                ".......###......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                ".....###........",
+                                ".....###........",
+                                "....###.........",
+                                "................",
+                                "................"
+                        ],
+                        "8": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...##########...",
+                                "...###....###...",
+                                "..###......###..",
+                                "..###......###..",
+                                "..###......###..",
+                                "...###....###...",
+                                "...####..####...",
+                                ".....######.....",
+                                "....########....",
+                                "...####..####...",
+                                "..###......###..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".####......####.",
+                                "..####....####..",
+                                "...##########...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "9": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...#########....",
+                                "..####....###...",
+                                "..###......###..",
+                                ".###.......###..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###......####.",
+                                "..####....#####.",
+                                "...########.###.",
+                                ".....#####..###.",
+                                "............###.",
+                                "...........###..",
+                                ".###.......###..",
+                                ".###......####..",
+                                "..###....####...",
+                                "...#########....",
+                                "....######......",
+                                "................",
+                                "................"
+                        ],
+                        ":": [
+                                ".......",
+                                ".......",
+                                ".......",
+                                ".......",
+                                "..###..",
+                                "..###..",
+                                "..###..",
+                                ".......",
+                                ".......",
+                                ".......",
+                                ".......",
+                                ".......",
+                                ".......",
+                                ".......",
+                                ".......",
+                                ".......",
+                                ".......",
+                                "..###..",
+                                "..###..",
+                                "..###..",
+                                ".......",
+                                ".......",
+                                ".......",
+                                "......."
+                        ]
+                },
+                "parts": {},
+                "slots": [
+                        {
+                                "name": "種別",
+                                "role": "type",
+                                "part": "",
+                                "width": 48,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "両数",
+                                "role": "cars",
+                                "part": "",
+                                "width": 48,
+                                "color": "#ef4444"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 24,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "時刻",
+                                "role": "time",
+                                "part": "time",
+                                "width": 72,
+                                "color": "#00e676"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 24,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "行先",
+                                "role": "dest",
+                                "part": "",
+                                "width": 96,
+                                "color": "#f59e0b"
+                        }
+                ]
+        },
+        "sendai": {
+                "name": "仙台型",
+                "digitWidth": 18,
+                "colonWidth": 10,
+                "digits": {
+                        "0": [
+                                "..................",
+                                "..................",
+                                ".......####.......",
+                                ".....###..###.....",
+                                "....##......##....",
+                                "....##......##....",
+                                "...##........##...",
+                                "...##........##...",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "...##........##...",
+                                "...##........##...",
+                                "....##......##....",
+                                "....##......##....",
+                                ".....###..###.....",
+                                ".......####.......",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        "1": [
+                                "..................",
+                                "..................",
+                                ".........#........",
+                                ".......###........",
+                                "....######........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                "........##........",
+                                ".......####.......",
+                                "...############...",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        "2": [
+                                "..................",
+                                "..................",
+                                "......######......",
+                                "....###....###....",
+                                "....##......##....",
+                                "...##........##...",
+                                "...###.......##...",
+                                "...####......##...",
+                                "....##......###...",
+                                "............##....",
+                                "...........###....",
+                                "..........###.....",
+                                ".........###......",
+                                "........###.......",
+                                ".......##.........",
+                                "......##..........",
+                                ".....##........#..",
+                                "....##.........#..",
+                                "...##.........##..",
+                                "...#############..",
+                                "..##############..",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        "3": [
+                                "..................",
+                                "..................",
+                                "......######......",
+                                "....###....###....",
+                                "....##......##....",
+                                "...###.......##...",
+                                "...####......##...",
+                                "....##.......##...",
+                                "............##....",
+                                "...........###....",
+                                ".......#####......",
+                                "...........###....",
+                                "............###...",
+                                ".............##...",
+                                "....#.........##..",
+                                "...###........##..",
+                                "..####........##..",
+                                "...##........##...",
+                                "...##........##...",
+                                "....###....###....",
+                                "......######......",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        "4": [
+                                "..................",
+                                "..................",
+                                ".........###......",
+                                "........####......",
+                                "........#.##......",
+                                ".......##.##......",
+                                "......##..##......",
+                                "......#...##......",
+                                ".....##...##......",
+                                "....##....##......",
+                                "....#.....##......",
+                                "...##.....##......",
+                                "..##......##......",
+                                ".##.......##......",
+                                ".#........##......",
+                                "################..",
+                                "..........##......",
+                                "..........##......",
+                                "..........##......",
+                                ".........####.....",
+                                "......#########...",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        "5": [
+                                "..................",
+                                "..................",
+                                "...############...",
+                                "...############...",
+                                "...#..............",
+                                "...#..............",
+                                "...#..............",
+                                "...#..............",
+                                "...#..............",
+                                "...#..######......",
+                                "...####....###....",
+                                "...##........##...",
+                                ".............##...",
+                                "..............##..",
+                                "..............##..",
+                                "...##.........##..",
+                                "..####........##..",
+                                "..###........##...",
+                                "...##........##...",
+                                "...###.....###....",
+                                ".....#######......",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        "6": [
+                                "..................",
+                                "..................",
+                                ".......######.....",
+                                ".....###....###...",
+                                "....##.......##...",
+                                "....##......####..",
+                                "...##........##...",
+                                "...##.............",
+                                "..##..............",
+                                "..##..............",
+                                "..##..######......",
+                                "..##.##....###....",
+                                "..####.......##...",
+                                "..###........##...",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "...##........##...",
+                                "...##........##...",
+                                "....###....###....",
+                                "......######......",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        "7": [
+                                "..................",
+                                "..................",
+                                "...#############..",
+                                "...#############..",
+                                "...##.........##..",
+                                "...##.........#...",
+                                "...#.........##...",
+                                "...#.........#....",
+                                "...#.........#....",
+                                "............##....",
+                                "............#.....",
+                                "...........##.....",
+                                "...........##.....",
+                                "..........##......",
+                                "..........##......",
+                                ".........###......",
+                                ".........###......",
+                                ".........##.......",
+                                "........###.......",
+                                "........###.......",
+                                "........###.......",
+                                ".........#........",
+                                "..................",
+                                ".................."
+                        ],
+                        "8": [
+                                "..................",
+                                "..................",
+                                "......######......",
+                                "....###....###....",
+                                "....##......##....",
+                                "...##........##...",
+                                "...##........##...",
+                                "...##........##...",
+                                "....##......##....",
+                                "....####...###....",
+                                "......######......",
+                                "....###.######....",
+                                "...##......####...",
+                                "...##........##...",
+                                "..##.........###..",
+                                "..##..........##..",
+                                "..##..........##..",
+                                "..###........###..",
+                                "...##........##...",
+                                "....###....###....",
+                                "......######......",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        "9": [
+                                "..................",
+                                "..................",
+                                "......#####.......",
+                                "....###...###.....",
+                                "...##.......##....",
+                                "...##.......##....",
+                                "..##.........##...",
+                                "..##.........##...",
+                                "..##.........##...",
+                                "..##.........##...",
+                                "...##........##...",
+                                "...##.......###...",
+                                "....###....####...",
+                                "......######.##...",
+                                ".............##...",
+                                ".............##...",
+                                "...##........##...",
+                                "..####......##....",
+                                "...##.......##....",
+                                "...###....###.....",
+                                ".....######.......",
+                                "..................",
+                                "..................",
+                                ".................."
+                        ],
+                        ":": [
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "....##....",
+                                "....##....",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "....##....",
+                                "....##....",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                "..........",
+                                ".........."
+                        ]
+                },
+                "parts": {
+                        "普通": {
+                                "width": 48,
+                                "dots": [
+                                        "......##.......###..............................",
+                                        ".......##......##..........................##...",
+                                        ".......###....##....#....##.....##############..",
+                                        "........##....#....###....###.............###...",
+                                        "..####################.....###.....##....###....",
+                                        ".........##..##...##........##......###.##......",
+                                        "...##....##..##...###................####.......",
+                                        "....##...##..##...##.............#....##....##..",
+                                        "....###..##..##..##..............##############.",
+                                        ".....##..##..##..##...#..........##...##....##..",
+                                        ".....#...##..##..#...###....##...##...##....##..",
+                                        "###############################..#############..",
+                                        "............................##...##...##....##..",
+                                        "......#.........##..........##...##...##....##..",
+                                        "......#############.........##...##...##....##..",
+                                        "......##........##..........##...#############..",
+                                        "......##........##..........##...##...##....##..",
+                                        "......##........##..........##...##...##....##..",
+                                        "......############..........##...##...##....##..",
+                                        "......##........##.........###...##...##.#####..",
+                                        "......##........##........##.##..##...##...##...",
+                                        "......##........##.......###..###...............",
+                                        "......############......###....#################",
+                                        "......##........##.......#........#############."
+                                ],
+                                "category": "種別"
+                        },
+                        "仙台空港": {
+                                "category": "行先",
+                                "width": 96,
+                                "dots": [
+                                        "......................##....................#....................###...............##...###.....",
+                                        "........#.............###....###............##...................##..........##....##...##......",
+                                        ".......###............##.....##............##....................##..........###...##...##..#...",
+                                        ".......###...........###.....##............##..............#.....##...........##...##...##.##...",
+                                        ".......###...........##......##...........###....##........################......#############..",
+                                        ".......###...........##......##...........##......###......##..##...##..###........##...##......",
+                                        ".......###...........##..##..##...###....##........##......##..##...##..##......#..##...##......",
+                                        ".......###...........#...#...##...##.....#..........##.....##..##...##..##.##...#..##...##...#..",
+                                        ".......###..........##...#...##...##.......###########....##...##...##......##..#..##...##..##..",
+                                        "......#####.........###..#...##...##.###########.....##........##...##...#...#.################.",
+                                        ".....#######.......###...#...##...##.#####...........##.......##....##...#.....#...##....#......",
+                                        "....#########......#.#...#...##...##..#..............##.......##....######....##..##.....##.....",
+                                        "...###########....##.#...#...##...##.........................##......######...#...##......##....",
+                                        "..###..###..###..##..#...#...##...##....#..........##......###...............##..############...",
+                                        ".##....###....##.#...#...#...##...##....#############..................#.....##..##......#####..",
+                                        ".......###...........#...#...##...##....#..........##.......#############..###...#.......##.##..",
+                                        ".......###...........#...#...##...##....#..........##............##.........##..#..#.....##.##..",
+                                        ".......###...........#...#...##...##....#..........##............##.........##.##..########..#..",
+                                        ".......###...........#...#...##...##....#..........##............##.........##.....##....###....",
+                                        ".......###...........#...#...##...##....#..........##............##.........##.....##......#....",
+                                        "......#####..........#...###########....#..........##............##......#..##.....##......#....",
+                                        ".....#######.........#...#........##....#############............##......#..##.....##......##...",
+                                        "....###...###........#...#........##....#..........##.....#################.##.....##########...",
+                                        ".....................#...#........##....#..........##.......................##......#########..."
+                                ]
+                        }
+                },
+                "slots": [
+                        {
+                                "name": "種別",
+                                "role": "type",
+                                "part": "普通",
+                                "width": 48,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "愛称",
+                                "role": "space",
+                                "part": "",
+                                "width": 72,
+                                "color": "#ef4444"
+                        },
+                        {
+                                "name": "号数",
+                                "role": "space",
+                                "part": "",
+                                "width": 48,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 5,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "時刻",
+                                "role": "time",
+                                "part": "time",
+                                "width": 86,
+                                "color": "#00e676"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 5,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "行先",
+                                "role": "dest",
+                                "part": "仙台空港",
+                                "width": 96,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 3,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "番線",
+                                "role": "track",
+                                "part": "digit:3",
+                                "width": 18,
+                                "color": "#ef4444"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 3,
+                                "color": "#f59e0b"
+                        }
+                ]
+        },
+        "minami-sendai": {
+                "name": "南仙台型",
+                "digitWidth": 16,
+                "colonWidth": 8,
+                "digits": {
+                        "0": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...###....###...",
+                                "..###......###..",
+                                "..##........##..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..##........##..",
+                                "..###......###..",
+                                "...###....###...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "1": [
+                                "................",
+                                "................",
+                                "......###.......",
+                                ".....####.......",
+                                "....#####.......",
+                                "...######.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "...#########....",
+                                "................",
+                                "................"
+                        ],
+                        "2": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...###....###...",
+                                "..###......###..",
+                                "..##........##..",
+                                ".###........###.",
+                                "..##........###.",
+                                "............###.",
+                                "............###.",
+                                "...........###..",
+                                "..........####..",
+                                "........####....",
+                                ".......###......",
+                                ".....###........",
+                                "....###.........",
+                                "...###..........",
+                                "..###...........",
+                                ".###............",
+                                ".###............",
+                                ".###........###.",
+                                ".##############.",
+                                "................",
+                                "................"
+                        ],
+                        "3": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...###....###...",
+                                "..###......###..",
+                                ".###........##..",
+                                ".###........###.",
+                                "..##........###.",
+                                "............##..",
+                                "...........###..",
+                                ".....########...",
+                                ".....#######....",
+                                "..........###...",
+                                "...........###..",
+                                "............###.",
+                                "............###.",
+                                "..##........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###......###..",
+                                "...###....###...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "4": [
+                                "................",
+                                "................",
+                                ".........###....",
+                                "........####....",
+                                "........####....",
+                                ".......#####....",
+                                "......##.###....",
+                                "......#..###....",
+                                ".....##..###....",
+                                "....##...###....",
+                                "....##...###....",
+                                "...##....###....",
+                                "...##....###....",
+                                "..##.....###....",
+                                "..##.....###....",
+                                ".##......###....",
+                                ".##......###....",
+                                ".##############.",
+                                ".........###....",
+                                ".........###....",
+                                ".........###....",
+                                "......#########.",
+                                "................",
+                                "................"
+                        ],
+                        "5": [
+                                "................",
+                                "................",
+                                ".##############.",
+                                ".##############.",
+                                ".###............",
+                                ".###............",
+                                ".###............",
+                                ".###............",
+                                ".###............",
+                                ".###.#######....",
+                                ".######...###...",
+                                ".####......###..",
+                                ".###........###.",
+                                "............###.",
+                                "............###.",
+                                "............###.",
+                                "..##........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###......###..",
+                                "...####...###...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "6": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...###....###...",
+                                "..###......###..",
+                                "..##........##..",
+                                ".###........###.",
+                                ".###........##..",
+                                ".###............",
+                                ".###............",
+                                ".###..######....",
+                                ".######...####..",
+                                ".####......###..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..##........##..",
+                                "..###......###..",
+                                "...###....###...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "7": [
+                                "................",
+                                "................",
+                                ".##############.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "............###.",
+                                "...........###..",
+                                "..........###...",
+                                ".........###....",
+                                "........###.....",
+                                ".......###......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "......###.......",
+                                "................",
+                                "................"
+                        ],
+                        "8": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...##########...",
+                                "..###......###..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###......###..",
+                                "...###....###...",
+                                "....########....",
+                                "...###....###...",
+                                "..###......###..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..###......###..",
+                                "...###....###...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        "9": [
+                                "................",
+                                "................",
+                                ".....######.....",
+                                "...###....###...",
+                                "..###......###..",
+                                "..##........##..",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..##........###.",
+                                "..###......####.",
+                                "...###...######.",
+                                "....######..###.",
+                                "............###.",
+                                "..#.........###.",
+                                ".###........###.",
+                                ".###........###.",
+                                "..##........##..",
+                                "..###......###..",
+                                "...###....###...",
+                                ".....######.....",
+                                "................",
+                                "................"
+                        ],
+                        ":": [
+                                "........",
+                                "........",
+                                "........",
+                                "........",
+                                "........",
+                                "...##...",
+                                "..####..",
+                                "..####..",
+                                "...##...",
+                                "........",
+                                "........",
+                                "........",
+                                "........",
+                                "........",
+                                "........",
+                                "...##...",
+                                "..####..",
+                                "..####..",
+                                "...##...",
+                                "........",
+                                "........",
+                                "........",
+                                "........",
+                                "........"
+                        ]
+                },
+                "parts": {
+                        "仙台": {
+                                "category": "行先",
+                                "width": 72,
+                                "dots": [
+                                        "........................................................................",
+                                        "........................................................................",
+                                        ".....###......##..........................................##............",
+                                        ".....##.......##.........................................##.............",
+                                        ".....##.......##.........................................##.............",
+                                        ".....##.......##........................................##....##........",
+                                        "....##...##...##....##.................................##......###......",
+                                        "....##...##...##....##.................................##.......###.....",
+                                        "...###...##...##....##................................##.........###....",
+                                        "...###...##...##....##............................###################...",
+                                        "..####...##...##....##............................####################..",
+                                        ".#####...##...##....##............................#.................#...",
+                                        ".##.##...##...##....##..................................................",
+                                        "....##...##...##....##...............................##############.....",
+                                        "....##...##...##....##...............................##############.....",
+                                        "....##...##...##....##...............................##..........##.....",
+                                        "....##...##...##....##...............................##..........##.....",
+                                        "....##...##...##....##...............................##..........##.....",
+                                        "....##...##...##....##...............................##..........##.....",
+                                        "....##...#############...............................##..........##.....",
+                                        "....##...#############...............................##############.....",
+                                        "....##...##.........##...............................##############.....",
+                                        "....##...............................................##..........##.....",
+                                        "........................................................................"
+                                ]
+                        },
+                        "仙台空港": {
+                                "category": "行先",
+                                "width": 96,
+                                "dots": [
+                                        "................................................................................................",
+                                        "................................................................................................",
+                                        ".......##.....##.................##......................##..............##.....##..##..........",
+                                        ".......##.....##.................##......................##...............##....##..##..........",
+                                        "......##......##................##....##.........##################........##...##..##..........",
+                                        "......##......##................##.....##........##....##..##....##..........#############......",
+                                        ".....##..##...##...##..........##.......##.......##....##..##....##.....##......##..##..........",
+                                        ".....##..##...##...##..........##...#######............##..##............##.....##..##..........",
+                                        "....###..##...##...##.....###########.....##..........##...##....##.......#################.....",
+                                        "...####..##...##...##.....................##.........##....##....##.............##..##..........",
+                                        ".....##..##...##...##..............................###......#######............##....##.........",
+                                        ".....##..##...##...##.........................................................###########.......",
+                                        ".....##..##...##...##........#############.................................####......##.###.....",
+                                        ".....##..##...##...##........##.........##.........##############..........##........##.........",
+                                        ".....##..##...##...##........##.........##...............##...............##...########.........",
+                                        ".....##..##...##...##........##.........##...............##...............##...##...............",
+                                        ".....##..##...##...##........##.........##...............##..............##....##...............",
+                                        ".....##..##...##...##........##.........##...............##..............##....##.......##......",
+                                        ".....##..##...##...##........##.........##...............##.............##.....##.......##......",
+                                        ".....##..############........#############.......##################.....##......##########......",
+                                        "................................................................................................",
+                                        "................................................................................................",
+                                        "................................................................................................",
+                                        "................................................................................................"
+                                ]
+                        }
+                },
+                "slots": [
+                        {
+                                "name": "両数",
+                                "role": "cars",
+                                "part": "",
+                                "width": 48,
+                                "color": "#ef4444"
+                        },
+                        {
+                                "name": "時刻",
+                                "role": "time",
+                                "part": "time",
+                                "width": 72,
+                                "color": "#00e676"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 12,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "行先",
+                                "role": "dest",
+                                "part": "仙台",
+                                "width": 72,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 16,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "番線",
+                                "role": "track",
+                                "part": "digit:1",
+                                "width": 16,
+                                "color": "#00e676"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 4,
+                                "color": "#f59e0b"
+                        }
+                ],
+                "slots_saal": [
+                        {
+                                "name": "両数",
+                                "role": "cars",
+                                "part": "",
+                                "width": 48,
+                                "color": "#ef4444"
+                        },
+                        {
+                                "name": "時刻",
+                                "role": "time",
+                                "part": "time",
+                                "width": 72,
+                                "color": "#00e676"
+                        },
+                        {
+                                "name": "行先",
+                                "role": "dest",
+                                "part": "仙台空港",
+                                "width": 96,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 4,
+                                "color": "#f59e0b"
+                        },
+                        {
+                                "name": "番線",
+                                "role": "track",
+                                "part": "digit:1",
+                                "width": 16,
+                                "color": "#00e676"
+                        },
+                        {
+                                "name": "余白",
+                                "role": "space",
+                                "part": "",
+                                "width": 4,
+                                "color": "#f59e0b"
+                        }
+                ]
+        },
+        "sat": {
+                "name": "アクセス線型",
+                "digitWidth": 16,
+                "colonWidth": 8,
+                "digits": {},
+                "parts": {},
+                "slots": []
+        }
+};
+    }
+
+    let appData = getEmptyData();
+
+    // ローカルストレージ読込
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.nagamachi) {
+          appData = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Storage load failed", e);
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      } catch (e) {
+        console.warn("Storage save failed", e);
+      }
+    }
+
+    // =========================================================================
+    // 状態管理
+    // =========================================================================
+    // キャンバス作業領域（型から独立してドットを保持）
+    let currentGrid = createEmptyGrid(16);
+    let currentWidth = 16;
+    let currentColor = "#f59e0b";
+    let undoHistory = [];
+    let isDrawing = false;
+    let drawValue = "1"; // '1'=点灯, '0'=消灯, '2'=半点灯
+
+    // 保存先・読出ターゲットの指定状態
+    let targetSystem = "nagamachi";
+    let targetKind = "digits"; // 'digits' または 'parts'
+    let targetDigitChar = "0"; // '0'〜'9', ':'
+    let targetPartName = "";
+
+    // 全体枠レイアウト用
+    let layoutSystem = "nagamachi";
+    let activeSlotIndex = -1;
+
+    const DIGIT_CHARS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":"];
+
+    // =========================================================================
+    // DOM要素参照
+    // =========================================================================
+    const tabEdit = document.getElementById("tab-edit");
+    const tabLayout = document.getElementById("tab-layout");
+    const viewEdit = document.getElementById("view-edit");
+    const viewLayout = document.getElementById("view-layout");
+
+    const btnResetAll = document.getElementById("btn-reset-all");
+    const btnModalReset = document.getElementById("btn-modal-reset");
+
+    const selTargetSystem = document.getElementById("sel-target-system");
+    const numSysDigitWidth = document.getElementById("num-sys-digit-width");
+    const numSysColonWidth = document.getElementById("num-sys-colon-width");
+    const targetStatusMsg = document.getElementById("target-status-msg");
+    const kindDigits = document.getElementById("kind-digits");
+    const kindParts = document.getElementById("kind-parts");
+    const groupTargetDigits = document.getElementById("group-target-digits");
+    const groupTargetParts = document.getElementById("group-target-parts");
+    const digitButtonsEl = document.getElementById("digit-buttons");
+    const selPartCategory = document.getElementById("sel-part-category");
+    const inputPartName = document.getElementById("input-part-name");
+    const selExistingParts = document.getElementById("sel-existing-parts");
+
+    const btnSaveToTarget = document.getElementById("btn-save-to-target");
+    const btnLoadFromTarget = document.getElementById("btn-load-from-target");
+    const btnDeleteTarget = document.getElementById("btn-delete-target");
+
+    const numCanvasWidth = document.getElementById("num-canvas-width");
+    const btnFitWidth = document.getElementById("btn-fit-width");
+    const selCellSize = document.getElementById("sel-cell-size");
+    const selColor = document.getElementById("sel-color");
+    const chkHalf = document.getElementById("chk-half");
+    const btnUndo = document.getElementById("btn-undo");
+    const btnClear = document.getElementById("btn-clear");
+    const btnShiftLeft = document.getElementById("btn-shift-left");
+    const btnShiftUp = document.getElementById("btn-shift-up");
+    const btnShiftDown = document.getElementById("btn-shift-down");
+    const btnShiftRight = document.getElementById("btn-shift-right");
+
+    const dotGridEl = document.getElementById("dot-grid");
+    const partPreviewEl = document.getElementById("part-preview");
+    const previewMeta = document.getElementById("preview-meta");
+
+    const selLayoutSystem = document.getElementById("sel-layout-system");
+    const btnAddSlot = document.getElementById("btn-add-slot");
+    const btnRemoveSlot = document.getElementById("btn-remove-slot");
+    const btnSlotLeft = document.getElementById("btn-slot-left");
+    const btnSlotRight = document.getElementById("btn-slot-right");
+    const inputSlotName = document.getElementById("input-slot-name");
+    const selSlotRole = document.getElementById("sel-slot-role");
+    const btnFetchServer = document.getElementById("btn-fetch-server");
+    const btnFileImport = document.getElementById("btn-file-import");
+    const fileImportJson = document.getElementById("file-import-json");
+    const selSlotPart = document.getElementById("sel-slot-part");
+    const selSlotColor = document.getElementById("sel-slot-color");
+    const numSlotWidth = document.getElementById("num-slot-width");
+    const btnEditSlotPart = document.getElementById("btn-edit-slot-part");
+    const boardSlotsList = document.getElementById("board-slots-list");
+    const boardTotalWidth = document.getElementById("board-total-width");
+    const boardTotalWidthHeader = document.getElementById("board-total-width-header");
+
+    const btnIo = document.getElementById("btn-io");
+    const ioModal = document.getElementById("io-modal");
+    const btnCloseModal = document.getElementById("btn-close-modal");
+    const ioTextarea = document.getElementById("io-textarea");
+    const btnDownloadJson = document.getElementById("btn-download-json");
+    const btnCopyJson = document.getElementById("btn-copy-json");
+    const btnApplyJson = document.getElementById("btn-apply-json");
+
+    // =========================================================================
+    // 全データ初期化（完全に空にする・警告つき）
+    // =========================================================================
+    function resetAllDataWithWarning() {
+      const ok = confirm("【警告】すべての駅系統の手打ちデータ（数字・パーツ・枠レイアウト）が完全に削除され、空になります。\n\n本当によろしいですか？この操作は取り消せません。");
+      if (!ok) return;
+
+      appData = getEmptyData();
+      saveData();
+
+      // キャンバスも空にする
+      currentWidth = 16;
+      numCanvasWidth.value = 16;
+      currentGrid = createEmptyGrid(16);
+      undoHistory = [];
+
+      inputPartName.value = "";
+      targetPartName = "";
+
+      refreshTargetUI();
+      refreshSlotPartOptions();
+      renderCanvas();
+      renderBoardSlots();
+
+      if (ioModal.classList.contains("open")) {
+        ioTextarea.value = JSON.stringify(appData, null, 2);
+      }
+
+      alert("すべてのデータを初期化し、完全に空にしました。");
+    }
+
+    btnResetAll.addEventListener("click", resetAllDataWithWarning);
+    btnModalReset.addEventListener("click", resetAllDataWithWarning);
+
+    // =========================================================================
+    // タブ切替
+    // =========================================================================
+    function switchTab(tab) {
+      if (tab === "edit") {
+        tabEdit.classList.add("active");
+        tabLayout.classList.remove("active");
+        viewEdit.style.display = "flex";
+        viewLayout.style.display = "none";
+        renderCanvas();
+      } else {
+        tabEdit.classList.remove("active");
+        tabLayout.classList.add("active");
+        viewEdit.style.display = "none";
+        viewLayout.style.display = "flex";
+        renderBoardSlots();
+      }
+    }
+    tabEdit.addEventListener("click", () => switchTab("edit"));
+    tabLayout.addEventListener("click", () => switchTab("layout"));
+
+    // =========================================================================
+    // グリッド初期化・変換
+    // =========================================================================
+    function createEmptyGrid(width) {
+      const g = [];
+      for (let r = 0; r < 24; r++) {
+        g.push(new Array(width).fill("0"));
+      }
+      return g;
+    }
+
+    function gridToStrings(grid) {
+      return grid.map(row => row.map(v => (v === "1" ? "#" : (v === "2" ? "+" : "."))).join(""));
+    }
+
+    function stringsToGrid(rows, width) {
+      const g = [];
+      for (let r = 0; r < 24; r++) {
+        const rowStr = (rows && rows[r]) || "";
+        const row = [];
+        for (let c = 0; c < width; c++) {
+          const ch = rowStr[c] || ".";
+          row.push(ch === "#" ? "1" : (ch === "+" ? "2" : "0"));
+        }
+        g.push(row);
+      }
+      return g;
+    }
+
+    function pushHistory() {
+      undoHistory.push(JSON.parse(JSON.stringify(currentGrid)));
+      if (undoHistory.length > 30) undoHistory.shift();
+    }
+
+    // =========================================================================
+    // ターゲット指定（型・種類・文字）の更新
+    // ※ 変更してもキャンバスは勝手にクリア・ロードしない！
+    // =========================================================================
+    function refreshTargetUI() {
+      const sys = appData[targetSystem] || {};
+      const digits = sys.digits || {};
+      const parts = sys.parts || {};
+
+      // 0. 数字幅・コロン幅の反映
+      numSysDigitWidth.value = sys.digitWidth || (targetSystem === "sendai" ? 18 : 16);
+      numSysColonWidth.value = sys.colonWidth || (targetSystem === "sendai" ? 12 : 7);
+
+      // 1. 数字ボタンの生成 & 保存済みドット表示
+      digitButtonsEl.innerHTML = "";
+      DIGIT_CHARS.forEach(ch => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "digit-btn" + (ch === targetDigitChar ? " active" : "");
+        if (digits[ch] && digits[ch].length === 24) {
+          btn.classList.add("has-data");
+        }
+        btn.textContent = ch;
+        btn.addEventListener("click", () => {
+          targetDigitChar = ch;
+          refreshTargetUI();
+        });
+        digitButtonsEl.appendChild(btn);
+      });
+
+      // 2. パーツ選択プルダウンの更新（カテゴリ別グループ化）
+      selExistingParts.innerHTML = '<option value="">(登録済から選ぶ)</option>';
+      const groups = { "種別": [], "行先": [], "両数": [], "その他": [] };
+      Object.keys(parts).forEach(name => {
+        const p = parts[name];
+        const cat = p.category || (name.includes("両") ? "両数" : (name.includes("普通") || name.includes("快速") || name.includes("特急") ? "種別" : "その他"));
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push({ name, width: p.width || 0 });
+      });
+
+      ["種別", "行先", "両数", "その他"].forEach(cat => {
+        if (groups[cat] && groups[cat].length > 0) {
+          const optGroup = document.createElement("optgroup");
+          optGroup.label = cat;
+          groups[cat].forEach(item => {
+            const opt = document.createElement("option");
+            opt.value = item.name;
+            opt.textContent = `${item.name} (${item.width}dot)`;
+            optGroup.appendChild(opt);
+          });
+          selExistingParts.appendChild(optGroup);
+        }
+      });
+
+      // 3. ターゲットの現状ステータス表示
+      updateTargetStatusIndicator();
+    }
+
+    function updateTargetStatusIndicator() {
+      const sys = appData[targetSystem] || {};
+      if (targetKind === "digits") {
+        const has = sys.digits && sys.digits[targetDigitChar];
+        const w = targetDigitChar === ":" ? (sys.colonWidth || 7) : (sys.digitWidth || 16);
+        if (has) {
+          showStatusMsg(`[${sys.name}] 数字 '${targetDigitChar}': 登録済 (${w}dot)`, "ok");
+        } else {
+          showStatusMsg(`[${sys.name}] 数字 '${targetDigitChar}': 未登録 (空)`, "warn");
+        }
+      } else {
+        const pName = inputPartName.value.trim();
+        if (!pName) {
+          showStatusMsg(`パーツ名を入力してください`, "");
+        } else {
+          const p = sys.parts && sys.parts[pName];
+          if (p) {
+            showStatusMsg(`[${sys.name}] パーツ「${pName}」: 登録済 (${p.width}dot)`, "ok");
+          } else {
+            showStatusMsg(`[${sys.name}] パーツ「${pName}」: 未登録 (空)`, "warn");
+          }
+        }
+      }
+    }
+
+    function showStatusMsg(text, type) {
+      targetStatusMsg.textContent = text;
+      targetStatusMsg.className = "status-msg " + type;
+    }
+
+    // イベント: 型の切り替え（キャンバスは保持）
+    selTargetSystem.addEventListener("change", (e) => {
+      targetSystem = e.target.value;
+      refreshTargetUI();
+    });
+
+    // イベント: 種類の切り替え（キャンバスは保持）
+    kindDigits.addEventListener("change", () => {
+      targetKind = "digits";
+      groupTargetDigits.style.display = "flex";
+      groupTargetParts.style.display = "none";
+      refreshTargetUI();
+    });
+
+    kindParts.addEventListener("change", () => {
+      targetKind = "parts";
+      groupTargetDigits.style.display = "none";
+      groupTargetParts.style.display = "flex";
+      refreshTargetUI();
+    });
+
+    // パーツ名入力・既存選択
+    inputPartName.addEventListener("input", () => {
+      targetPartName = inputPartName.value.trim();
+      updateTargetStatusIndicator();
+    });
+
+    selExistingParts.addEventListener("change", (e) => {
+      if (e.target.value) {
+        inputPartName.value = e.target.value;
+        targetPartName = e.target.value;
+        const sys = appData[targetSystem];
+        if (sys && sys.parts && sys.parts[e.target.value]) {
+          const p = sys.parts[e.target.value];
+          if (p.category) {
+            selPartCategory.value = p.category;
+          }
+        }
+        updateTargetStatusIndicator();
+      }
+    });
+
+    // =========================================================================
+    // 保存・読込・削除アクション（明示的操作）
+    // =========================================================================
+
+    // A: キャンバスの内容をターゲットに保存
+    btnSaveToTarget.addEventListener("click", () => {
+      const sys = appData[targetSystem];
+      if (!sys) return;
+
+      if (targetKind === "digits") {
+        if (!sys.digits) sys.digits = {};
+        sys.digits[targetDigitChar] = gridToStrings(currentGrid);
+        saveData();
+        refreshTargetUI();
+        showStatusMsg(`[${sys.name}] 数字 '${targetDigitChar}' に保存しました`, "ok");
+      } else {
+        const pName = inputPartName.value.trim();
+        if (!pName) {
+          alert("パーツ名を入力してください (例: 普通, 仙台空港)");
+          inputPartName.focus();
+          return;
+        }
+        if (!sys.parts) sys.parts = {};
+        const cat = selPartCategory.value || "その他";
+        sys.parts[pName] = {
+          category: cat,
+          width: currentWidth,
+          dots: gridToStrings(currentGrid)
+        };
+        saveData();
+        refreshTargetUI();
+        refreshSlotPartOptions();
+        showStatusMsg(`[${sys.name}] パーツ「${pName}」[${cat}] (${currentWidth}dot) に保存しました`, "ok");
+      }
+    });
+
+    // B: ターゲットのデータをキャンバスに読み込む
+    btnLoadFromTarget.addEventListener("click", () => {
+      const sys = appData[targetSystem];
+      if (!sys) return;
+
+      if (targetKind === "digits") {
+        const dots = sys.digits ? sys.digits[targetDigitChar] : null;
+        const targetW = targetDigitChar === ":" ? (sys.colonWidth || 7) : (sys.digitWidth || 16);
+
+        if (!dots) {
+          if (confirm(`[${sys.name}] の数字 '${targetDigitChar}' は未登録です。幅${targetW}dotの白紙キャンバスを展開しますか？`)) {
+            pushHistory();
+            currentWidth = targetW;
+            numCanvasWidth.value = currentWidth;
+            currentGrid = createEmptyGrid(currentWidth);
+            renderCanvas();
+          }
+          return;
+        }
+
+        pushHistory();
+        currentWidth = targetW;
+        numCanvasWidth.value = currentWidth;
+        currentGrid = stringsToGrid(dots, currentWidth);
+        renderCanvas();
+        showStatusMsg(`[${sys.name}] 数字 '${targetDigitChar}' をキャンバスに読み込みました`, "ok");
+      } else {
+        const pName = inputPartName.value.trim();
+        if (!pName) {
+          alert("読み込むパーツ名を入力または選択してください");
+          return;
+        }
+        const p = sys.parts ? sys.parts[pName] : null;
+        if (!p) {
+          alert(`パーツ「${pName}」はまだ登録されていません`);
+          return;
+        }
+
+        pushHistory();
+        if (p.category) {
+          selPartCategory.value = p.category;
+        }
+        currentWidth = p.width || 48;
+        numCanvasWidth.value = currentWidth;
+        if (currentWidth >= 72) {
+          selCellSize.value = "9";
+          document.documentElement.style.setProperty("--cell-size", "9px");
+        }
+        currentGrid = stringsToGrid(p.dots, currentWidth);
+        renderCanvas();
+        showStatusMsg(`パーツ「${pName}」[${p.category || 'その他'}] (${currentWidth}dot) をキャンバスに読み込みました`, "ok");
+      }
+    });
+
+    // C: ターゲットのデータを削除
+    btnDeleteTarget.addEventListener("click", () => {
+      const sys = appData[targetSystem];
+      if (!sys) return;
+
+      if (targetKind === "digits") {
+        if (!sys.digits || !sys.digits[targetDigitChar]) {
+          alert(`数字 '${targetDigitChar}' は登録されていません`);
+          return;
+        }
+        if (!confirm(`[${sys.name}] の数字 '${targetDigitChar}' の登録データを削除してもよろしいですか？`)) return;
+        delete sys.digits[targetDigitChar];
+        saveData();
+        refreshTargetUI();
+        showStatusMsg(`数字 '${targetDigitChar}' を削除しました`, "warn");
+      } else {
+        const pName = inputPartName.value.trim();
+        if (!pName || !sys.parts || !sys.parts[pName]) {
+          alert(`パーツ「${pName}」は登録されていません`);
+          return;
+        }
+        if (!confirm(`[${sys.name}] のパーツ「${pName}」を削除してもよろしいですか？`)) return;
+        delete sys.parts[pName];
+        saveData();
+        refreshTargetUI();
+        refreshSlotPartOptions();
+        showStatusMsg(`パーツ「${pName}」を削除しました`, "warn");
+      }
+    });
+
+    // 数字幅・コロン幅の変更保存
+    numSysDigitWidth.addEventListener("change", (e) => {
+      const w = parseInt(e.target.value, 10);
+      if (!isNaN(w) && w >= 4) {
+        if (!appData[targetSystem]) appData[targetSystem] = {};
+        appData[targetSystem].digitWidth = w;
+        saveData();
+        updateTargetStatusIndicator();
+        renderBoardSlots();
+      }
+    });
+
+    numSysColonWidth.addEventListener("change", (e) => {
+      const w = parseInt(e.target.value, 10);
+      if (!isNaN(w) && w >= 2) {
+        if (!appData[targetSystem]) appData[targetSystem] = {};
+        appData[targetSystem].colonWidth = w;
+        saveData();
+        updateTargetStatusIndicator();
+        renderBoardSlots();
+      }
+    });
+
+    // 標準幅に合わせるボタン
+    btnFitWidth.addEventListener("click", () => {
+      const sys = appData[targetSystem] || {};
+      let fitW = 16;
+      if (targetKind === "digits") {
+        fitW = targetDigitChar === ":" 
+          ? (sys.colonWidth || (targetSystem === "sendai" ? 12 : 7)) 
+          : (sys.digitWidth || (targetSystem === "sendai" ? 18 : 16));
+      } else {
+        fitW = 48;
+      }
+      numCanvasWidth.value = fitW;
+      changeCanvasWidth(fitW);
+    });
+
+    // =========================================================================
+    // キャンバスレンダリング & 左右クリック描画
+    // =========================================================================
+    function renderCanvas() {
+      dotGridEl.innerHTML = "";
+      dotGridEl.style.gridTemplateColumns = `repeat(${currentWidth}, var(--cell-size))`;
+      dotGridEl.style.gridTemplateRows = `repeat(24, var(--cell-size))`;
+
+      for (let r = 0; r < 24; r++) {
+        for (let c = 0; c < currentWidth; c++) {
+          const val = currentGrid[r] ? currentGrid[r][c] : "0";
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          if ((c + 1) % 24 === 0 && c !== currentWidth - 1) {
+            cell.classList.add("guide-col");
+          }
+
+          applyCellColor(cell, val, currentColor);
+
+          // 左右クリック描画
+          cell.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            pushHistory();
+            isDrawing = true;
+            if (e.button === 2) {
+              drawValue = "0"; // 右クリック: 消灯
+            } else {
+              drawValue = chkHalf.checked ? "2" : "1"; // 左クリック: 点灯
+            }
+            paintCell(r, c, drawValue);
+          });
+
+          cell.addEventListener("mouseenter", (e) => {
+            if (isDrawing) {
+              paintCell(r, c, drawValue);
+            }
+          });
+
+          cell.addEventListener("contextmenu", (e) => e.preventDefault());
+
+          dotGridEl.appendChild(cell);
+        }
+      }
+
+      renderPartPreview();
+    }
+
+    function applyCellColor(el, val, color) {
+      if (val === "1") {
+        el.style.backgroundColor = color;
+        el.style.opacity = "1";
+        el.style.boxShadow = `0 0 3px ${color}`;
+      } else if (val === "2") {
+        el.style.backgroundColor = color;
+        el.style.opacity = "0.5";
+        el.style.boxShadow = "none";
+      } else {
+        el.style.backgroundColor = "#111620";
+        el.style.opacity = "1";
+        el.style.boxShadow = "none";
+      }
+    }
+
+    function paintCell(r, c, val) {
+      if (r < 0 || r >= 24 || c < 0 || c >= currentWidth) return;
+      currentGrid[r][c] = val;
+
+      const idx = r * currentWidth + c;
+      const cell = dotGridEl.children[idx];
+      if (cell) {
+        applyCellColor(cell, val, currentColor);
+      }
+
+      renderPartPreview();
+    }
+
+    window.addEventListener("mouseup", () => { isDrawing = false; });
+    window.addEventListener("contextmenu", (e) => {
+      if (e.target.closest("#dot-grid")) {
+        e.preventDefault();
+      }
+    });
+
+    // =========================================================================
+    // SVGプレビュー生成
+    // =========================================================================
+    function createSvgDotString(grid, width, color, dotSize = 2, pitch = 2.4) {
+      const fullDots = [];
+      const halfDots = [];
+
+      for (let r = 0; r < 24; r++) {
+        for (let c = 0; c < width; c++) {
+          const val = grid[r] ? grid[r][c] : "0";
+          const x = (c * pitch).toFixed(2);
+          const y = (r * pitch).toFixed(2);
+          if (val === "1") {
+            fullDots.push(`M${x},${y}h${dotSize}v${dotSize}h-${dotSize}z`);
+          } else if (val === "2") {
+            halfDots.push(`M${x},${y}h${dotSize}v${dotSize}h-${dotSize}z`);
+          }
+        }
+      }
+
+      const totalW = (width * pitch).toFixed(2);
+      const totalH = (24 * pitch).toFixed(2);
+
+      let svg = `<svg viewBox="0 0 ${totalW} ${totalH}" style="height: 38px; width: auto; display: block;">`;
+      if (halfDots.length > 0) {
+        svg += `<path d="${halfDots.join("")}" fill="${color}" opacity="0.5" />`;
+      }
+      if (fullDots.length > 0) {
+        svg += `<path d="${fullDots.join("")}" fill="${color}" filter="drop-shadow(0 0 1.5px ${color})" />`;
+      }
+      svg += `</svg>`;
+      return svg;
+    }
+
+    function renderPartPreview() {
+      partPreviewEl.innerHTML = createSvgDotString(currentGrid, currentWidth, currentColor);
+      previewMeta.textContent = `キャンバス幅: ${currentWidth} dot × 24 dot`;
+    }
+
+    // =========================================================================
+    // キャンバス編集ツール
+    // =========================================================================
+    function changeCanvasWidth(newW) {
+      if (isNaN(newW) || newW < 2) return;
+      pushHistory();
+      const oldGrid = currentGrid;
+      currentWidth = newW;
+      if (newW >= 72 && selCellSize.value === "14") {
+        selCellSize.value = "9";
+        document.documentElement.style.setProperty("--cell-size", "9px");
+      }
+      currentGrid = createEmptyGrid(newW);
+
+      for (let r = 0; r < 24; r++) {
+        for (let c = 0; c < Math.min(oldGrid[r].length, newW); c++) {
+          currentGrid[r][c] = oldGrid[r][c];
+        }
+      }
+      renderCanvas();
+    }
+
+    numCanvasWidth.addEventListener("change", (e) => {
+      changeCanvasWidth(parseInt(e.target.value, 10));
+    });
+
+    selColor.addEventListener("change", (e) => {
+      currentColor = e.target.value;
+      renderCanvas();
+    });
+
+    btnUndo.addEventListener("click", () => {
+      if (undoHistory.length === 0) return;
+      currentGrid = undoHistory.pop();
+      currentWidth = currentGrid[0].length;
+      numCanvasWidth.value = currentWidth;
+      renderCanvas();
+    });
+
+    selCellSize.addEventListener("change", (e) => {
+      document.documentElement.style.setProperty("--cell-size", `${e.target.value}px`);
+    });
+
+    btnClear.addEventListener("click", () => {
+      pushHistory();
+      currentGrid = createEmptyGrid(currentWidth);
+      renderCanvas();
+    });
+
+    function shiftGrid(dx, dy) {
+      pushHistory();
+      const next = createEmptyGrid(currentWidth);
+      for (let r = 0; r < 24; r++) {
+        for (let c = 0; c < currentWidth; c++) {
+          const nr = r + dy;
+          const nc = c + dx;
+          if (nr >= 0 && nr < 24 && nc >= 0 && nc < currentWidth) {
+            next[nr][nc] = currentGrid[r][c];
+          }
+        }
+      }
+      currentGrid = next;
+      renderCanvas();
+    }
+
+    btnShiftLeft.addEventListener("click", () => shiftGrid(-1, 0));
+    btnShiftRight.addEventListener("click", () => shiftGrid(1, 0));
+    btnShiftUp.addEventListener("click", () => shiftGrid(0, -1));
+    btnShiftDown.addEventListener("click", () => shiftGrid(0, 1));
+
+    // =========================================================================
+    // 全体枠レイアウトタブ
+    // =========================================================================
+    function refreshSlotPartOptions() {
+      const sys = appData[layoutSystem] || {};
+      const parts = sys.parts || {};
+
+      selSlotPart.innerHTML = '<option value="">(空白)</option><option value="time">発車時刻 (time)</option>';
+      
+      // 登録済み数字フォント（番線・号数等にパーツ作成不要で直接流用可能）
+      const digits = sys.digits || {};
+      const digitKeys = Object.keys(digits).filter(k => digits[k] && digits[k].length === 24);
+      if (digitKeys.length > 0) {
+        const digitGroup = document.createElement("optgroup");
+        digitGroup.label = "登録済数字フォント (番線・号数用)";
+        digitKeys.forEach(k => {
+          const opt = document.createElement("option");
+          opt.value = `digit:${k}`;
+          const w = k === ":" ? (sys.colonWidth || 10) : (sys.digitWidth || 18);
+          opt.textContent = `数字 '${k}' (${w}dot)`;
+          digitGroup.appendChild(opt);
+        });
+        selSlotPart.appendChild(digitGroup);
+      }
+
+      const groups = { "種別": [], "行先": [], "両数": [], "その他": [] };
+      Object.keys(parts).forEach(name => {
+        const p = parts[name];
+        const cat = p.category || (name.includes("両") ? "両数" : (name.includes("普通") || name.includes("快速") || name.includes("特急") ? "種別" : "その他"));
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push({ name, width: p.width || 0 });
+      });
+
+      ["種別", "行先", "両数", "その他"].forEach(cat => {
+        if (groups[cat] && groups[cat].length > 0) {
+          const optGroup = document.createElement("optgroup");
+          optGroup.label = cat;
+          groups[cat].forEach(item => {
+            const opt = document.createElement("option");
+            opt.value = item.name;
+            opt.textContent = `${item.name} (${item.width}dot)`;
+            optGroup.appendChild(opt);
+          });
+          selSlotPart.appendChild(optGroup);
+        }
+      });
+    }
+
+    const selLayoutPreset = document.getElementById("sel-layout-preset");
+    const btnApplyPreset = document.getElementById("btn-apply-preset");
+
+    const LAYOUT_PRESETS = {
+      "minami-sendai-normal": {
+        system: "minami-sendai",
+        slots: [
+          { name: "両数", part: "", width: 48, color: "#ef4444" },
+          { name: "時刻", part: "time", width: 72, color: "#00e676" },
+          { name: "余白", part: "", width: 12, color: "#f59e0b" },
+          { name: "行先", part: "仙台", width: 72, color: "#f59e0b" },
+          { name: "余白", part: "", width: 16, color: "#f59e0b" },
+          { name: "番線", part: "digit:1", width: 16, color: "#00e676" },
+          { name: "余白", part: "", width: 4, color: "#f59e0b" }
+        ]
+      },
+      "minami-sendai-saal": {
+        system: "minami-sendai",
+        slots: [
+          { name: "両数", part: "", width: 48, color: "#ef4444" },
+          { name: "時刻", part: "time", width: 72, color: "#00e676" },
+          { name: "行先", part: "仙台空港", width: 96, color: "#f59e0b" },
+          { name: "余白", part: "", width: 4, color: "#f59e0b" },
+          { name: "番線", part: "digit:1", width: 16, color: "#00e676" },
+          { name: "余白", part: "", width: 4, color: "#f59e0b" }
+        ]
+      },
+      "sendai-concourse": {
+        system: "sendai",
+        slots: [
+          { name: "種別", part: "普通", width: 48, color: "#f59e0b" },
+          { name: "列車名", part: "", width: 72, color: "#ef4444" },
+          { name: "号数", part: "", width: 48, color: "#f59e0b" },
+          { name: "余白", part: "", width: 5, color: "#f59e0b" },
+          { name: "時刻", part: "time", width: 86, color: "#00e676" },
+          { name: "余白", part: "", width: 5, color: "#f59e0b" },
+          { name: "行先", part: "仙台空港", width: 96, color: "#f59e0b" },
+          { name: "余白", part: "", width: 3, color: "#f59e0b" },
+          { name: "番線", part: "digit:3", width: 18, color: "#ef4444" },
+          { name: "余白", part: "", width: 3, color: "#f59e0b" }
+        ]
+      },
+      "nagamachi-13": {
+        system: "nagamachi",
+        slots: [
+          { name: "種別", part: "", width: 48, color: "#f59e0b" },
+          { name: "両数", part: "", width: 48, color: "#ef4444" },
+          { name: "空白", part: "", width: 24, color: "#f59e0b" },
+          { name: "時刻", part: "time", width: 72, color: "#00e676" },
+          { name: "余白", part: "", width: 24, color: "#f59e0b" },
+          { name: "行先", part: "", width: 96, color: "#f59e0b" }
+        ]
+      }
+    };
+
+    if (btnApplyPreset) {
+      btnApplyPreset.addEventListener("click", () => {
+        const key = selLayoutPreset.value;
+        const preset = LAYOUT_PRESETS[key];
+        if (!preset) return;
+        layoutSystem = preset.system;
+        selLayoutSystem.value = layoutSystem;
+        if (!appData[layoutSystem]) appData[layoutSystem] = {};
+        appData[layoutSystem].slots = JSON.parse(JSON.stringify(preset.slots));
+        saveToStorage();
+        refreshSlotPartOptions();
+        renderBoardSlots();
+        alert(`テンプレート「${selLayoutPreset.options[selLayoutPreset.selectedIndex].text}」を適用しました。`);
+      });
+    }
+
+    selLayoutSystem.addEventListener("change", (e) => {
+      layoutSystem = e.target.value;
+      refreshSlotPartOptions();
+      renderBoardSlots();
+    });
+
+    function renderBoardSlots() {
+      const sys = appData[layoutSystem] || {};
+      boardSlotsList.innerHTML = "";
+
+      if (!sys.slots || sys.slots.length === 0) {
+        boardSlotsList.innerHTML = `<span style="font-size: 11.5px; color: #6e7681; padding: 10px;">スロットがありません。「+ 枠を追加」でスロットを追加してください。</span>`;
+        activeSlotIndex = -1;
+        updateSlotControls();
+        boardTotalWidth.textContent = "全体幅: 0 dot";
+        return;
+      }
+
+      if (activeSlotIndex >= sys.slots.length) {
+        activeSlotIndex = sys.slots.length - 1;
+      }
+
+      let totalW = 0;
+
+      sys.slots.forEach((slot, idx) => {
+        totalW += slot.width || 0;
+        const item = document.createElement("div");
+        item.className = "slot-item" + (idx === activeSlotIndex ? " active" : "");
+
+        const title = document.createElement("div");
+        title.className = "slot-title";
+        title.textContent = `${slot.name || "枠"} (${slot.width}d)`;
+        item.appendChild(title);
+
+        const prev = document.createElement("div");
+        prev.className = "slot-preview";
+
+        let slotGrid = null;
+        if (slot.part === "time") {
+          slotGrid = generateSampleTimeGrid(sys, slot.width);
+        } else if (slot.part && slot.part.startsWith("digit:")) {
+          const ch = slot.part.slice(6);
+          slotGrid = generateSampleDigitGrid(sys, slot.width, ch);
+        } else if (slot.part && sys.parts[slot.part]) {
+          slotGrid = stringsToGrid(sys.parts[slot.part].dots, slot.width);
+        } else {
+          slotGrid = createEmptyGrid(slot.width);
+        }
+
+        prev.innerHTML = createSvgDotString(slotGrid, slot.width, slot.color || "#00e676", 1.8, 2.2);
+        item.appendChild(prev);
+
+        item.addEventListener("click", () => {
+          activeSlotIndex = idx;
+          updateSlotControls();
+          renderBoardSlots();
+        });
+
+        boardSlotsList.appendChild(item);
+      });
+
+      boardTotalWidth.textContent = `全体幅: ${totalW} dot (${sys.slots.length}枠)`;
+      if (boardTotalWidthHeader) {
+        boardTotalWidthHeader.textContent = `[${sys.name || layoutSystem}] 全体幅: ${totalW} dot (${sys.slots.length}枠)`;
+      }
+      updateSlotControls();
+    }
+
+    function generateSampleTimeGrid(sys, width) {
+      const g = createEmptyGrid(width);
+      const digits = sys.digits || {};
+      const sample = ["1", "6", ":", "3", "5"];
+      const letterSpacing = layoutSystem === "sendai" ? 1 : 0;
+
+      // 合計幅を計算して中央揃え
+      let neededW = 0;
+      sample.forEach((ch, idx) => {
+        const chW = ch === ":" ? (sys.colonWidth || (layoutSystem === "sendai" ? 10 : 7)) : (sys.digitWidth || (layoutSystem === "sendai" ? 18 : 16));
+        neededW += chW;
+        if (idx < sample.length - 1) neededW += letterSpacing;
+      });
+
+      let curX = Math.max(0, Math.floor((width - neededW) / 2));
+
+      sample.forEach((ch, idx) => {
+        const charData = digits[ch];
+        const chW = ch === ":" ? (sys.colonWidth || (layoutSystem === "sendai" ? 10 : 7)) : (sys.digitWidth || (layoutSystem === "sendai" ? 18 : 16));
+        if (ch !== " " && charData && curX + chW <= width) {
+          for (let r = 0; r < 24; r++) {
+            const rowStr = charData[r] || "";
+            for (let c = 0; c < chW; c++) {
+              if (rowStr[c] === "#") g[r][curX + c] = "1";
+              else if (rowStr[c] === "+") g[r][curX + c] = "2";
+            }
+          }
+        }
+        curX += chW;
+        if (idx < sample.length - 1) curX += letterSpacing;
+      });
+
+      return g;
+    }
+
+    function generateSampleDigitGrid(sys, width, char) {
+      const g = createEmptyGrid(width);
+      const digits = sys.digits || {};
+      const charData = digits[char];
+      if (!charData) return g;
+      const chW = char === ":" ? (sys.colonWidth || 10) : (sys.digitWidth || 18);
+      const curX = Math.max(0, Math.floor((width - chW) / 2));
+      for (let r = 0; r < 24; r++) {
+        const rowStr = charData[r] || "";
+        for (let c = 0; c < Math.min(chW, width - curX); c++) {
+          if (rowStr[c] === "#") g[r][curX + c] = "1";
+          else if (rowStr[c] === "+") g[r][curX + c] = "2";
+        }
+      }
+      return g;
+    }
+
+    function updateSlotControls() {
+      const sys = appData[layoutSystem] || {};
+      const slot = sys.slots ? sys.slots[activeSlotIndex] : null;
+
+      if (!slot) {
+        btnRemoveSlot.disabled = true;
+        btnSlotLeft.disabled = true;
+        btnSlotRight.disabled = true;
+        inputSlotName.disabled = true;
+        selSlotPart.disabled = true;
+        selSlotColor.disabled = true;
+        numSlotWidth.disabled = true;
+        btnEditSlotPart.disabled = true;
+        return;
+      }
+
+      btnRemoveSlot.disabled = false;
+      btnSlotLeft.disabled = activeSlotIndex === 0;
+      btnSlotRight.disabled = activeSlotIndex === sys.slots.length - 1;
+      inputSlotName.disabled = false;
+      selSlotPart.disabled = false;
+      selSlotColor.disabled = false;
+      numSlotWidth.disabled = false;
+      btnEditSlotPart.disabled = !slot.part || slot.part === "time";
+
+      inputSlotName.value = slot.name || "";
+      if (selSlotRole) selSlotRole.value = slot.role || (slot.part === "time" ? "time" : slot.part ? "dest" : "space");
+      selSlotPart.value = slot.part || "";
+      selSlotColor.value = slot.color || "#00e676";
+      numSlotWidth.value = slot.width || 48;
+    }
+
+    btnAddSlot.addEventListener("click", () => {
+      const sys = appData[layoutSystem];
+      if (!sys.slots) sys.slots = [];
+      sys.slots.push({
+        name: "新規枠",
+        part: "",
+        width: 48,
+        color: "#f59e0b"
+      });
+      activeSlotIndex = sys.slots.length - 1;
+      saveData();
+      renderBoardSlots();
+    });
+
+    btnRemoveSlot.addEventListener("click", () => {
+      const sys = appData[layoutSystem];
+      if (!sys.slots || activeSlotIndex < 0 || activeSlotIndex >= sys.slots.length) return;
+      sys.slots.splice(activeSlotIndex, 1);
+      if (activeSlotIndex >= sys.slots.length) {
+        activeSlotIndex = sys.slots.length - 1;
+      }
+      saveData();
+      renderBoardSlots();
+    });
+
+    btnSlotLeft.addEventListener("click", () => {
+      const sys = appData[layoutSystem];
+      if (activeSlotIndex <= 0) return;
+      const tmp = sys.slots[activeSlotIndex];
+      sys.slots[activeSlotIndex] = sys.slots[activeSlotIndex - 1];
+      sys.slots[activeSlotIndex - 1] = tmp;
+      activeSlotIndex--;
+      saveData();
+      renderBoardSlots();
+    });
+
+    btnSlotRight.addEventListener("click", () => {
+      const sys = appData[layoutSystem];
+      if (activeSlotIndex < 0 || activeSlotIndex >= sys.slots.length - 1) return;
+      const tmp = sys.slots[activeSlotIndex];
+      sys.slots[activeSlotIndex] = sys.slots[activeSlotIndex + 1];
+      sys.slots[activeSlotIndex + 1] = tmp;
+      activeSlotIndex++;
+      saveData();
+      renderBoardSlots();
+    });
+
+    inputSlotName.addEventListener("input", (e) => {
+      const slot = getActiveSlot();
+      if (!slot) return;
+      slot.name = e.target.value;
+      saveToStorage();
+      renderBoardSlots();
+    });
+
+    if (selSlotRole) {
+      selSlotRole.addEventListener("change", (e) => {
+        const slot = getActiveSlot();
+        if (!slot) return;
+        slot.role = e.target.value;
+        saveToStorage();
+        renderBoardSlots();
+      });
+    }
+
+    selSlotPart.addEventListener("change", (e) => {
+      const sys = appData[layoutSystem];
+      const slot = sys.slots[activeSlotIndex];
+      if (!slot) return;
+      const pName = e.target.value;
+      slot.part = pName;
+      if (pName && sys.parts[pName]) {
+        slot.width = sys.parts[pName].width;
+        numSlotWidth.value = slot.width;
+      } else if (pName && pName.startsWith("digit:")) {
+        const ch = pName.slice(6);
+        const w = ch === ":" ? (sys.colonWidth || 10) : (sys.digitWidth || 18);
+        slot.width = w;
+        numSlotWidth.value = slot.width;
+      }
+      saveData();
+      renderBoardSlots();
+    });
+
+    selSlotColor.addEventListener("change", (e) => {
+      const sys = appData[layoutSystem];
+      const slot = sys.slots[activeSlotIndex];
+      if (!slot) return;
+      slot.color = e.target.value;
+      saveData();
+      renderBoardSlots();
+    });
+
+    numSlotWidth.addEventListener("change", (e) => {
+      const sys = appData[layoutSystem];
+      const slot = sys.slots[activeSlotIndex];
+      if (!slot) return;
+      const w = parseInt(e.target.value, 10);
+      if (isNaN(w) || w < 2) return;
+      slot.width = w;
+      saveData();
+      renderBoardSlots();
+    });
+
+    // 「このパーツをドット編集で開く」
+    btnEditSlotPart.addEventListener("click", () => {
+      const sys = appData[layoutSystem];
+      const slot = sys.slots[activeSlotIndex];
+      if (!slot || !slot.part) return;
+
+      if (slot.part.startsWith("digit:")) {
+        const ch = slot.part.slice(6);
+        targetSystem = layoutSystem;
+        selTargetSystem.value = targetSystem;
+
+        targetKind = "digits";
+        kindDigits.checked = true;
+        groupTargetDigits.style.display = "flex";
+        groupTargetParts.style.display = "none";
+        targetDigitChar = ch;
+
+        const dots = sys.digits ? sys.digits[ch] : null;
+        const targetW = ch === ":" ? (sys.colonWidth || 10) : (sys.digitWidth || 18);
+        pushHistory();
+        currentWidth = targetW;
+        numCanvasWidth.value = currentWidth;
+        currentGrid = dots ? stringsToGrid(dots, currentWidth) : createEmptyGrid(currentWidth);
+
+        switchTab("edit");
+        refreshTargetUI();
+        renderCanvas();
+        showStatusMsg(`数字 '${ch}' を読み込みました`, "ok");
+        return;
+      }
+
+      if (!sys.parts[slot.part]) return;
+
+      const p = sys.parts[slot.part];
+      targetSystem = layoutSystem;
+      selTargetSystem.value = targetSystem;
+
+      targetKind = "parts";
+      kindParts.checked = true;
+      groupTargetDigits.style.display = "none";
+      groupTargetParts.style.display = "flex";
+
+      inputPartName.value = slot.part;
+      targetPartName = slot.part;
+      if (p.category) {
+        selPartCategory.value = p.category;
+      }
+
+      // キャンバスに読み込む
+      pushHistory();
+      currentWidth = p.width || 48;
+      numCanvasWidth.value = currentWidth;
+      currentGrid = stringsToGrid(p.dots, currentWidth);
+
+      switchTab("edit");
+      refreshTargetUI();
+      renderCanvas();
+      showStatusMsg(`パーツ「${slot.part}」を読み込みました`, "ok");
+    });
+
+    // =========================================================================
+    // JSON読込 / 書出モーダル
+    // =========================================================================
+    btnIo.addEventListener("click", () => {
+      ioTextarea.value = JSON.stringify(appData, null, 2);
+      ioModal.classList.add("open");
+    });
+
+    
+    // サーバーから最新データを取り込む
+    async function loadServerData() {
+      try {
+        const res = await fetch("/src/data/stationLedData.json");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        if (data && data.nagamachi) {
+          appData = data;
+          saveData();
+          refreshTargetUI();
+          refreshSlotPartOptions();
+          renderBoardSlots();
+          alert("サーバーから最新の stationLedData.json を読み込みました！");
+          return;
+        }
+      } catch (e) {
+        console.warn("fetch failed, fallback to builtin latest data:", e);
+      }
+      appData = getEmptyData();
+      saveData();
+      refreshTargetUI();
+      refreshSlotPartOptions();
+      renderBoardSlots();
+      alert("組み込みの最新データ（サーバー同期済）を読み込みました！");
+    }
+
+    if (btnFetchServer) {
+      btnFetchServer.addEventListener("click", () => {
+        if (confirm("サーバーの最新データを読み込みますか？\n（ローカルで未保存の編集内容は上書きされます）")) {
+          loadServerData();
+        }
+      });
+    }
+
+    if (btnFileImport && fileImportJson) {
+      btnFileImport.addEventListener("click", () => fileImportJson.click());
+      fileImportJson.addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            if (!data || !data.nagamachi) {
+              alert("有効な stationLedData.json 形式ではありません。");
+              return;
+            }
+            appData = data;
+            saveData();
+            refreshTargetUI();
+            refreshSlotPartOptions();
+            renderBoardSlots();
+            alert(`ファイル「${file.name}」を正常に読み込みました！`);
+          } catch (err) {
+            alert("JSON解析エラー: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      });
+    }
+
+    btnCloseModal.addEventListener("click", () => {
+      ioModal.classList.remove("open");
+    });
+
+    btnCopyJson.addEventListener("click", () => {
+      ioTextarea.select();
+      navigator.clipboard.writeText(ioTextarea.value).then(() => {
+        alert("クリップボードにコピーしました");
+      });
+    });
+
+    btnDownloadJson.addEventListener("click", () => {
+      const blob = new Blob([ioTextarea.value], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "stationLedData.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    btnApplyJson.addEventListener("click", () => {
+      try {
+        const parsed = JSON.parse(ioTextarea.value);
+        if (!parsed || !parsed.nagamachi) {
+          alert("有効なstationLedData JSON形式ではありません");
+          return;
+        }
+        appData = parsed;
+        saveData();
+        ioModal.classList.remove("open");
+        refreshTargetUI();
+        refreshSlotPartOptions();
+        renderBoardSlots();
+        alert("データを反映しました");
+      } catch (err) {
+        alert("JSON解析エラー: " + err.message);
+      }
+    });
+
+    // =========================================================================
+    // 初期実行
+    // =========================================================================
+    refreshTargetUI();
+    refreshSlotPartOptions();
+    renderCanvas();
+    renderBoardSlots();
+  </script>
+</body>
+</html>

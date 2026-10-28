@@ -38,3 +38,8 @@ env/
 venv/
 .venv/
 .pytest_cache/
+
+# Raw Data & Build/Verification Scripts
+data-raw/
+scripts/
+

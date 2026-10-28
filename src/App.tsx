@@ -8,7 +8,10 @@ export const App: React.FC = () => {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
 
   return (
-    <div className="fixed inset-0 w-full h-full bg-white flex flex-col font-sans text-slate-900 overflow-hidden select-none overscroll-none">
+    <div
+      className="fixed inset-0 w-full h-full flex flex-col font-sans overflow-hidden select-none overscroll-none"
+      style={{ backgroundColor: 'var(--mantine-color-body)', color: 'var(--mantine-color-text)' }}
+    >
       {/* 上部固定ヘッダー */}
       <Header />
 

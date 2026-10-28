@@ -68,7 +68,7 @@ export const TrainVision: React.FC<TrainVisionProps> = ({
   return (
     <div className="w-full font-sans select-none">
       {/* 車内モニター（トレインビジョン）本体 */}
-      <div className="w-full aspect-[16/9] bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col justify-between relative">
+      <div className="w-full aspect-[16/9] bg-white rounded-xl border border-white/80 dark:border-slate-700/80 shadow-xs overflow-hidden flex flex-col justify-between relative">
         {/* ================= 上段：ヘッダー表示 ================= */}
         <div className="relative pt-2.5 px-3.5 shrink-0">
           <div className="flex items-center justify-between">
@@ -88,7 +88,7 @@ export const TrainVision: React.FC<TrainVisionProps> = ({
 
             {/* 右上: 両数表示（号車番号ではなく編成両数） */}
             <div className="shrink-0 w-1/3 flex justify-end items-center">
-              <span className="text-[11px] sm:text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-mono">
+              <span className="text-[11px] sm:text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-english tabular-nums">
                 {totalCars}両編成
               </span>
             </div>
@@ -341,17 +341,17 @@ export const TrainVision: React.FC<TrainVisionProps> = ({
           <div className="border-t border-slate-200 px-3 py-1.5 flex items-center text-xs bg-white shrink-0">
             <div className="shrink-0 pr-2.5 mr-2.5 border-r border-slate-300">
               <span className="font-extrabold text-slate-800 text-xs leading-none block">のりかえ</span>
-              <span className="text-[8px] text-slate-500 font-mono leading-none block mt-0.5">Transfers</span>
+              <span className="text-[8px] text-slate-500 font-english leading-none block mt-0.5">Transfers</span>
             </div>
 
             <div className="flex-1 flex flex-wrap items-center gap-x-3.5 gap-y-0.5 overflow-x-auto">
               {transfers.map((item) => (
                 <div key={item.id} className="flex items-center gap-1 shrink-0">
                   {item.type === 'subway_n' && (
-                    <span className="w-4 h-4 rounded-full bg-[#00a651] text-white font-bold font-mono text-[9px] flex items-center justify-center">N</span>
+                    <span className="w-4 h-4 rounded-full bg-[#00a651] text-white font-bold font-english text-[9px] flex items-center justify-center">N</span>
                   )}
                   {item.type === 'subway_t' && (
-                    <span className="w-4 h-4 rounded-full bg-[#0085ca] text-white font-bold font-mono text-[9px] flex items-center justify-center">T</span>
+                    <span className="w-4 h-4 rounded-full bg-[#0085ca] text-white font-bold font-english text-[9px] flex items-center justify-center">T</span>
                   )}
                   {item.type === 'shinkansen' && (
                     <JisTrain size={14} color="#000000" />
@@ -367,7 +367,7 @@ export const TrainVision: React.FC<TrainVisionProps> = ({
                   )}
                   <div className="leading-tight">
                     <span className="font-bold text-slate-800 text-[10px]">{item.name}</span>
-                    <span className="text-[7.5px] text-slate-500 font-mono ml-1">{item.nameEn}</span>
+                    <span className="text-[7.5px] text-slate-500 font-english ml-1">{item.nameEn}</span>
                   </div>
                 </div>
               ))}
@@ -377,7 +377,7 @@ export const TrainVision: React.FC<TrainVisionProps> = ({
       </div>
 
       {/* 画面下の方向表示 */}
-      <div className="mt-1.5 px-2 flex justify-end text-[10px] text-slate-500 font-mono">
+      <div className="mt-1.5 px-2 flex justify-end text-[10px] text-slate-500">
         <span>
           {direction === 'up' ? '進行方向: 仙台空港方面 ◀' : '進行方向: 仙台方面 ◀'}
         </span>

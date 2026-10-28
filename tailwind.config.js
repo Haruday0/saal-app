@@ -25,7 +25,20 @@ export default {
         }
       },
       fontFamily: {
-        mono: ['"Courier New"', 'Courier', 'monospace'],
+        led: [
+          '"DotGothic16"',
+          '"Share Tech Mono"',
+          'monospace',
+        ],
+        mono: [
+          'ui-monospace',
+          'SFMono-Regular',
+          'Menlo',
+          'Monaco',
+          'Consolas',
+          '"Liberation Mono"',
+          'monospace',
+        ],
         english: [
           '"Inter"',
           '"Helvetica Neue"',
@@ -33,6 +46,8 @@ export default {
           '-apple-system',
           'BlinkMacSystemFont',
           '"Segoe UI"',
+          '"BIZ UDPGothic"',
+          '"M PLUS 1"',
           'sans-serif',
         ],
         track: [
@@ -67,6 +82,15 @@ export default {
           'Meiryo',
           'sans-serif',
         ],
+      },
+      boxShadow: {
+        'glass': '0 10px 30px rgba(22, 49, 67, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.64)',
+        'glass-lg': '0 20px 54px rgba(22, 49, 67, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.72)',
+        'glass-card': '0 8px 24px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.65)',
+        'glass-sm': '0 4px 14px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+      },
+      borderRadius: {
+        'sheet': '28px',
       },
     },
   },

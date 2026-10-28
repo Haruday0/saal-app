@@ -1,3 +1,5 @@
+import stationDepartures from './stationDepartures.json';
+import stationFares from './stationFares.json';
 import { Station, DepartureTrain, MovingTrain } from '../types';
 
 export const STATIONS: Station[] = [
@@ -51,16 +53,7 @@ export const STATIONS: Station[] = [
         ]
       }
     },
-    fares: {
-      'sendai': { ticket: 0, ic: 0 },
-      'nagamachi': { ticket: 200, ic: 198 },
-      'taishido': { ticket: 200, ic: 198 },
-      'minami-sendai': { ticket: 220, ic: 218 },
-      'natori': { ticket: 260, ic: 254 },
-      'morisekinoshita': { ticket: 440, ic: 434 },
-      'mitazono': { ticket: 540, ic: 534 },
-      'sendai-airport': { ticket: 680, ic: 672 }
-    }
+    fares: (stationFares as Record<string, any>)['sendai'],
   },
   {
     id: 'nagamachi',
@@ -104,16 +97,7 @@ export const STATIONS: Station[] = [
         ]
       }
     },
-    fares: {
-      'sendai': { ticket: 200, ic: 198 },
-      'nagamachi': { ticket: 0, ic: 0 },
-      'taishido': { ticket: 160, ic: 157 },
-      'minami-sendai': { ticket: 200, ic: 198 },
-      'natori': { ticket: 210, ic: 209 },
-      'morisekinoshita': { ticket: 420, ic: 414 },
-      'mitazono': { ticket: 490, ic: 484 },
-      'sendai-airport': { ticket: 630, ic: 622 }
-    }
+    fares: (stationFares as Record<string, any>)['nagamachi'],
   },
   {
     id: 'taishido',
@@ -152,16 +136,7 @@ export const STATIONS: Station[] = [
         ]
       }
     },
-    fares: {
-      'sendai': { ticket: 200, ic: 198 },
-      'nagamachi': { ticket: 160, ic: 157 },
-      'taishido': { ticket: 0, ic: 0 },
-      'minami-sendai': { ticket: 160, ic: 157 },
-      'natori': { ticket: 200, ic: 198 },
-      'morisekinoshita': { ticket: 390, ic: 384 },
-      'mitazono': { ticket: 460, ic: 454 },
-      'sendai-airport': { ticket: 600, ic: 592 }
-    }
+    fares: (stationFares as Record<string, any>)['taishido'],
   },
   {
     id: 'minami-sendai',
@@ -205,16 +180,7 @@ export const STATIONS: Station[] = [
         ]
       }
     },
-    fares: {
-      'sendai': { ticket: 220, ic: 218 },
-      'nagamachi': { ticket: 200, ic: 198 },
-      'taishido': { ticket: 160, ic: 157 },
-      'minami-sendai': { ticket: 0, ic: 0 },
-      'natori': { ticket: 160, ic: 157 },
-      'morisekinoshita': { ticket: 350, ic: 344 },
-      'mitazono': { ticket: 420, ic: 414 },
-      'sendai-airport': { ticket: 560, ic: 552 }
-    }
+    fares: (stationFares as Record<string, any>)['minami-sendai'],
   },
   {
     id: 'natori',
@@ -258,16 +224,7 @@ export const STATIONS: Station[] = [
         ]
       }
     },
-    fares: {
-      'sendai': { ticket: 260, ic: 254 },
-      'nagamachi': { ticket: 210, ic: 209 },
-      'taishido': { ticket: 200, ic: 198 },
-      'minami-sendai': { ticket: 160, ic: 157 },
-      'natori': { ticket: 0, ic: 0 },
-      'morisekinoshita': { ticket: 230, ic: 226 },
-      'mitazono': { ticket: 310, ic: 304 },
-      'sendai-airport': { ticket: 420, ic: 418 }
-    }
+    fares: (stationFares as Record<string, any>)['natori'],
   },
   {
     id: 'morisekinoshita',
@@ -283,7 +240,7 @@ export const STATIONS: Station[] = [
     platforms: {
       up: {
 
-        trackNumber: '2',
+        trackNumber: '1',
         directionName: '仙台空港方面',
         gates: [
           { id: 'g-msn-1', name: 'イオンモール名取 連絡口', nameEn: 'Aeon Mall Natori', type: 'gate', carPosition: 1.4 },
@@ -308,16 +265,7 @@ export const STATIONS: Station[] = [
         ]
       }
     },
-    fares: {
-      'sendai': { ticket: 440, ic: 434 },
-      'nagamachi': { ticket: 420, ic: 414 },
-      'taishido': { ticket: 390, ic: 384 },
-      'minami-sendai': { ticket: 350, ic: 344 },
-      'natori': { ticket: 230, ic: 226 },
-      'morisekinoshita': { ticket: 0, ic: 0 },
-      'mitazono': { ticket: 230, ic: 226 },
-      'sendai-airport': { ticket: 310, ic: 304 }
-    }
+    fares: (stationFares as Record<string, any>)['morisekinoshita'],
   },
   {
     id: 'mitazono',
@@ -330,8 +278,7 @@ export const STATIONS: Station[] = [
     transfers: [],
     platforms: {
       up: {
-
-        trackNumber: '2',
+        trackNumber: '1',
         directionName: '仙台空港方面',
         gates: [
           { id: 'g-mt-1', name: '改札口', nameEn: 'Ticket Gates', type: 'gate', carPosition: 1.8 }
@@ -342,8 +289,7 @@ export const STATIONS: Station[] = [
         ]
       },
       down: {
-
-        trackNumber: '1',
+        trackNumber: '2',
         directionName: '仙台方面',
         gates: [
           { id: 'g-mt-1', name: '改札口', nameEn: 'Ticket Gates', type: 'gate', carPosition: 1.8 }
@@ -354,16 +300,7 @@ export const STATIONS: Station[] = [
         ]
       }
     },
-    fares: {
-      'sendai': { ticket: 540, ic: 534 },
-      'nagamachi': { ticket: 490, ic: 484 },
-      'taishido': { ticket: 460, ic: 454 },
-      'minami-sendai': { ticket: 420, ic: 414 },
-      'natori': { ticket: 310, ic: 304 },
-      'morisekinoshita': { ticket: 230, ic: 226 },
-      'mitazono': { ticket: 0, ic: 0 },
-      'sendai-airport': { ticket: 230, ic: 226 }
-    }
+    fares: (stationFares as Record<string, any>)['mitazono'],
   },
   {
     id: 'sendai-airport',
@@ -404,113 +341,12 @@ export const STATIONS: Station[] = [
         ]
       }
     },
-    fares: {
-      'sendai': { ticket: 680, ic: 672 },
-      'nagamachi': { ticket: 630, ic: 622 },
-      'taishido': { ticket: 600, ic: 592 },
-      'minami-sendai': { ticket: 560, ic: 552 },
-      'natori': { ticket: 420, ic: 418 },
-      'morisekinoshita': { ticket: 310, ic: 304 },
-      'mitazono': { ticket: 230, ic: 226 },
-      'sendai-airport': { ticket: 0, ic: 0 }
-    }
+    fares: (stationFares as Record<string, any>)['sendai-airport'],
   }
 ];
 
 // 各駅の発車標モックデータ
-export const MOCK_DEPARTURES: Record<string, { up: DepartureTrain[]; down: DepartureTrain[] }> = {
-  'sendai': {
-    up: [
-      { id: 'tr-05', trainNumber: '1335M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '15:42', destination: '仙台空港', track: '3', cars: 4, status: 'normal', remarks: '始発' },
-      { id: 'tr-06', trainNumber: '445M', line: 'tohoku', lineName: '東北本線', direction: 'up', trainType: '普通', departureTime: '15:49', destination: '白石', track: '4', cars: 4, status: 'normal' },
-      { id: 'tr-07', trainNumber: '1337M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:08', destination: '仙台空港', track: '3', cars: 2, status: 'normal', remarks: '始発' },
-      { id: 'tr-08', trainNumber: '253M', line: 'joban', lineName: '常磐線', direction: 'up', trainType: '普通', departureTime: '16:18', destination: '原ノ町', track: '4', cars: 6, status: 'normal' },
-      { id: 'tr-09', trainNumber: '1339M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:35', destination: '仙台空港', track: '3', cars: 4, status: 'normal', remarks: '始発' }
-    ],
-    down: [
-      { id: 'tr-01', trainNumber: '1336M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:38', destination: '当駅止り', track: '3', cars: 4, status: 'normal' },
-      { id: 'tr-02', trainNumber: '446M', line: 'tohoku', lineName: '東北本線', direction: 'down', trainType: '普通', departureTime: '15:44', destination: '利府', track: '2', cars: 4, status: 'normal' },
-      { id: 'tr-03', trainNumber: '1338M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '16:04', destination: '当駅止り', track: '4', cars: 2, status: 'normal' },
-      { id: 'tr-04', trainNumber: '254M', line: 'joban', lineName: '常磐線', direction: 'down', trainType: '普通', departureTime: '16:15', destination: '小牛田', track: '1', cars: 6, status: 'normal' },
-    ]
-  },
-  'nagamachi': {
-    up: [
-      { id: 'tr-13', trainNumber: '1335M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '15:47', destination: '仙台空港', track: '2', cars: 4, status: 'normal' },
-      { id: 'tr-14', trainNumber: '445M', line: 'tohoku', lineName: '東北本線', direction: 'up', trainType: '普通', departureTime: '15:54', destination: '白石', track: '2', cars: 4, status: 'normal' },
-      { id: 'tr-15', trainNumber: '1337M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:13', destination: '仙台空港', track: '2', cars: 2, status: 'normal' }
-    ],
-    down: [
-      { id: 'tr-10', trainNumber: '1336M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:32', destination: '仙台', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-11', trainNumber: '446M', line: 'tohoku', lineName: '東北本線', direction: 'down', trainType: '普通', departureTime: '15:39', destination: '利府', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-12', trainNumber: '1338M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:58', destination: '仙台', track: '1', cars: 2, status: 'normal' }
-    ]
-  },
-  'taishido': {
-    up: [
-      { id: 'tr-22', trainNumber: '1335M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '15:49', destination: '仙台空港', track: '2', cars: 4, status: 'normal' },
-      { id: 'tr-23', trainNumber: '445M', line: 'tohoku', lineName: '東北本線', direction: 'up', trainType: '普通', departureTime: '15:56', destination: '白石', track: '2', cars: 4, status: 'normal' }
-    ],
-    down: [
-      { id: 'tr-20', trainNumber: '1336M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:30', destination: '仙台', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-21', trainNumber: '446M', line: 'tohoku', lineName: '東北本線', direction: 'down', trainType: '普通', departureTime: '15:37', destination: '利府', track: '1', cars: 4, status: 'normal' }
-    ]
-  },
-  'minami-sendai': {
-    up: [
-      { id: 'tr-32', trainNumber: '1335M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '15:52', destination: '仙台空港', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-33', trainNumber: '445M', line: 'tohoku', lineName: '東北本線', direction: 'up', trainType: '普通', departureTime: '15:59', destination: '白石', track: '1', cars: 4, status: 'normal' }
-    ],
-    down: [
-      { id: 'tr-30', trainNumber: '1336M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:27', destination: '仙台', track: '2', cars: 4, status: 'normal' },
-      { id: 'tr-31', trainNumber: '446M', line: 'tohoku', lineName: '東北本線', direction: 'down', trainType: '普通', departureTime: '15:34', destination: '利府', track: '2', cars: 4, status: 'normal' }
-    ]
-  },
-  'natori': {
-    up: [
-      { id: 'tr-43', trainNumber: '1335M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '15:56', destination: '仙台空港', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-44', trainNumber: '445M', line: 'tohoku', lineName: '東北本線', direction: 'up', trainType: '普通', departureTime: '16:03', destination: '白石', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-46', trainNumber: '253M', line: 'joban', lineName: '常磐線', direction: 'up', trainType: '普通', departureTime: '16:18', destination: '原ノ町', track: '1', cars: 6, status: 'normal' },
-      { id: 'tr-45', trainNumber: '1337M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:22', destination: '仙台空港', track: '1', cars: 2, status: 'normal' }
-    ],
-    down: [
-      { id: 'tr-40', trainNumber: '1336M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:23', destination: '仙台', track: '2', cars: 4, status: 'normal' },
-      { id: 'tr-41', trainNumber: '446M', line: 'tohoku', lineName: '東北本線', direction: 'down', trainType: '普通', departureTime: '15:30', destination: '利府', track: '3', cars: 4, status: 'normal' },
-      { id: 'tr-42', trainNumber: '1338M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:49', destination: '仙台', track: '2', cars: 2, status: 'normal' }
-    ]
-  },
-  'morisekinoshita': {
-    up: [
-      { id: 'tr-52', trainNumber: '1335M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:00', destination: '仙台空港', track: '2', cars: 4, status: 'normal' },
-      { id: 'tr-53', trainNumber: '1337M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:26', destination: '仙台空港', track: '2', cars: 2, status: 'normal' }
-    ],
-    down: [
-      { id: 'tr-50', trainNumber: '1336M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:19', destination: '仙台', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-51', trainNumber: '1338M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:45', destination: '仙台', track: '1', cars: 2, status: 'normal' }
-    ]
-  },
-  'mitazono': {
-    up: [
-      { id: 'tr-62', trainNumber: '1335M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:03', destination: '仙台空港', track: '2', cars: 4, status: 'normal' },
-      { id: 'tr-63', trainNumber: '1337M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:29', destination: '仙台空港', track: '2', cars: 2, status: 'normal' }
-    ],
-    down: [
-      { id: 'tr-60', trainNumber: '1336M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:16', destination: '仙台', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-61', trainNumber: '1338M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:42', destination: '仙台', track: '1', cars: 2, status: 'normal' }
-    ]
-  },
-  'sendai-airport': {
-    up: [
-      { id: 'tr-73', trainNumber: '1335M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:07', destination: '当駅止り', track: '1', cars: 4, status: 'normal' },
-      { id: 'tr-74', trainNumber: '1337M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'up', trainType: '普通', departureTime: '16:33', destination: '当駅止り', track: '2', cars: 2, status: 'normal' }
-    ],
-    down: [
-      { id: 'tr-70', trainNumber: '1338M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '15:38', destination: '仙台', track: '1', cars: 2, status: 'normal', remarks: '当駅始発' },
-      { id: 'tr-71', trainNumber: '1340M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '16:06', destination: '仙台', track: '2', cars: 4, status: 'normal', remarks: '当駅始発' },
-      { id: 'tr-72', trainNumber: '1342M', line: 'saal', lineName: '仙台空港アクセス線', direction: 'down', trainType: '普通', departureTime: '16:32', destination: '仙台', track: '1', cars: 2, status: 'normal', remarks: '当駅始発' }
-    ]
-  }
-};
+export const MOCK_DEPARTURES = stationDepartures as Record<string, { up: DepartureTrain[]; down: DepartureTrain[] }>;
 
 // 路線図上の走行中列車モックデータ
 export const INITIAL_MOVING_TRAINS: MovingTrain[] = [

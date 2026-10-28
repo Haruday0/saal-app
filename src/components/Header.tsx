@@ -1,34 +1,74 @@
 import React from 'react';
+import {
+  ActionIcon,
+  Box,
+  Button,
+  Group,
+  Text,
+  Title,
+  useComputedColorScheme,
+  useMantineColorScheme,
+} from '@mantine/core';
 import { Icon } from './Icon';
+import { LINE_COLORS } from '../config/trainLineRules';
 
 export const Header: React.FC = () => {
-  return (
-    <header className="shrink-0 sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
-      <div className="max-w-md mx-auto px-3.5 h-12 flex items-center justify-between">
-        {/* ロゴ・路線名 */}
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-6 bg-[#0085ca] rounded-full shadow-xs" />
-          <div>
-            <h1 className="text-[14px] font-black text-slate-900 leading-none tracking-tight">
-              仙台空港アクセス線
-            </h1>
-            <p className="text-[9px] text-slate-400 font-mono tracking-wider uppercase mt-0.5">
-              Sendai Airport Access Line
-            </p>
-          </div>
-        </div>
+  const { setColorScheme } = useMantineColorScheme();
+  const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
+  const isDark = computedColorScheme === 'dark';
 
-        {/* JRどこトレ運行情報 外部リンク */}
-        <a
-          href="https://doko-train.jp/pc/index.html?area=sen"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100/80 hover:bg-slate-200 active:bg-slate-300 rounded-full border border-slate-200/60 transition-colors"
-        >
-          <span className="text-[11px]">JR運行情報</span>
-          <Icon name="open_in_new" size={14} className="text-slate-400" />
-        </a>
-      </div>
-    </header>
+  return (
+    <Box
+      component="header"
+      className="shrink-0 sticky top-0 z-30"
+      style={{
+        backgroundColor: 'var(--mantine-color-body)',
+        borderBottom: '1px solid var(--mantine-color-default-border)',
+      }}
+    >
+      <Group justify="space-between" wrap="nowrap" h={48} px={14} maw={448} mx="auto">
+        {/* ロゴ・路線名 */}
+        <Group gap={8} wrap="nowrap">
+          <Box w={6} h={24} style={{ borderRadius: 999, backgroundColor: LINE_COLORS.saal }} />
+          <div>
+            <Title order={1} fz={14} fw={900} lh={1}>
+              仙台空港アクセス線
+            </Title>
+            <Text fz={9} c="dimmed" tt="uppercase" mt={2} className="font-english tracking-wider">
+              Sendai Airport Access Line
+            </Text>
+          </div>
+        </Group>
+
+        {/* 右側アクションエリア */}
+        <Group gap={6} wrap="nowrap">
+          {/* ライト / ダーク テーマ切り替え */}
+          <ActionIcon
+            onClick={() => setColorScheme(isDark ? 'light' : 'dark')}
+            variant="default"
+            size="md"
+            radius="xl"
+            aria-label="テーマ切り替え"
+          >
+            <Icon name={isDark ? 'light_mode' : 'dark_mode'} size={16} />
+          </ActionIcon>
+
+          {/* JR東日本「どこトレ」スマートフォン版 外部リンク */}
+          <Button
+            component="a"
+            href="https://doko-train.jp/sp/index.html?area=sen"
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="default"
+            size="compact-sm"
+            radius="xl"
+            fz={11}
+            rightSection={<Icon name="open_in_new" size={14} />}
+          >
+            どこトレ
+          </Button>
+        </Group>
+      </Group>
+    </Box>
   );
 };

@@ -4,16 +4,19 @@ import { JisIconProps } from './types';
 /**
  * 国土交通省・日本産業規格 JIS Z 8210（5201: 航空機・空港）公式ベクターデータ準拠
  */
-export const JisAirplane: React.FC<JisIconProps> = ({
+export const JisAirplane: React.FC<JisIconProps & { tight?: boolean }> = ({
   size = 24,
   className = '',
   color = 'currentColor',
   showFrame = false,
+  tight = false,
+  viewBox: customViewBox,
   ...props
 }) => {
+  const vb = customViewBox ?? (tight ? '7.3 7.5 46 46' : '0 0 60.601004 60.601004');
   return (
     <svg
-      viewBox="0 0 60.601004 60.601004"
+      viewBox={vb}
       width={size}
       height={size}
       className={`shrink-0 select-none ${className}`}

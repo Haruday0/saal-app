@@ -1,116 +1,194 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Station, DepartureTrain } from '../types';
-import { MOCK_DEPARTURES } from '../data/mockData';
 import { LedDepartureBoard } from './LedDepartureBoard';
 import { TrainVision } from './TrainVision';
 import { TransferGuide } from './TransferGuide';
 import { FareTable } from './FareTable';
-import { Icon } from './Icon';
+import { Group, Text, Title, CloseButton } from '@mantine/core';
 
 interface StationDetailSheetProps {
   station: Station | null;
   onClose: () => void;
 }
 
+interface StationSheetContentProps {
+  station: Station;
+  selectedTrain: DepartureTrain | null;
+  onSelectTrain: (train: DepartureTrain) => void;
+}
+
+// コンテンツ部分を memo 化して、アニメーション中やヘッダー操作時の不要な仮想DOM再計算を完全防止
+const StationSheetContent = React.memo<StationSheetContentProps>(({
+  station,
+  selectedTrain,
+  onSelectTrain,
+}) => {
+  return (
+    <>
+      {/* ① 発車案内 */}
+      <section>
+        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
+          発車案内
+        </Text>
+        <LedDepartureBoard
+          stationId={station.id}
+          selectedTrain={selectedTrain}
+          onSelectTrain={onSelectTrain}
+        />
+      </section>
+
+      {/* ② 階段・改札口案内 */}
+      <section>
+        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
+          階段・改札口案内
+        </Text>
+        <TrainVision
+          station={station}
+          selectedTrain={selectedTrain}
+        />
+      </section>
+
+      {/* ③ 乗り換え案内 */}
+      <section>
+        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
+          接続路線・バス
+        </Text>
+        <TransferGuide station={station} />
+      </section>
+
+      {/* ④ 運賃一覧 */}
+      <section className="pb-4">
+        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
+          きっぷ・IC運賃表
+        </Text>
+        <FareTable currentStation={station} />
+      </section>
+
+      {/* 最下部スクロール時の余白（最下部までスクロールして上に引っ張ったときは同色背景が自然に追従） */}
+      <div className="h-48 pb-safe bg-transparent" />
+    </>
+  );
+});
+
+StationSheetContent.displayName = 'StationSheetContent';
+
 export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
   station,
   onClose,
 }) => {
   const [activeStation, setActiveStation] = useState<Station | null>(station);
-  const [isClosing, setIsClosing] = useState(false);
   const [selectedTrain, setSelectedTrain] = useState<DepartureTrain | null>(null);
 
+  // 閉じるフラグを ref で管理し、アニメーション中の React 再レンダリング（メインスレッド占有）を完全ゼロ化
+  const isClosingRef = useRef(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSelectTrain = useCallback((train: DepartureTrain) => {
+    setSelectedTrain(train);
+  }, []);
+
+  // コンポーネント破棄時にタイマーをクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // 駅が切り替わったときの初期化処理
   useEffect(() => {
     if (station) {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+      isClosingRef.current = false;
       setActiveStation(station);
-      setIsClosing(false);
       if (sheetRef.current) {
-        sheetRef.current.style.transform = '';
-        sheetRef.current.style.transition = '';
+        sheetRef.current.classList.add('m3-sheet-enter');
+        sheetRef.current.style.removeProperty('transform');
+        sheetRef.current.style.removeProperty('transition');
+        sheetRef.current.style.removeProperty('animation');
       }
       if (scrimRef.current) {
-        scrimRef.current.style.opacity = '';
-        scrimRef.current.style.transition = '';
+        scrimRef.current.classList.add('m3-scrim-enter');
+        scrimRef.current.style.removeProperty('opacity');
+        scrimRef.current.style.removeProperty('transition');
+        scrimRef.current.style.removeProperty('animation');
       }
-      const departures = MOCK_DEPARTURES[station.id];
-      if (departures?.up?.length) {
-        setSelectedTrain(departures.up[0]);
-      } else if (departures?.down?.length) {
-        setSelectedTrain(departures.down[0]);
-      } else {
-        setSelectedTrain(null);
-      }
+      // 駅を開いた時は初期選択を null にし、各駅の現在時刻以降の直近列車を自動反映
+      setSelectedTrain(null);
     } else {
+      isClosingRef.current = false;
       setActiveStation(null);
-      setIsClosing(false);
     }
   }, [station]);
 
-  // Material 3 準拠の閉じる処理（ボタン・背景タップ時）
-  const handleClose = () => {
-    if (isClosing) return;
-    setIsClosing(true);
-    if (sheetRef.current) {
-      sheetRef.current.style.animation = 'none';
-      sheetRef.current.classList.remove('m3-sheet-enter');
-      sheetRef.current.style.setProperty('transition', 'transform 240ms cubic-bezier(0.3, 0.0, 0.8, 0.15)', 'important');
-      sheetRef.current.style.setProperty('transform', 'translate3d(0, 100%, 0)', 'important');
-    }
-    if (scrimRef.current) {
-      scrimRef.current.style.setProperty('transition', 'opacity 240ms cubic-bezier(0.3, 0.0, 0.8, 0.15)', 'important');
-      scrimRef.current.style.setProperty('opacity', '0', 'important');
-    }
-    setTimeout(() => {
-      onClose();
-      setActiveStation(null);
-      setIsClosing(false);
-      if (sheetRef.current) {
-        sheetRef.current.style.removeProperty('transform');
-        sheetRef.current.style.removeProperty('transition');
-        sheetRef.current.style.removeProperty('animation');
-      }
-      if (scrimRef.current) {
-        scrimRef.current.style.removeProperty('opacity');
-        scrimRef.current.style.removeProperty('transition');
-      }
-    }, 250);
-  };
+  // Material 3 準拠のスムーズな閉じる処理（ボタンタップ・背景タップ・スワイプ共通）
+  // React state を更新せず DOM の transform/opacity のみを直接起動することで、
+  // 閉じる 260ms の間、メインスレッド JS 実行を完全 0ms にし GPU コンポジター単独で 60fps/120fps 化
+  const handleClose = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
 
-  // スワイプによるスムーズな閉じ処理
-  const dismissWithSwipe = () => {
-    if (isClosing) return;
-    setIsClosing(true);
-    if (sheetRef.current) {
-      sheetRef.current.style.animation = 'none';
-      sheetRef.current.classList.remove('m3-sheet-enter');
-      sheetRef.current.style.setProperty('transition', 'transform 220ms cubic-bezier(0.3, 0.0, 0.8, 0.15)', 'important');
-      sheetRef.current.style.setProperty('transform', 'translate3d(0, 100%, 0)', 'important');
+    const sheet = sheetRef.current;
+    const scrim = scrimRef.current;
+
+    // M3 Emphasized Accelerate（cubic-bezier(0.3, 0.0, 0.8, 0.15)・260ms / scrim 240ms）で画面外へスライド
+    if (sheet) {
+      sheet.style.animation = 'none';
+      sheet.classList.remove('m3-sheet-enter');
+      sheet.style.setProperty('transition', 'transform 260ms cubic-bezier(0.3, 0.0, 0.8, 0.15)', 'important');
+      sheet.style.setProperty('transform', 'translate3d(0, 100%, 0)', 'important');
     }
-    if (scrimRef.current) {
-      scrimRef.current.style.setProperty('transition', 'opacity 220ms cubic-bezier(0.3, 0.0, 0.8, 0.15)', 'important');
-      scrimRef.current.style.setProperty('opacity', '0', 'important');
+    if (scrim) {
+      scrim.style.animation = 'none';
+      scrim.classList.remove('m3-scrim-enter');
+      scrim.style.setProperty('transition', 'opacity 240ms cubic-bezier(0.3, 0.0, 0.8, 0.15)', 'important');
+      scrim.style.setProperty('opacity', '0', 'important');
     }
-    setTimeout(() => {
+
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+      if (sheet) {
+        sheet.removeEventListener('transitionend', onTransitionEnd);
+      }
       onClose();
       setActiveStation(null);
-      setIsClosing(false);
-      if (sheetRef.current) {
-        sheetRef.current.style.removeProperty('transform');
-        sheetRef.current.style.removeProperty('transition');
-        sheetRef.current.style.removeProperty('animation');
+      isClosingRef.current = false;
+    };
+
+    // transitionend イベントによるアニメーション完了検知
+    const onTransitionEnd = (e: TransitionEvent) => {
+      if (e.target === sheet && e.propertyName === 'transform') {
+        cleanup();
       }
-      if (scrimRef.current) {
-        scrimRef.current.style.removeProperty('opacity');
-        scrimRef.current.style.removeProperty('transition');
-      }
-    }, 230);
-  };
+    };
+
+    if (sheet) {
+      sheet.addEventListener('transitionend', onTransitionEnd);
+    }
+
+    // transitionend が万一発火しない場合の完全同期フォールバック（260ms完了後20msバッファの280ms）
+    closeTimeoutRef.current = setTimeout(() => {
+      cleanup();
+    }, 280);
+  }, [onClose]);
+
+  // スワイプ終了時も同一の滑らかな handleClose に統合
+  const dismissWithSwipe = handleClose;
 
   // ポインター・タッチ連動による「指に吸い付く」自由ドラッグ・スワイプ連動処理
   useEffect(() => {
@@ -144,6 +222,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
     // ヘッダーでの操作開始（Pointer Events）
     const onPointerDown = (e: PointerEvent) => {
+      if (isClosingRef.current) return;
       if ((e.target as HTMLElement).closest('button')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
 
@@ -165,7 +244,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!isTouching) return;
+      if (!isTouching || isClosingRef.current) return;
       const clientY = e.clientY;
       const delta = clientY - startY;
 
@@ -214,9 +293,9 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
     };
 
-    // ヘッダーでの操作（Touch Eventsフォールバック）
+    // ヘッダーでの操作（Touch Eventsレガシーフォールバック）
     const onHeaderTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
+      if (isClosingRef.current || e.touches.length !== 1) return;
       if ((e.target as HTMLElement).closest('button')) return;
       isTouching = true;
       startY = e.touches[0].clientY;
@@ -232,7 +311,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onHeaderTouchMove = (e: TouchEvent) => {
-      if (!isTouching || e.touches.length !== 1) return;
+      if (!isTouching || isClosingRef.current || e.touches.length !== 1) return;
       e.preventDefault();
       const clientY = e.touches[0].clientY;
       const delta = clientY - startY;
@@ -280,9 +359,18 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     // コンテンツ領域でのプルダウン連動（最上部で下向きにスワイプしたときにシート連動）
     let isContentPulling = false;
     let contentStartY = 0;
+    let isTouchOnScrollableChild = false;
 
     const onContentTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
+      if (isClosingRef.current || e.touches.length !== 1) return;
+      const target = e.target as HTMLElement | null;
+      // 時刻表リスト（data-scrollable="true"）内部でのタッチ時のみ、シートのプルダウン判定を無効化
+      if (target?.closest('[data-scrollable="true"]')) {
+        isTouchOnScrollableChild = true;
+        isContentPulling = false;
+        return;
+      }
+      isTouchOnScrollableChild = false;
       contentStartY = e.touches[0].clientY;
       lastY = contentStartY;
       lastTime = Date.now();
@@ -290,7 +378,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onContentTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
+      if (isClosingRef.current || isTouchOnScrollableChild || e.touches.length !== 1) return;
       const clientY = e.touches[0].clientY;
       const scrollTop = content?.scrollTop ?? 0;
 
@@ -321,6 +409,8 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
           sheet.style.setProperty('transition', 'none', 'important');
           if (scrimRef.current) scrimRef.current.style.setProperty('transition', 'none', 'important');
           e.preventDefault();
+        } else if (scrollTop > 0) {
+          contentStartY = clientY;
         }
       }
 
@@ -334,6 +424,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onContentTouchEnd = () => {
+      isTouchOnScrollableChild = false;
       if (!isContentPulling) return;
       isContentPulling = false;
       const delta = currentDeltaY;
@@ -350,16 +441,22 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
     };
 
-    if (header) {
-      header.addEventListener('pointerdown', onPointerDown);
-      header.addEventListener('pointermove', onPointerMove);
-      header.addEventListener('pointerup', onPointerUp);
-      header.addEventListener('pointercancel', onPointerUp);
+    // window.PointerEvent をサポートしている環境では PointerEvent のみを使用し、
+    // TouchEvent との重複登録・二重スタイル計算・メインスレッド過負荷を完全に防止
+    const supportsPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
 
-      header.addEventListener('touchstart', onHeaderTouchStart, { passive: true });
-      header.addEventListener('touchmove', onHeaderTouchMove, { passive: false });
-      header.addEventListener('touchend', onHeaderTouchEnd, { passive: true });
-      header.addEventListener('touchcancel', onHeaderTouchEnd, { passive: true });
+    if (header) {
+      if (supportsPointerEvents) {
+        header.addEventListener('pointerdown', onPointerDown);
+        header.addEventListener('pointermove', onPointerMove);
+        header.addEventListener('pointerup', onPointerUp);
+        header.addEventListener('pointercancel', onPointerUp);
+      } else {
+        header.addEventListener('touchstart', onHeaderTouchStart, { passive: true });
+        header.addEventListener('touchmove', onHeaderTouchMove, { passive: false });
+        header.addEventListener('touchend', onHeaderTouchEnd, { passive: true });
+        header.addEventListener('touchcancel', onHeaderTouchEnd, { passive: true });
+      }
     }
 
     if (content) {
@@ -371,15 +468,17 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
     return () => {
       if (header) {
-        header.removeEventListener('pointerdown', onPointerDown);
-        header.removeEventListener('pointermove', onPointerMove);
-        header.removeEventListener('pointerup', onPointerUp);
-        header.removeEventListener('pointercancel', onPointerUp);
-
-        header.removeEventListener('touchstart', onHeaderTouchStart);
-        header.removeEventListener('touchmove', onHeaderTouchMove);
-        header.removeEventListener('touchend', onHeaderTouchEnd);
-        header.removeEventListener('touchcancel', onHeaderTouchEnd);
+        if (supportsPointerEvents) {
+          header.removeEventListener('pointerdown', onPointerDown);
+          header.removeEventListener('pointermove', onPointerMove);
+          header.removeEventListener('pointerup', onPointerUp);
+          header.removeEventListener('pointercancel', onPointerUp);
+        } else {
+          header.removeEventListener('touchstart', onHeaderTouchStart);
+          header.removeEventListener('touchmove', onHeaderTouchMove);
+          header.removeEventListener('touchend', onHeaderTouchEnd);
+          header.removeEventListener('touchcancel', onHeaderTouchEnd);
+        }
       }
       if (content) {
         content.removeEventListener('touchstart', onContentTouchStart);
@@ -388,117 +487,83 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         content.removeEventListener('touchcancel', onContentTouchEnd);
       }
     };
-  }, [activeStation, isClosing]);
+  }, [activeStation, handleClose]);
 
   if (!activeStation) return null;
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
-      {/* 背景オーバーレイ（M3 Scrim フェードイン・アウト） */}
+      {/* 背景オーバーレイ（背後の路線図はぼかさず、ボトムシート自身のすりガラス効果で屈折させる） */}
       <div
         ref={scrimRef}
-        className={`fixed inset-0 bg-black/45 backdrop-blur-[2px] ${
-          isClosing ? 'm3-scrim-exit' : 'm3-scrim-enter'
-        }`}
+        onAnimationEnd={(e) => {
+          if (e.animationName === 'm3ScrimEnter' && scrimRef.current) {
+            scrimRef.current.classList.remove('m3-scrim-enter');
+          }
+        }}
+        className="fixed inset-0 bg-slate-900/15 dark:bg-black/40 m3-scrim m3-scrim-enter"
         onClick={handleClose}
       />
 
-      {/* ボトムシート（URLバー被りを防ぐ安全マージン確保・M3 Emphasized スライドアップ・ダウン）
+      {/* ボトムシート（sendai-bus-map-v2 #bottom-panel 準拠のガラスサーフェス仕様）
           ※底面に画面外180px分の実コンテンツ延長枠を持たせ、上に引っ張ったときに下のコンテンツが自然に現れる設計 */}
       <div
         ref={sheetRef}
-        onAnimationEnd={() => {
-          if (sheetRef.current) {
+        onAnimationEnd={(e) => {
+          if (e.animationName === 'm3SheetEnter' && sheetRef.current) {
             sheetRef.current.classList.remove('m3-sheet-enter');
           }
         }}
-        className={`relative z-50 w-full max-w-md mx-auto bg-slate-100 rounded-t-3xl shadow-2xl flex flex-col h-[calc(78vh+180px)] h-[calc(100dvh-5.5rem+180px)] -mb-[180px] border-t border-slate-300 ${
-          isClosing ? 'm3-sheet-exit' : 'm3-sheet-enter'
-        }`}
+        className="relative z-50 w-full max-w-md mx-auto glass-surface-strong rounded-t-3xl shadow-glass-lg flex flex-col h-[calc(78vh+180px)] h-[calc(100dvh-5.5rem+180px)] -mb-[180px] border-t border-white/80 dark:border-slate-700/80 m3-bottom-sheet m3-sheet-enter"
       >
         {/* シートヘッダー（ドラッグ／下スワイプで閉じられる領域） */}
         <div
           ref={headerRef}
-          className="pt-2 pb-3 px-4 bg-white rounded-t-3xl border-b border-slate-200/90 shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
+          className="pt-2.5 pb-3 px-4 bg-transparent rounded-t-3xl border-b border-[var(--mantine-color-default-border)] shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
         >
           {/* ドラッグハンドルバー */}
           <div
-            className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-2 pointer-events-none"
+            className="w-12 h-1.5 rounded-full mx-auto mb-2.5 pointer-events-none"
+            style={{ backgroundColor: 'var(--mantine-color-default-border)' }}
           />
 
-          <div className="flex items-center justify-between">
+          <Group justify="space-between" wrap="nowrap">
             <div className="pointer-events-none">
-              <div className="flex items-baseline gap-2">
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">
+              <Group gap={8} align="baseline" wrap="nowrap">
+                <Title order={2} fz={20} fw={800} className="tracking-tight">
                   {activeStation.name}駅
-                </h2>
-                <span className="text-xs text-slate-400 font-normal">
+                </Title>
+                <Text fz="xs" c="dimmed">
                   {activeStation.nameKana}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono">
+                </Text>
+              </Group>
+              <Text fz={11} c="dimmed" className="font-english">
                 {activeStation.nameEn} Station
-              </p>
+              </Text>
             </div>
 
-            {/* 閉じるボタン */}
-            <button
-              type="button"
+            {/* 閉じるボタン（Mantine CloseButton） */}
+            <CloseButton
+              size="lg"
+              radius="xl"
+              variant="default"
               onClick={(e) => {
                 e.stopPropagation();
                 handleClose();
               }}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-500 flex items-center justify-center transition-colors cursor-pointer pointer-events-auto"
               aria-label="閉じる"
-            >
-              <Icon name="close" size={18} />
-            </button>
-          </div>
+              className="pointer-events-auto"
+            />
+          </Group>
         </div>
 
         {/* コンテンツ領域 */}
         <div ref={contentRef} className="p-3.5 overflow-y-auto space-y-4 overscroll-contain">
-          {/* ① 発車案内 */}
-          <section>
-            <div className="text-xs font-bold text-slate-700 mb-1.5 px-0.5">
-              発車案内
-            </div>
-            <LedDepartureBoard
-              stationId={activeStation.id}
-              selectedTrain={selectedTrain}
-              onSelectTrain={setSelectedTrain}
-            />
-          </section>
-
-          {/* ② 階段・改札口案内 */}
-          <section>
-            <div className="text-xs font-bold text-slate-700 mb-1.5 px-0.5">
-              階段・改札口案内
-            </div>
-            <TrainVision
-              station={activeStation}
-              selectedTrain={selectedTrain}
-            />
-          </section>
-
-          {/* ③ 乗り換え案内 */}
-          <section>
-            <div className="text-xs font-bold text-slate-700 mb-1.5 px-0.5">
-              接続路線・バス
-            </div>
-            <TransferGuide station={activeStation} />
-          </section>
-
-          {/* ④ 運賃一覧 */}
-          <section className="pb-4">
-            <div className="text-xs font-bold text-slate-700 mb-1.5 px-0.5">
-              きっぷ・IC運賃表
-            </div>
-            <FareTable currentStation={activeStation} />
-          </section>
-
-          {/* 最下部スクロール時の余白（最下部までスクロールして上に引っ張ったときは同色背景が自然に追従） */}
-          <div className="h-48 pb-safe bg-slate-100" />
+          <StationSheetContent
+            station={activeStation}
+            selectedTrain={selectedTrain}
+            onSelectTrain={handleSelectTrain}
+          />
         </div>
       </div>
     </div>
