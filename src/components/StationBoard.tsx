@@ -7,7 +7,7 @@ import {
   LINE_COLORS,
 } from '../config/trainLineRules';
 import { JisAirplane } from './icons/JisAirplane';
-import { DotLedText, hasDotFont } from './DotLedText';
+import { DotLedText, hasDotFont, formatDepartureTime } from './DotLedText';
 import { DotLedBitmap, getDestinationDots } from './DotLedBitmap';
 import { LedSlotRow } from './LedSlotRow';
 
@@ -779,13 +779,13 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         })()}
                       </div>
 
-                      {/* 2. 時刻: 白色LED、1桁時刻は先頭スペース付き右揃え */}
+                      {/* 2. 時刻: 白色LED、1桁時刻は先頭スペース付き右揃え（実機通りコロン・分位置完全統一） */}
                       <div className={`flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
                         {hasDotFont(stationId, train.departureTime) ? (
                           <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-auto" />
                         ) : (
                           <span className="font-led font-bold whitespace-pre tracking-normal">
-                            {train.departureTime.length === 4 ? ` ${train.departureTime}` : train.departureTime}
+                            {formatDepartureTime(train.departureTime)}
                           </span>
                         )}
                       </div>
