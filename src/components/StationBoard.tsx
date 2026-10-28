@@ -1138,47 +1138,54 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
                   // Case A: nagamachi / taishido
                   if (isNagamachiTaishido) {
-                    const paddedTime = train.departureTime.length === 4 ? `\u2007${train.departureTime}` : train.departureTime;
                     return (
                       <div
                         key={train.id}
-                        className="w-full h-[25px] text-[24px] font-bold leading-none grid grid-cols-[repeat(13,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default"
+                        className="w-full h-[24px] text-[21.33px] font-bold leading-[24px] grid grid-cols-[repeat(13,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default"
                       >
-                        {/* 1〜3マス目: 種別（両端に若干のスペースを持たせて均等配置） */}
-                        <div className={`col-span-3 flex items-center justify-around px-0.5 ${LED_COLOR_CLASSES[theme.typeColor]}`}>
-                          <span>{train.trainType[0] ?? '普'}</span>
-                          <span>{train.trainType[1] ?? '通'}</span>
+                        {/* 1〜3マス目: 種別（両端に若干のスペースを持たせて均等配置・高さ20dot完全維持） */}
+                        <div className={`col-span-3 h-full flex items-center justify-around px-0.5 leading-[24px] ${LED_COLOR_CLASSES[theme.typeColor]}`}>
+                          {(() => {
+                            const typeDots = getDestinationDots(stationId, train.trainType);
+                            if (typeDots) {
+                              return <DotLedBitmap dots={typeDots} className="h-full w-auto max-w-full" ariaLabel={train.trainType} />;
+                            }
+                            return (
+                              <>
+                                <span>{train.trainType[0] ?? '普'}</span>
+                                <span>{train.trainType[1] ?? '通'}</span>
+                              </>
+                            );
+                          })()}
                         </div>
 
-                        {/* 4〜5マス目: 両数（2文字幅で「数字」「両」） */}
-                        <div className={`col-span-2 grid grid-cols-2 text-center ${LED_COLOR_CLASSES[theme.carsColor]}`}>
-                          <span>{toFW(train.cars)}</span>
-                          <span>両</span>
+                        {/* 4〜5マス目: 両数（2文字幅で「数字」「両」・高さ20dot完全維持） */}
+                        <div className={`col-span-2 h-full flex items-center justify-center leading-[24px] ${LED_COLOR_CLASSES[theme.carsColor]}`}>
+                          {(() => {
+                            const carsText = `${train.cars}両`;
+                            const carsDots = getDestinationDots(stationId, carsText);
+                            if (carsDots) {
+                              return <DotLedBitmap dots={carsDots} className="h-full w-auto max-w-full" ariaLabel={carsText} />;
+                            }
+                            return (
+                              <div className="w-full grid grid-cols-2 text-center items-center">
+                                <span>{toFW(train.cars)}</span>
+                                <span>両</span>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* 6マス目: 中央余白（両数と時刻の間の空きすぎを解消した1文字幅枠） */}
                         <span className="col-span-1" />
 
-                        {/* 7〜9マス目: 発車時刻（行先の手前・3文字幅） */}
-                        <span className={`col-span-3 text-right pr-0.5 tracking-wider whitespace-pre ${LED_COLOR_CLASSES[theme.timeColor]}`}>
-                          {paddedTime}
-                        </span>
-
-                        {/* 10〜13マス目: 行先（右端から4文字幅枠） */}
-                        <div className={`col-span-4 text-center ${LED_COLOR_CLASSES[dc]}`}>
-                          {train.destination.length === 2 ? (
-                            <span className="tracking-wider">{train.destination[0]}　{train.destination[1]}</span>
-                          ) : train.destination.length === 3 ? (
-                            <span className="tracking-normal">{train.destination}</span>
-                          ) : (
-                            <div className="grid grid-cols-4 text-center">
-                              <span>{train.destination[0]}</span>
-                              <span>{train.destination[1]}</span>
-                              <span>{train.destination[2]}</span>
-                              <span>{train.destination[3]}</span>
-                            </div>
-                          )}
+                        {/* 7〜9マス目: 発車時刻（行先の手前・3文字幅・長町太子堂名取専用手打ちドット・上下2dot余白込みで完全フィット） */}
+                        <div className={`col-span-3 h-full flex items-center justify-end pr-0.5 ${LED_COLOR_CLASSES[theme.timeColor]}`}>
+                          <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-auto" />
                         </div>
+
+                        {/* 10〜13マス目: 行先（右端から4文字幅枠・高さ20dot完全維持） */}
+                        {renderDestGrid(train.destination, dc, stationId)}
                       </div>
                     );
                   }
