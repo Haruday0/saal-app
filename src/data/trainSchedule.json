@@ -12657,21 +12657,21 @@
         {
           "stationName": "北白川",
           "arr": "23:59",
-          "dep": "24:00"
+          "dep": "0:00"
         },
         {
           "stationName": "東白石",
-          "arr": "24:04",
-          "dep": "24:04"
+          "arr": "0:04",
+          "dep": "0:04"
         },
         {
           "stationName": "白石",
-          "arr": "24:09",
-          "dep": "24:09"
+          "arr": "0:09",
+          "dep": "0:09"
         }
       ],
       "terminalStation": "白石",
-      "terminalArrivalTime": "24:09"
+      "terminalArrivalTime": "0:09"
     },
     {
       "id": "1448M",
@@ -12756,23 +12756,23 @@
         {
           "stationName": "名取",
           "arr": "23:59",
-          "dep": "24:00",
+          "dep": "0:00",
           "stationId": "natori",
           "track": "1"
         },
         {
           "stationName": "館腰",
-          "arr": "24:03",
-          "dep": "24:03"
+          "arr": "0:03",
+          "dep": "0:03"
         },
         {
           "stationName": "岩沼",
-          "arr": "24:08",
-          "dep": "24:08"
+          "arr": "0:08",
+          "dep": "0:08"
         }
       ],
       "terminalStation": "岩沼",
-      "terminalArrivalTime": "24:08"
+      "terminalArrivalTime": "0:08"
     },
     {
       "id": "470M",
@@ -12824,86 +12824,86 @@
       "trainNumber": "470M",
       "calendar": "all",
       "originStation": "仙台",
-      "originDepartureTime": "24:02",
+      "originDepartureTime": "0:02",
       "allStops": [
         {
           "stationName": "仙台",
-          "arr": "24:02",
-          "dep": "24:02",
+          "arr": "0:02",
+          "dep": "0:02",
           "stationId": "sendai",
           "track": "6"
         },
         {
           "stationName": "長町",
-          "arr": "24:07",
-          "dep": "24:08",
+          "arr": "0:07",
+          "dep": "0:08",
           "stationId": "nagamachi",
           "track": "2"
         },
         {
           "stationName": "太子堂",
-          "arr": "24:09",
-          "dep": "24:10",
+          "arr": "0:09",
+          "dep": "0:10",
           "stationId": "taishido",
           "track": "2"
         },
         {
           "stationName": "南仙台",
-          "arr": "24:12",
-          "dep": "24:13",
+          "arr": "0:12",
+          "dep": "0:13",
           "stationId": "minami-sendai",
           "track": "1"
         },
         {
           "stationName": "名取",
-          "arr": "24:15",
-          "dep": "24:16",
+          "arr": "0:15",
+          "dep": "0:16",
           "stationId": "natori",
           "track": "1"
         },
         {
           "stationName": "館腰",
-          "arr": "24:19",
-          "dep": "24:19"
+          "arr": "0:19",
+          "dep": "0:19"
         },
         {
           "stationName": "岩沼",
-          "arr": "24:23",
-          "dep": "24:24"
+          "arr": "0:23",
+          "dep": "0:24"
         },
         {
           "stationName": "槻木",
-          "arr": "24:29",
-          "dep": "24:30"
+          "arr": "0:29",
+          "dep": "0:30"
         },
         {
           "stationName": "船岡",
-          "arr": "24:34",
-          "dep": "24:34"
+          "arr": "0:34",
+          "dep": "0:34"
         },
         {
           "stationName": "大河原",
-          "arr": "24:37",
-          "dep": "24:38"
+          "arr": "0:37",
+          "dep": "0:38"
         },
         {
           "stationName": "北白川",
-          "arr": "24:42",
-          "dep": "24:42"
+          "arr": "0:42",
+          "dep": "0:42"
         },
         {
           "stationName": "東白石",
-          "arr": "24:46",
-          "dep": "24:46"
+          "arr": "0:46",
+          "dep": "0:46"
         },
         {
           "stationName": "白石",
-          "arr": "24:51",
-          "dep": "24:51"
+          "arr": "0:51",
+          "dep": "0:51"
         }
       ],
       "terminalStation": "白石",
-      "terminalArrivalTime": "24:51"
+      "terminalArrivalTime": "0:51"
     },
     {
       "id": "222M",
@@ -17274,22 +17274,22 @@
         },
         {
           "stationName": "亘理",
-          "arr": "24:01",
-          "dep": "24:01"
+          "arr": "0:01",
+          "dep": "0:01"
         },
         {
           "stationName": "浜吉田",
-          "arr": "24:05",
-          "dep": "24:06"
+          "arr": "0:05",
+          "dep": "0:06"
         },
         {
           "stationName": "山下",
-          "arr": "24:10",
-          "dep": "24:10"
+          "arr": "0:10",
+          "dep": "0:10"
         }
       ],
       "terminalStation": "山下",
-      "terminalArrivalTime": "24:10"
+      "terminalArrivalTime": "0:10"
     }
   ],
   "down": [

@@ -41,6 +41,19 @@ function cleanStationName(name?: string | null): string {
   return name.replace(/\s*\([^\)]+\)/g, '').trim();
 }
 
+/** 時刻文字列を旅客案内標準（24時以降は0時台表記: 0:xx）に正規化 */
+function formatStopTime(timeStr?: string | null): string {
+  if (!timeStr) return '';
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return timeStr;
+  let h = parseInt(match[1], 10);
+  const m = match[2];
+  if (h >= 24) {
+    h = h % 24;
+  }
+  return `${h}:${m}`;
+}
+
 /** 全停車駅（allStops または stops）に基づき現在時刻の運行状況を判定 */
 function getTrainStatus(nowSec: number, stops: ScheduledFullStop[]): TrainStatus {
   if (!stops || stops.length === 0) return { kind: 'before' };
@@ -490,7 +503,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   const firstStop = stopsToShow[0];
   const lastStop = stopsToShow[stopsToShow.length - 1];
   const originStation = cleanStationName(train.originStation || firstStop?.stationName || '');
-  const originDepTime = train.originDepartureTime || firstStop?.dep || '';
+  const originDepTime = formatStopTime(train.originDepartureTime || firstStop?.dep || '');
   const terminalStation = cleanStationName(train.destination || lastStop?.stationName || '');
   const cleanDestination = cleanStationName(train.destination);
 
@@ -650,7 +663,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                   const isRunningAfterThis = status.kind === 'running' && status.index === i;
                   const isCurrent = isStoppedHere;
                   const passed = i <= activeIndex && !isCurrent;
-                  const sameTime = s.arr === s.dep;
                   const isSelectable = !!s.stationId;
 
                   // 駅の bullet（停車中は五角形電車アイコン、それ以外は標準）
@@ -700,29 +712,64 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                             )}
                           </Group>
 
-                          {/* 到着時刻・発車時刻 ＆ 番線 */}
-                          <Group gap={8} wrap="nowrap" align="baseline">
-                            <Text
-                              fz="sm"
-                              fw={isStoppedHere ? 700 : 600}
-                              c={passed ? 'dimmed' : undefined}
-                              className="tabular-nums"
-                              style={{ whiteSpace: 'nowrap' }}
-                            >
-                              {isFirst
-                                ? `${s.dep} 発`
-                                : isLast
-                                ? `${s.arr} 着`
-                                : sameTime
-                                ? `${s.dep} 発`
-                                : `${s.arr} 着 / ${s.dep} 発`}
-                            </Text>
+                          {/* 到着時刻・発車時刻 ＆ 番線（全駅で縦一直線に揃う固定幅カラム設計） */}
+                          <Group gap={6} wrap="nowrap" align="center" justify="flex-end" style={{ flexShrink: 0 }}>
+                            {/* 到着・出発時刻スタック（全駅で着時刻と発時刻を明瞭に表示） */}
+                            <Stack gap={1} align="flex-end" justify="center" style={{ minWidth: 54 }}>
+                              {isFirst ? (
+                                <Text
+                                  fz="xs"
+                                  fw={isStoppedHere ? 800 : 700}
+                                  c={passed ? 'dimmed' : undefined}
+                                  className="tabular-nums"
+                                  style={{ whiteSpace: 'nowrap' }}
+                                >
+                                  {formatStopTime(s.dep)} 発
+                                </Text>
+                              ) : isLast ? (
+                                <Text
+                                  fz="xs"
+                                  fw={isStoppedHere ? 800 : 700}
+                                  c={passed ? 'dimmed' : undefined}
+                                  className="tabular-nums"
+                                  style={{ whiteSpace: 'nowrap' }}
+                                >
+                                  {formatStopTime(s.arr)} 着
+                                </Text>
+                              ) : (
+                                <>
+                                  <Text
+                                    fz={11}
+                                    fw={500}
+                                    c="dimmed"
+                                    className="tabular-nums"
+                                    lh={1.2}
+                                    style={{ whiteSpace: 'nowrap' }}
+                                  >
+                                    {formatStopTime(s.arr)} 着
+                                  </Text>
+                                  <Text
+                                    fz="xs"
+                                    fw={isStoppedHere ? 800 : 700}
+                                    c={passed ? 'dimmed' : undefined}
+                                    className="tabular-nums"
+                                    lh={1.2}
+                                    style={{ whiteSpace: 'nowrap' }}
+                                  >
+                                    {formatStopTime(s.dep)} 発
+                                  </Text>
+                                </>
+                              )}
+                            </Stack>
 
-                            {s.track && (
-                              <Text fz="xs" c="dimmed" w={32} ta="right" style={{ whiteSpace: 'nowrap' }}>
-                                {s.track}番線
-                              </Text>
-                            )}
+                            {/* 番線カラム（固定幅42pxで必ず保持し、番線がない駅でも右端ラインを崩さない） */}
+                            <Box w={42} style={{ flexShrink: 0, textAlign: 'right' }}>
+                              {s.track ? (
+                                <Text fz="xs" c="dimmed" fw={600} style={{ whiteSpace: 'nowrap' }}>
+                                  {s.track}番線
+                                </Text>
+                              ) : null}
+                            </Box>
                           </Group>
                         </Group>
                       </UnstyledButton>

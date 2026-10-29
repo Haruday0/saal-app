@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { DepartureTrain, DirectionType } from '../types';
 import {
   getDestinationLedColor,
@@ -90,6 +90,88 @@ export const STATION_BOARD_WIDTH_CLASSES: Record<string, string> = {
   morisekinoshita: 'w-full max-w-[370px]',
   mitazono: 'w-full max-w-[370px]',
   'sendai-airport': 'w-full max-w-[370px]',
+};
+
+export const STATION_BOARD_BASE_WIDTHS: Record<string, number> = {
+  'minami-sendai': 326,
+  natori: 326,
+  sendai: 385,
+  nagamachi: 385,
+  taishido: 385,
+  morisekinoshita: 370,
+  mitazono: 370,
+  'sendai-airport': 370,
+};
+
+/**
+ * 電光掲示板の形状を完全固定するスケーリングラッパー
+ * 基準幅（baseWidth）で内部ボードを描画し、利用可能幅に応じて均等スケール（transform: scale）を適用。
+ * ページズーム、ピンチズーム、端末幅変化でも縦横比（アスペクト比）が1ミリも狂わず、
+ * 実機の形状プロポーションを常に100%完全に維持します。
+ */
+export const FixedRatioBoardWrapper: React.FC<{
+  baseWidth: number;
+  children: React.ReactNode;
+}> = ({ baseWidth, children }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+
+    const handleResize = () => {
+      const containerWidth = container.clientWidth;
+      if (containerWidth > 0) {
+        // 利用可能幅に対するスケール係数（最大1.0で等倍、狭い場合は相似縮小）
+        const newScale = Math.min(1, containerWidth / baseWidth);
+        setScale(newScale);
+        setContentHeight(content.offsetHeight);
+      }
+    };
+
+    handleResize();
+
+    const ro = new ResizeObserver(() => {
+      handleResize();
+    });
+    ro.observe(container);
+    ro.observe(content);
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [baseWidth]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full flex justify-center items-start overflow-hidden select-none"
+      style={{
+        height: contentHeight !== null ? `${Math.round(contentHeight * scale)}px` : undefined,
+      }}
+    >
+      <div
+        ref={contentRef}
+        style={{
+          width: `${baseWidth}px`,
+          minWidth: `${baseWidth}px`,
+          maxWidth: `${baseWidth}px`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top center',
+          flexShrink: 0,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
 };
 
 /* ── ユーティリティ ── */
@@ -275,7 +357,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
   const rowBase = 'w-full h-[26px] text-[23px] font-bold leading-none flex items-center whitespace-nowrap rounded-none px-1 transition';
 
-  const containerWidthClass = STATION_BOARD_WIDTH_CLASSES[stationId] || 'w-full max-w-[400px]';
+  const baseWidth = STATION_BOARD_BASE_WIDTHS[stationId] ?? 385;
 
   /* ─────────────────────────────────────────────────────────────
      1. 仙台駅（上部路線看板＋下部3段LED発車標）
@@ -287,7 +369,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
         : selectedTrain?.line || trains[0]?.line || 'tohoku';
 
     return (
-      <div className={`${containerWidthClass} mx-auto transition-all duration-300 font-sans`}>
+      <FixedRatioBoardWrapper baseWidth={baseWidth}>
+        <div className="w-full font-sans">
         {/* 実機の一体型アルミ筐体フレーム */}
         <div className="rounded-none border-[3px] border-[#5a6370] bg-[#474f5c] overflow-hidden">
           
@@ -549,6 +632,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
         </div>
       </div>
+      </FixedRatioBoardWrapper>
     );
   }
 
@@ -559,7 +643,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
     const satTrack = stationId === 'morisekinoshita' ? '1' : activeTrack === '2' ? '2' : '1';
 
     return (
-      <div className={`${containerWidthClass} mx-auto transition-all duration-300 font-sans`}>
+      <FixedRatioBoardWrapper baseWidth={baseWidth}>
+        <div className="w-full font-sans">
         {/* 実機の一体型アルミ筐体フレーム */}
         <div className="rounded-none border-[3px] border-[#5a6370] bg-[#474f5c] overflow-hidden">
           
@@ -844,6 +929,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
         </div>
       </div>
+      </FixedRatioBoardWrapper>
     );
   }
 
@@ -866,7 +952,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
       stationId === 'natori' && activeTrack === '2';
 
     return (
-      <div className={`${containerWidthClass} mx-auto transition-all duration-300 font-sans`}>
+      <FixedRatioBoardWrapper baseWidth={baseWidth}>
+        <div className="w-full font-sans">
         {/* 実機の一体型アルミ筐体フレーム（角ばった90度直角デザイン） */}
         <div className="rounded-none border-[3px] border-[#5a6370] bg-[#474f5c] overflow-hidden">
           
@@ -1257,6 +1344,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
         </div>
       </div>
+      </FixedRatioBoardWrapper>
     );
   }
 
@@ -1264,7 +1352,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
      4. フォールバック表示
      ───────────────────────────────────────────────────────────── */
   return (
-    <div className={`${containerWidthClass} mx-auto transition-all duration-300`}>
+    <FixedRatioBoardWrapper baseWidth={baseWidth}>
+      <div className="w-full">
       <div className="rounded-none border border-neutral-800 bg-[#060806] px-2.5 py-1.5 font-led select-none" style={bgStyle}>
         <div className="flex flex-col gap-[6px]">
           {rows.map((train, i) => {
@@ -1297,7 +1386,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
           })}
         </div>
       </div>
-    </div>
+      </div>
+    </FixedRatioBoardWrapper>
   );
 };
 
