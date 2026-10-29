@@ -260,7 +260,8 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
   const mantineColor = isSaal ? 'saal' : 'green';
   const isDown = train.direction === 'down';
   const isCompact = !!train.isCompact;
-  const noseH = isCompact ? 4 : 5;
+  // 枠線（1.5px）との重なりを考慮し、四角形の外側にしっかり三角が飛び出す高さを確保
+  const noseH = isCompact ? 6 : 7.5;
 
   return (
     <UnstyledButton
