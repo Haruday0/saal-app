@@ -252,7 +252,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   );
 };
 
-/** 在線列車バッジ（進行方向ノーズ一体型シルエット・Candidate B） */
+/** 在線列車バッジ（四角形4辺ボーダー ＋ 進行方向接続ノーズ） */
 const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> = ({ train, onClick }) => {
   const topPercent = ((train.positionRatio + 0.5) / 8) * 100;
   const isSaal = train.line === 'saal';
@@ -260,6 +260,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
   const mantineColor = isSaal ? 'saal' : 'green';
   const isDown = train.direction === 'down';
   const isCompact = !!train.isCompact;
+  const noseH = isCompact ? 4 : 5;
 
   return (
     <UnstyledButton
@@ -272,42 +273,83 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
         transform: 'translateY(-50%)',
         pointerEvents: 'auto',
         zIndex: 20,
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <Stack gap={0} align="stretch">
-        {/* 下り（仙台方面 = 画面上向き進行）: 上部に先頭ノーズを配置 */}
-        {isDown && (
-          <Box
-            h={isCompact ? 4 : 5}
-            w="100%"
-            style={{
-              backgroundColor: lineColor,
-              clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)',
-            }}
-          />
-        )}
-
-        {/* 車体本体（ノーズ側は角0、後端側は角丸） */}
-        <Paper
-          withBorder
-          shadow="xs"
-          px={3}
-          py={isCompact ? 1 : 2}
-          radius={0}
+      {/* 下り（仙台方面）: 上向き三角ノーズ */}
+      {isDown && (
+        <Box
+          h={noseH}
+          w="100%"
           style={{
-            borderColor: lineColor,
-            borderWidth: 1.5,
-            backgroundColor: 'var(--mantine-color-body)',
-            borderRadius: isDown
-              ? isCompact
-                ? '0 0 3px 3px'
-                : '0 0 4px 4px'
-              : isCompact
-              ? '3px 3px 0 0'
-              : '4px 4px 0 0',
+            backgroundColor: lineColor,
+            clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)',
+            marginBottom: -1.5,
+            position: 'relative',
+            zIndex: 1,
           }}
-        >
-          {isCompact ? (
+        />
+      )}
+
+      {/* 4辺ボーダー付き本体四角形 */}
+      <Paper
+        withBorder
+        shadow="none"
+        px={3}
+        py={isCompact ? 1 : 2}
+        radius="xs"
+        style={{
+          borderColor: lineColor,
+          borderWidth: 1.5,
+          backgroundColor: 'var(--mantine-color-body)',
+        }}
+      >
+        {isCompact ? (
+          <Text
+            component="div"
+            ta="center"
+            fw={800}
+            fz={10.5}
+            lh={1.15}
+            style={{
+              whiteSpace: 'nowrap',
+              letterSpacing: train.destination.length >= 4 ? '-0.04em' : '0.04em',
+            }}
+          >
+            {train.destination}
+          </Text>
+        ) : (
+          <Stack gap={1.5} align="stretch">
+            {/* 1段目: 種別 + 両数 */}
+            <Group justify="space-between" align="center" gap={2} wrap="nowrap">
+              <Badge
+                size="xs"
+                variant="light"
+                color={mantineColor}
+                radius="xs"
+                px={2.5}
+                tt="none"
+                styles={{
+                  root: { height: 12, flexShrink: 0, border: 'none' },
+                  label: { fontSize: 8, fontWeight: 800, lineHeight: 1 },
+                }}
+              >
+                {train.trainType}
+              </Badge>
+              <Text
+                component="span"
+                fw={700}
+                fz={8.5}
+                lh={1}
+                c="dimmed"
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {train.cars}両
+              </Text>
+            </Group>
+
+            {/* 2段目: 行先 */}
             <Text
               component="div"
               ta="center"
@@ -321,66 +363,24 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
             >
               {train.destination}
             </Text>
-          ) : (
-            <Stack gap={1.5} align="stretch">
-              {/* 1段目: 種別 + 両数 */}
-              <Group justify="space-between" align="center" gap={2} wrap="nowrap">
-                <Badge
-                  size="xs"
-                  variant="light"
-                  color={mantineColor}
-                  radius="xs"
-                  px={2.5}
-                  tt="none"
-                  styles={{
-                    root: { height: 12, flexShrink: 0, border: 'none' },
-                    label: { fontSize: 8, fontWeight: 800, lineHeight: 1 },
-                  }}
-                >
-                  {train.trainType}
-                </Badge>
-                <Text
-                  component="span"
-                  fw={700}
-                  fz={8.5}
-                  lh={1}
-                  c="dimmed"
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  {train.cars}両
-                </Text>
-              </Group>
-
-              {/* 2段目: 行先 */}
-              <Text
-                component="div"
-                ta="center"
-                fw={800}
-                fz={10.5}
-                lh={1.15}
-                style={{
-                  whiteSpace: 'nowrap',
-                  letterSpacing: train.destination.length >= 4 ? '-0.04em' : '0.04em',
-                }}
-              >
-                {train.destination}
-              </Text>
-            </Stack>
-          )}
-        </Paper>
-
-        {/* 上り（仙台空港・白石方面 = 画面下向き進行）: 下部に先頭ノーズを配置 */}
-        {!isDown && (
-          <Box
-            h={isCompact ? 4 : 5}
-            w="100%"
-            style={{
-              backgroundColor: lineColor,
-              clipPath: 'polygon(0% 0%, 100% 0%, 50% 100%)',
-            }}
-          />
+          </Stack>
         )}
-      </Stack>
+      </Paper>
+
+      {/* 上り（空港・白石方面）: 下向き三角ノーズ */}
+      {!isDown && (
+        <Box
+          h={noseH}
+          w="100%"
+          style={{
+            backgroundColor: lineColor,
+            clipPath: 'polygon(0% 0%, 100% 0%, 50% 100%)',
+            marginTop: -1.5,
+            position: 'relative',
+            zIndex: 1,
+          }}
+        />
+      )}
     </UnstyledButton>
   );
 };
