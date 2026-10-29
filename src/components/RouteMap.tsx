@@ -5,7 +5,7 @@ import { Paper, Group, Text, Badge, Box, Stack, UnstyledButton } from '@mantine/
 import { Icon } from './Icon';
 import { JisTrain, JisSubway } from './icons';
 import { getActiveMovingTrains, RealtimeMovingTrain } from '../utils/trainPosition';
-import { LINE_COLORS } from '../config/trainLineRules';
+import { LINE_COLORS, getLineColor, getMantineLineColor } from '../config/trainLineRules';
 
 interface RouteMapProps {
   selectedStationId: string | null;
@@ -256,9 +256,8 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 /** 在線列車バッジ（四角形4辺ボーダー ＋ 進行方向接続ノーズ） */
 const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> = ({ train, onClick }) => {
   const topPercent = ((train.positionRatio + 0.5) / 8) * 100;
-  const isSaal = train.line === 'saal';
-  const lineColor = isSaal ? LINE_COLORS.saal : LINE_COLORS.tohoku;
-  const mantineColor = isSaal ? 'saal' : 'green';
+  const lineColor = getLineColor(train.line);
+  const mantineColor = getMantineLineColor(train.line);
   const isDown = train.direction === 'down';
   const isCompact = !!train.isCompact;
   const noseH = isCompact ? 5 : 6;

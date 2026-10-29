@@ -4,25 +4,21 @@ import '@mantine/core/styles.css';
 import { createTheme, MantineProvider, MantineColorsTuple } from '@mantine/core';
 import App from './App';
 import './index.css';
+import { MANTINE_LINE_PALETTES } from './config/trainLineRules';
 
-// 仙台空港アクセス線 公式ラインカラー #2A5CAA を基準とした10階調パレット
-const saal: MantineColorsTuple = [
-  '#eaf0fa',
-  '#d3def2',
-  '#a6bde5',
-  '#759ad8',
-  '#4d7dcd',
-  '#3569c3',
-  '#2A5CAA',
-  '#224c8f',
-  '#1a3c73',
-  '#122b55',
-];
+// 各路線の公式カラーに基づく Mantine 10階調パレット
+const saal = MANTINE_LINE_PALETTES.saal as unknown as MantineColorsTuple;
+const tohoku = MANTINE_LINE_PALETTES.tohoku as unknown as MantineColorsTuple;
+const joban = MANTINE_LINE_PALETTES.joban as unknown as MantineColorsTuple;
 
 const theme = createTheme({
   primaryColor: 'saal',
   primaryShade: { light: 6, dark: 4 },
-  colors: { saal },
+  colors: {
+    saal,
+    tohoku,
+    joban,
+  },
   fontFamily: '"BIZ UDPGothic", "M PLUS 1", system-ui, sans-serif',
   defaultRadius: 'md',
 });

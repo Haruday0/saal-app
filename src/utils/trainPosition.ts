@@ -52,6 +52,8 @@ export interface ScheduledTrain {
   destination: string;
   cars: 2 | 4 | 6 | 10;
   calendar?: string;
+  originStation?: string;
+  originDepartureTime?: string;
   stops: ScheduledStop[];
 }
 
@@ -75,37 +77,9 @@ export function getActiveMovingTrains(
     ? dayType === 'holiday'
     : now.getDay() === 0 || now.getDay() === 6;
 
-  const data = trainScheduleData as {
-    up: Array<{
-      id: string;
-      trainNumber: string;
-      line: LineType;
-      trainType?: string;
-      destination: string;
-      cars: 2 | 4 | 6 | 10;
-      calendar?: string;
-      stops: Array<{
-        stationId: string;
-        stationName: string;
-        arr: string;
-        dep: string;
-      }>;
-    }>;
-    down: Array<{
-      id: string;
-      trainNumber: string;
-      line: LineType;
-      trainType?: string;
-      destination: string;
-      cars: 2 | 4 | 6 | 10;
-      calendar?: string;
-      stops: Array<{
-        stationId: string;
-        stationName: string;
-        arr: string;
-        dep: string;
-      }>;
-    }>;
+  const data = trainScheduleData as unknown as {
+    up: ScheduledTrain[];
+    down: ScheduledTrain[];
   };
 
   // 1. 各方向ごとに、停車中列車と走行中列車を分類
@@ -233,6 +207,8 @@ export function getActiveMovingTrains(
         cars: item.train.cars,
         isAtStation: true,
         stationName: item.stationName,
+        originStation: item.train.originStation,
+        originDepartureTime: item.train.originDepartureTime,
       });
     });
   }
@@ -279,6 +255,8 @@ export function getActiveMovingTrains(
         stationName: item.stationName,
         nextStationName: item.nextStationName,
         isCompact: n >= 2,
+        originStation: item.train.originStation,
+        originDepartureTime: item.train.originDepartureTime,
       });
     });
   }

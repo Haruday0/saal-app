@@ -82,6 +82,8 @@ export interface DepartureTrain {
   delayMinutes?: number;
   remarks?: string;
   calendar?: 'all' | 'weekday' | 'holiday';
+  originStation?: string;
+  originDepartureTime?: string;
 }
 
 export interface MovingTrain {
@@ -97,4 +99,6 @@ export interface MovingTrain {
   cars: 2 | 4 | 6 | 10;
   isAtStation: boolean;
   isCompact?: boolean;
+  originStation?: string;
+  originDepartureTime?: string;
 }

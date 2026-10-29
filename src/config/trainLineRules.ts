@@ -15,6 +15,66 @@ export const LINE_COLORS = {
 } as const;
 
 /**
+ * 路線公式カラーに基づく Mantine 10階調パレット（インデックス6が基本色）
+ */
+export const MANTINE_LINE_PALETTES = {
+  saal: [
+    '#eaf0fa',
+    '#d3def2',
+    '#a6bde5',
+    '#759ad8',
+    '#4d7dcd',
+    '#3569c3',
+    '#2A5CAA',
+    '#224c8f',
+    '#1a3c73',
+    '#122b55',
+  ] as const,
+  tohoku: [
+    '#e7f5ed',
+    '#ceecdb',
+    '#b1e0c6',
+    '#8ad1a9',
+    '#63c28d',
+    '#4fba7f',
+    '#3CB371',
+    '#31925c',
+    '#277449',
+    '#1b5032',
+  ] as const,
+  joban: [
+    '#e0ecf7',
+    '#bfd9ef',
+    '#99c2e5',
+    '#66a3d9',
+    '#3385cc',
+    '#1976c6',
+    '#0067C0',
+    '#00549d',
+    '#00427c',
+    '#002e56',
+  ] as const,
+};
+
+/**
+ * 路線コード（saal / tohoku / joban）に対応する公式 HEX カラーを取得
+ */
+export function getLineColor(line?: string | null): string {
+  if (line === 'saal') return LINE_COLORS.saal;
+  if (line === 'joban') return LINE_COLORS.joban;
+  return LINE_COLORS.tohoku;
+}
+
+/**
+ * 路線コード（saal / tohoku / joban）に対応する Mantine カラー名を取得
+ */
+export function getMantineLineColor(line?: string | null): 'saal' | 'tohoku' | 'joban' {
+  if (line === 'saal') return 'saal';
+  if (line === 'joban') return 'joban';
+  return 'tohoku';
+}
+
+/**
  * 行先から路線（アクセス線 / 東北本線 / 常磐線）を判定するマッピング
  * 後から自由に行先を追加・変更できます
  */
