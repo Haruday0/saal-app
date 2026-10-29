@@ -300,7 +300,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
         withBorder
         shadow="none"
         px={2.5}
-        py={isCompact ? 1 : 1.5}
+        py={isCompact ? 1.5 : 2}
         radius={0}
         style={{
           boxSizing: 'border-box',
@@ -309,6 +309,9 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
           borderColor: lineColor,
           borderWidth: 1.5,
           backgroundColor: 'var(--mantine-color-body)',
+          display: isCompact ? 'flex' : undefined,
+          alignItems: isCompact ? 'center' : undefined,
+          justifyContent: isCompact ? 'center' : undefined,
           borderRadius: isDown
             ? isCompact
               ? '0 0 3px 3px'
@@ -326,14 +329,18 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
             fz={10}
             lh={1.15}
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               whiteSpace: 'nowrap',
               letterSpacing: train.destination.length >= 4 ? '-0.04em' : '0.04em',
+              paddingTop: '0.5px',
             }}
           >
             {train.destination}
           </Text>
         ) : (
-          <Stack gap={1} align="stretch">
+          <Stack gap={1.5} align="stretch">
             {/* 1段目: 種別 + 両数 */}
             <Group justify="space-between" align="center" gap={1} wrap="nowrap">
               <Badge
@@ -344,7 +351,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
                 px={2}
                 tt="none"
                 styles={{
-                  root: { height: 11, flexShrink: 0, border: 'none' },
+                  root: { height: 11, flexShrink: 0, border: 'none', display: 'flex', alignItems: 'center' },
                   label: { fontSize: 8, fontWeight: 800, lineHeight: 1 },
                 }}
               >
@@ -356,7 +363,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
                 fz={8}
                 lh={1}
                 c="dimmed"
-                style={{ whiteSpace: 'nowrap' }}
+                style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' }}
               >
                 {train.cars}両
               </Text>
@@ -370,8 +377,12 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
               fz={10}
               lh={1.15}
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 whiteSpace: 'nowrap',
                 letterSpacing: train.destination.length >= 4 ? '-0.04em' : '0.04em',
+                paddingTop: '0.5px',
               }}
             >
               {train.destination}

@@ -528,6 +528,41 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     }
   })();
 
+  // 開いた瞬間（activeTrain セット直後）、現在走行位置または停車駅が画面に出てくるよう即時スクロール
+  // 直前の過去停車駅（1〜2駅）が画面上部に見えるスクロール位置に合わせる
+  useEffect(() => {
+    if (!activeTrain) return;
+
+    const scrollToCurrentStop = () => {
+      const content = contentRef.current;
+      if (!content) return;
+
+      // 始発前、または最初の1〜2駅なら最上部（運行状況カードが見える位置）
+      if (status.kind === 'before' || activeIndex <= 1) {
+        content.scrollTop = 0;
+        return;
+      }
+
+      // 現在走行中または停車中の対象駅インデックス
+      const targetIndex = status.kind === 'running' ? status.index : activeIndex;
+      const targetEl = content.querySelector<HTMLElement>(`[data-stop-index="${targetIndex}"]`);
+      if (targetEl) {
+        // 過去駅（1〜2駅）が上部に見えるよう、約100px上にオフセットして即時スクロール
+        const targetScroll = Math.max(0, targetEl.offsetTop - 100);
+        content.scrollTop = targetScroll;
+      }
+    };
+
+    scrollToCurrentStop();
+    const rafId = requestAnimationFrame(scrollToCurrentStop);
+    const timer = setTimeout(scrollToCurrentStop, 30);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timer);
+    };
+  }, [activeTrain?.id, status.kind, activeIndex]);
+
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
       {/* 背景スクリム */}
@@ -677,6 +712,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                       lineVariant={isRunningAfterThis ? 'dashed' : 'solid'}
                     >
                       <UnstyledButton
+                        data-stop-index={i}
                         onClick={() => handleStopClick(s.stationId)}
                         style={{
                           cursor: isSelectable ? 'pointer' : 'default',

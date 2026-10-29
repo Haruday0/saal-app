@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Modal, SegmentedControl, Chip, ScrollArea, Badge, Group, Text, Stack } from '@mantine/core';
 import { DepartureTrain, LineType } from '../types';
 import { isWeekendHolidayOrYearEnd } from '../utils/calendar';
@@ -82,6 +82,46 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
     }
     return null;
   }, [filteredTrains, currentMinutes, isTodayHoliday]);
+
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  // モーダルオープン時またはフィルター切り替え時に、現在時刻の列車（nextTrainId）へスクロール
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const scrollToCurrentTrain = () => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+
+      if (!nextTrainId) {
+        viewport.scrollTop = 0;
+        return;
+      }
+
+      const targetEl = viewport.querySelector<HTMLElement>(`[data-train-id="${nextTrainId}"]`);
+      if (targetEl) {
+        // 1〜2本前の過去電車が上に見えるよう、targetEl.offsetTop - 85 に即時スクロール
+        const viewportRect = viewport.getBoundingClientRect();
+        const targetRect = targetEl.getBoundingClientRect();
+        const targetTop = targetRect.top - viewportRect.top + viewport.scrollTop;
+        const scrollPosition = targetTop - 85;
+        viewport.scrollTop = Math.max(0, scrollPosition);
+      }
+    };
+
+    // 初期表示タイミングに合わせて rAF および setTimeout(30ms) で即時実行
+    const rafId = requestAnimationFrame(() => {
+      scrollToCurrentTrain();
+    });
+    const timerId = setTimeout(() => {
+      scrollToCurrentTrain();
+    }, 30);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timerId);
+    };
+  }, [isOpen, nextTrainId, selectedDirection, selectedLines]);
 
   const LINE_OPTIONS: { value: LineType; label: string }[] = [
     { value: 'tohoku', label: '東北本線' },
@@ -172,7 +212,12 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
       )}
 
       {/* 時刻表スクロールリスト */}
-      <ScrollArea type="auto" style={{ flex: 1, minHeight: 0 }} viewportProps={{ style: { overscrollBehavior: 'contain' } }}>
+      <ScrollArea
+        viewportRef={viewportRef}
+        type="auto"
+        style={{ flex: 1, minHeight: 0 }}
+        viewportProps={{ style: { overscrollBehavior: 'contain' } }}
+      >
         {filteredTrains.length === 0 ? (
           <Text py="xl" ta="center" fz="xs" c="dimmed">
             該当する列車はありません
@@ -189,6 +234,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
               return (
                 <Group
                   key={train.id}
+                  data-train-id={train.id}
                   justify="space-between"
                   wrap="nowrap"
                   gap={6}
