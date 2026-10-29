@@ -260,8 +260,8 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
   const mantineColor = getMantineLineColor(train.line);
   const isDown = train.direction === 'down';
   const isCompact = !!train.isCompact;
-  const noseH = isCompact ? 5 : 6;
-  const overlap = 3;
+  const noseH = isCompact ? 4.5 : 5;
+  const overlap = 2.5;
 
   return (
     <UnstyledButton
@@ -300,7 +300,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
         withBorder
         shadow="none"
         px={2.5}
-        py={isCompact ? 1 : 2}
+        py={isCompact ? 1 : 1.5}
         radius={0}
         style={{
           boxSizing: 'border-box',
@@ -312,10 +312,10 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
           borderRadius: isDown
             ? isCompact
               ? '0 0 3px 3px'
-              : '0 0 4px 4px'
+              : '0 0 3.5px 3.5px'
             : isCompact
             ? '3px 3px 0 0'
-            : '4px 4px 0 0',
+            : '3.5px 3.5px 0 0',
         }}
       >
         {isCompact ? (
@@ -323,7 +323,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
             component="div"
             ta="center"
             fw={800}
-            fz={10.5}
+            fz={10}
             lh={1.15}
             style={{
               whiteSpace: 'nowrap',
@@ -333,9 +333,9 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
             {train.destination}
           </Text>
         ) : (
-          <Stack gap={1.5} align="stretch">
+          <Stack gap={1} align="stretch">
             {/* 1段目: 種別 + 両数 */}
-            <Group justify="space-between" align="center" gap={1.5} wrap="nowrap">
+            <Group justify="space-between" align="center" gap={1} wrap="nowrap">
               <Badge
                 size="xs"
                 variant="light"
@@ -344,7 +344,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
                 px={2}
                 tt="none"
                 styles={{
-                  root: { height: 12, flexShrink: 0, border: 'none' },
+                  root: { height: 11, flexShrink: 0, border: 'none' },
                   label: { fontSize: 8, fontWeight: 800, lineHeight: 1 },
                 }}
               >
@@ -353,7 +353,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
               <Text
                 component="span"
                 fw={700}
-                fz={8.5}
+                fz={8}
                 lh={1}
                 c="dimmed"
                 style={{ whiteSpace: 'nowrap' }}
@@ -367,7 +367,7 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
               component="div"
               ta="center"
               fw={800}
-              fz={10.5}
+              fz={10}
               lh={1.15}
               style={{
                 whiteSpace: 'nowrap',

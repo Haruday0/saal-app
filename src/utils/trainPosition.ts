@@ -272,14 +272,16 @@ export function getActiveMovingTrains(
     });
   }
 
-  // 4. 近接チェック（同一方向で距離が0.65未満の列車ペアは両方スリム化）
+  // 4. 近接チェック（同一方向で距離が0.45未満の列車ペアのみスリム化）
+  // 駅（1.0）と隣の駅間（1.5、差0.50）の通常運行時は標準2段バッジを維持。
+  // 同一駅複数停車（差0.20）や同一区間複数走行（差0.26）などの真の近接時のみ重なり防止でスリム化。
   for (let i = 0; i < results.length; i++) {
     for (let j = i + 1; j < results.length; j++) {
       const t1 = results[i];
       const t2 = results[j];
       if (
         t1.direction === t2.direction &&
-        Math.abs(t1.positionRatio - t2.positionRatio) < 0.65
+        Math.abs(t1.positionRatio - t2.positionRatio) < 0.45
       ) {
         t1.isCompact = true;
         t2.isCompact = true;
