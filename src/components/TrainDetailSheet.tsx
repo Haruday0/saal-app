@@ -494,39 +494,14 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     }
   };
 
-  if (!activeTrain) return null;
-
-  const train = activeTrain;
-  const lineColor = getLineColor(train.line);
-  const mantineColor = getMantineLineColor(train.line);
-
-  const firstStop = stopsToShow[0];
-  const lastStop = stopsToShow[stopsToShow.length - 1];
-  const originStation = cleanStationName(train.originStation || firstStop?.stationName || '');
-  const originDepTime = formatStopTime(train.originDepartureTime || firstStop?.dep || '');
-  const terminalStation = cleanStationName(train.destination || lastStop?.stationName || '');
-  const cleanDestination = cleanStationName(train.destination);
-
   // Mantine Timeline の到達済みアクティブインデックス
-  const activeIndex =
-    status.kind === 'before'
+  const activeIndex = useMemo(() => {
+    return status.kind === 'before'
       ? -1
       : status.kind === 'arrived'
       ? stopsToShow.length - 1
       : status.index;
-
-  const statusText = (() => {
-    switch (status.kind) {
-      case 'before':
-        return `${originStation} ${originDepTime} 発車予定`;
-      case 'stopped':
-        return `${cleanStationName(stopsToShow[status.index]?.stationName)}駅に停車中`;
-      case 'running':
-        return `${cleanStationName(stopsToShow[status.index]?.stationName)} → ${cleanStationName(stopsToShow[status.index + 1]?.stationName)} 間を走行中`;
-      case 'arrived':
-        return `${terminalStation}に到着済み`;
-    }
-  })();
+  }, [status, stopsToShow.length]);
 
   // 開いた瞬間（activeTrain セット直後）、現在走行位置または停車駅が画面に出てくるよう即時スクロール
   // 直前の過去停車駅（1〜2駅）が画面上部に見えるスクロール位置に合わせる
@@ -562,6 +537,32 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       clearTimeout(timer);
     };
   }, [activeTrain?.id, status.kind, activeIndex]);
+
+  if (!activeTrain) return null;
+
+  const train = activeTrain;
+  const lineColor = getLineColor(train.line);
+  const mantineColor = getMantineLineColor(train.line);
+
+  const firstStop = stopsToShow[0];
+  const lastStop = stopsToShow[stopsToShow.length - 1];
+  const originStation = cleanStationName(train.originStation || firstStop?.stationName || '');
+  const originDepTime = formatStopTime(train.originDepartureTime || firstStop?.dep || '');
+  const terminalStation = cleanStationName(train.destination || lastStop?.stationName || '');
+  const cleanDestination = cleanStationName(train.destination);
+
+  const statusText = (() => {
+    switch (status.kind) {
+      case 'before':
+        return `${originStation} ${originDepTime} 発車予定`;
+      case 'stopped':
+        return `${cleanStationName(stopsToShow[status.index]?.stationName)}駅に停車中`;
+      case 'running':
+        return `${cleanStationName(stopsToShow[status.index]?.stationName)} → ${cleanStationName(stopsToShow[status.index + 1]?.stationName)} 間を走行中`;
+      case 'arrived':
+        return `${terminalStation}に到着済み`;
+    }
+  })();
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
