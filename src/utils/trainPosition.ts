@@ -33,6 +33,34 @@ export function getCurrentRailwaySeconds(now: Date = new Date()): number {
   return h * 3600 + now.getMinutes() * 60 + now.getSeconds();
 }
 
+/** 列車詳細表示用：時刻表上の1列車分のデータ */
+export interface ScheduledStop {
+  stationId: string;
+  stationName: string;
+  arr: string;
+  dep: string;
+  track?: string;
+}
+
+export interface ScheduledTrain {
+  id: string;
+  trainNumber: string;
+  direction: DirectionType;
+  line: LineType;
+  lineName?: string;
+  trainType?: string;
+  destination: string;
+  cars: 2 | 4 | 6 | 10;
+  calendar?: string;
+  stops: ScheduledStop[];
+}
+
+/** 列車ID（公式列車番号）から trainSchedule.json の全停車駅データを取得 */
+export function getScheduledTrainById(id: string): ScheduledTrain | null {
+  const data = trainScheduleData as unknown as { up: ScheduledTrain[]; down: ScheduledTrain[] };
+  return data.up.find((t) => t.id === id) || data.down.find((t) => t.id === id) || null;
+}
+
 /**
  * trainSchedule.json の全駅着発時刻に基づき、
  * 現在時刻において駅停車中か駅間走行中かを判定し、

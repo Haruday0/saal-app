@@ -3,9 +3,11 @@ import { Station } from './types';
 import { Header } from './components/Header';
 import { RouteMap } from './components/RouteMap';
 import { StationDetailSheet } from './components/StationDetailSheet';
+import { TrainDetailSheet } from './components/TrainDetailSheet';
 
 export const App: React.FC = () => {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const [selectedTrainId, setSelectedTrainId] = useState<string | null>(null);
 
   return (
     <div
@@ -20,13 +22,24 @@ export const App: React.FC = () => {
         <RouteMap
           selectedStationId={selectedStation?.id || null}
           onSelectStation={setSelectedStation}
+          onSelectTrain={(train) => setSelectedTrainId(train.id)}
         />
       </main>
 
-      {/* 駅詳細パネル（タップで下から開くボトムシート） */}
+      {/* 駅詳細パネル（駅タップで下から開くボトムシート） */}
       <StationDetailSheet
         station={selectedStation}
         onClose={() => setSelectedStation(null)}
+      />
+
+      {/* 列車詳細パネル（電車タップで下から開くボトムシート） */}
+      <TrainDetailSheet
+        trainId={selectedTrainId}
+        onClose={() => setSelectedTrainId(null)}
+        onSelectStation={(station) => {
+          setSelectedTrainId(null);
+          setSelectedStation(station);
+        }}
       />
     </div>
   );

@@ -42,6 +42,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
   const handleTrainClick = (train: RealtimeMovingTrain) => {
     if (onSelectTrain) {
       onSelectTrain(train);
+      return;
     }
     const st = STATIONS.find((s) => s.id === train.currentStationId);
     if (st) {
@@ -260,8 +261,8 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
   const mantineColor = isSaal ? 'saal' : 'green';
   const isDown = train.direction === 'down';
   const isCompact = !!train.isCompact;
-  // 枠線（1.5px）との重なりを考慮し、四角形の外側にしっかり三角が飛び出す高さを確保
-  const noseH = isCompact ? 6 : 7.5;
+  const noseH = isCompact ? 5 : 6;
+  const overlap = 3;
 
   return (
     <UnstyledButton
@@ -269,8 +270,8 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
       style={{
         position: 'absolute',
         top: `${topPercent}%`,
-        left: 3,
-        right: 3,
+        left: 1.5,
+        right: 1.5,
         transform: 'translateY(-50%)',
         pointerEvents: 'auto',
         zIndex: 20,
@@ -281,29 +282,41 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
       {/* 下り（仙台方面）: 上向き三角ノーズ */}
       {isDown && (
         <Box
-          h={noseH}
           w="100%"
+          h={noseH + overlap}
           style={{
             backgroundColor: lineColor,
-            clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)',
-            marginBottom: -1.5,
+            clipPath: `polygon(50% 0px, 100% ${noseH}px, 100% 100%, 0% 100%, 0% ${noseH}px)`,
+            marginBottom: -overlap,
             position: 'relative',
             zIndex: 1,
+            pointerEvents: 'none',
           }}
         />
       )}
 
-      {/* 4辺ボーダー付き本体四角形 */}
+      {/* 4辺ボーダー付き本体四角形（w="100%" border-box により上のBoxと外枠幅が100%一致） */}
       <Paper
+        w="100%"
         withBorder
         shadow="none"
-        px={3}
+        px={2.5}
         py={isCompact ? 1 : 2}
-        radius="xs"
+        radius={0}
         style={{
+          boxSizing: 'border-box',
+          position: 'relative',
+          zIndex: 0,
           borderColor: lineColor,
           borderWidth: 1.5,
           backgroundColor: 'var(--mantine-color-body)',
+          borderRadius: isDown
+            ? isCompact
+              ? '0 0 3px 3px'
+              : '0 0 4px 4px'
+            : isCompact
+            ? '3px 3px 0 0'
+            : '4px 4px 0 0',
         }}
       >
         {isCompact ? (
@@ -323,13 +336,13 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
         ) : (
           <Stack gap={1.5} align="stretch">
             {/* 1段目: 種別 + 両数 */}
-            <Group justify="space-between" align="center" gap={2} wrap="nowrap">
+            <Group justify="space-between" align="center" gap={1.5} wrap="nowrap">
               <Badge
                 size="xs"
                 variant="light"
                 color={mantineColor}
                 radius="xs"
-                px={2.5}
+                px={2}
                 tt="none"
                 styles={{
                   root: { height: 12, flexShrink: 0, border: 'none' },
@@ -371,14 +384,15 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
       {/* 上り（空港・白石方面）: 下向き三角ノーズ */}
       {!isDown && (
         <Box
-          h={noseH}
           w="100%"
+          h={noseH + overlap}
           style={{
             backgroundColor: lineColor,
-            clipPath: 'polygon(0% 0%, 100% 0%, 50% 100%)',
-            marginTop: -1.5,
+            clipPath: `polygon(0% 0px, 100% 0px, 100% ${overlap}px, 50% 100%, 0% ${overlap}px)`,
+            marginTop: -overlap,
             position: 'relative',
             zIndex: 1,
+            pointerEvents: 'none',
           }}
         />
       )}
