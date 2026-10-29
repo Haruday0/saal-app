@@ -9,7 +9,6 @@ import {
   Paper,
   Timeline,
   UnstyledButton,
-  SimpleGrid,
   CloseButton,
 } from '@mantine/core';
 import { Station } from '../types';
@@ -512,29 +511,59 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       const content = contentRef.current;
       if (!content) return;
 
-      // 始発前、または最初の1〜2駅なら最上部（運行状況カードが見える位置）
-      if (status.kind === 'before' || activeIndex <= 1) {
+      // 始発前なら最上部（運行状況カードが見える位置）
+      if (status.kind === 'before') {
         content.scrollTop = 0;
         return;
       }
 
       // 現在走行中または停車中の対象駅インデックス
       const targetIndex = status.kind === 'running' ? status.index : activeIndex;
+      if (targetIndex <= 0) {
+        content.scrollTop = 0;
+        return;
+      }
+
       const targetEl = content.querySelector<HTMLElement>(`[data-stop-index="${targetIndex}"]`);
       if (targetEl) {
-        // 過去駅（1〜2駅）が上部に見えるよう、約100px上にオフセットして即時スクロール
-        const targetScroll = Math.max(0, targetEl.offsetTop - 100);
+        // content コンテナ内での正確な相対Y座標
+        const contentRect = content.getBoundingClientRect();
+        const targetRect = targetEl.getBoundingClientRect();
+        let relativeTop = targetRect.top - contentRect.top + content.scrollTop;
+
+        // 初期描画直後で rect が取得できていない場合のフォールバック（offsetTop積算）
+        if (Math.abs(relativeTop - content.scrollTop) < 2) {
+          let totalOffset = 0;
+          let cur: HTMLElement | null = targetEl;
+          while (cur && cur !== content) {
+            totalOffset += cur.offsetTop;
+            cur = cur.offsetParent as HTMLElement | null;
+          }
+          if (totalOffset > 0) {
+            relativeTop = totalOffset;
+          }
+        }
+
+        // 過去駅（1〜2駅）が上部に見えるよう、約85px上にオフセットして即時スクロール
+        const targetScroll = Math.max(0, relativeTop - 85);
         content.scrollTop = targetScroll;
       }
     };
 
+    // 初期表示・アニメーション開始〜完了までの各タイミングで確実に即時適用
     scrollToCurrentStop();
     const rafId = requestAnimationFrame(scrollToCurrentStop);
-    const timer = setTimeout(scrollToCurrentStop, 30);
+    const t1 = setTimeout(scrollToCurrentStop, 50);
+    const t2 = setTimeout(scrollToCurrentStop, 150);
+    const t3 = setTimeout(scrollToCurrentStop, 300);
+    const t4 = setTimeout(scrollToCurrentStop, 460);
 
     return () => {
       cancelAnimationFrame(rafId);
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [activeTrain?.id, status.kind, activeIndex]);
 
@@ -591,24 +620,48 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         {/* シートヘッダー */}
         <div
           ref={headerRef}
-          className="pt-2.5 pb-3 px-4 bg-transparent rounded-t-3xl border-b border-[var(--mantine-color-default-border)] shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
+          className="pt-2 pb-2.5 px-4 bg-transparent rounded-t-3xl border-b border-[var(--mantine-color-default-border)] shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
         >
           {/* ドラッグハンドルバー */}
           <div
-            className="w-12 h-1.5 rounded-full mx-auto mb-2.5 pointer-events-none"
+            className="w-12 h-1.5 rounded-full mx-auto mb-2 pointer-events-none"
             style={{ backgroundColor: 'var(--mantine-color-default-border)' }}
           />
 
-          <Group justify="space-between" wrap="nowrap">
-            <Group gap={8} align="center" wrap="nowrap" className="pointer-events-none">
-              <Box w={4} h={18} style={{ backgroundColor: lineColor, borderRadius: 2 }} />
-              <Title order={2} fz={18} fw={800} className="tracking-tight">
-                {train.lineName ?? '列車詳細'}
-              </Title>
-              <Text fz="xs" c="dimmed" fw={700}>
-                {train.trainNumber}
-              </Text>
-            </Group>
+          <Group justify="space-between" align="center" wrap="nowrap">
+            <Stack gap={3} style={{ minWidth: 0, flex: 1 }} className="pointer-events-none">
+              {/* 1行目: 路線カラーバー + 路線名 + 列車番号 (+ 土休日運休) */}
+              <Group gap={6} align="center" wrap="nowrap">
+                <Box w={3.5} h={14} style={{ backgroundColor: lineColor, borderRadius: 2, flexShrink: 0 }} />
+                <Text fz="xs" fw={800} c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+                  {train.lineName ?? '列車詳細'}
+                </Text>
+                <Text fz="xs" c="dimmed" fw={700} style={{ whiteSpace: 'nowrap' }}>
+                  {train.trainNumber}
+                </Text>
+                {train.calendar === 'weekday' && (
+                  <Badge size="xs" radius="xs" color="gray" variant="light" tt="none">
+                    土休日運休
+                  </Badge>
+                )}
+              </Group>
+
+              {/* 2行目: 種別 + 行先 + 右に両数 */}
+              <Group gap={8} align="center" wrap="nowrap">
+                <Badge size="md" radius="sm" color={mantineColor} variant="filled" tt="none" style={{ flexShrink: 0 }}>
+                  {train.trainType ?? '普通'}
+                </Badge>
+                <Title order={2} fz={19} fw={800} style={{ whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                  {cleanDestination}
+                  <Text component="span" fz="xs" fw={700} ml={3} c="dimmed">
+                    行
+                  </Text>
+                </Title>
+                <Badge size="sm" radius="sm" variant="default" fw={700} style={{ flexShrink: 0 }}>
+                  {train.cars}両
+                </Badge>
+              </Group>
+            </Stack>
 
             <CloseButton
               size="lg"
@@ -620,31 +673,14 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
               }}
               aria-label="閉じる"
               className="pointer-events-auto"
+              style={{ flexShrink: 0 }}
             />
           </Group>
         </div>
 
         {/* コンテンツ領域 */}
-        <div ref={contentRef} className="p-4 overflow-y-auto space-y-4 overscroll-contain">
+        <div ref={contentRef} className="relative p-4 overflow-y-auto space-y-4 overscroll-contain">
           <Stack gap="md">
-            {/* 種別・行先 */}
-            <Group gap={8} align="center" wrap="nowrap">
-              <Badge size="lg" radius="sm" color={mantineColor} variant="filled" tt="none">
-                {train.trainType ?? '普通'}
-              </Badge>
-              <Title order={3} fw={800} style={{ whiteSpace: 'nowrap' }}>
-                {cleanDestination}
-                <Text component="span" fz="md" fw={700} ml={4}>
-                  行
-                </Text>
-              </Title>
-              {train.calendar === 'weekday' && (
-                <Badge size="sm" radius="sm" color="gray" variant="light" tt="none" ml="auto">
-                  土休日運休
-                </Badge>
-              )}
-            </Group>
-
             {/* 現在の運行状況カード */}
             <Paper
               withBorder
@@ -664,16 +700,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                 </Text>
               </Group>
             </Paper>
-
-            {/* 基本情報セル */}
-            <SimpleGrid cols={3} spacing="xs">
-              <InfoCell label="列車番号" value={train.trainNumber} />
-              <InfoCell label="両数" value={`${train.cars}両`} />
-              <InfoCell
-                label="運転区間"
-                value={`${originStation} → ${terminalStation}`}
-              />
-            </SimpleGrid>
 
             {/* Mantine Timeline による洗練された全区間時刻表 */}
             <Box>
@@ -870,16 +896,5 @@ const PentagonIcon: React.FC<{ lineColor: string; size?: number }> = ({ lineColo
     </div>
   );
 };
-
-const InfoCell: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Paper withBorder radius="md" px={8} py={6} style={{ backgroundColor: 'var(--mantine-color-body)' }}>
-    <Text fz={10} c="dimmed" fw={700}>
-      {label}
-    </Text>
-    <Text fz="sm" fw={800} style={{ whiteSpace: 'nowrap' }}>
-      {value}
-    </Text>
-  </Paper>
-);
 
 export default TrainDetailSheet;
