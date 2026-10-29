@@ -20,6 +20,7 @@ import {
   getCurrentRailwaySeconds,
   toRailwaySeconds,
   ScheduledTrain,
+  ScheduledFullStop,
 } from '../utils/trainPosition';
 
 interface TrainDetailSheetProps {
@@ -34,17 +35,18 @@ type TrainStatus =
   | { kind: 'running'; index: number }
   | { kind: 'arrived' };
 
-/** 現在時刻から列車の運行状況（発車前 / 停車中 / 駅間走行中 / 到着済）を判定 */
-function getTrainStatus(train: ScheduledTrain, nowSec: number): TrainStatus {
-  const stops = train.stops;
+/** 駅名から（宮城県）（福島県）（鉄道）などの注記を除去して統一 */
+function cleanStationName(name?: string | null): string {
+  if (!name) return '';
+  return name.replace(/\s*\([^\)]+\)/g, '').trim();
+}
+
+/** 全停車駅（allStops または stops）に基づき現在時刻の運行状況を判定 */
+function getTrainStatus(nowSec: number, stops: ScheduledFullStop[]): TrainStatus {
   if (!stops || stops.length === 0) return { kind: 'before' };
 
-  // 始発発車時刻がある場合はその時刻を発車前判定の基準にする
-  const originDepSec = train.originDepartureTime
-    ? toRailwaySeconds(train.originDepartureTime)
-    : toRailwaySeconds(stops[0].dep);
-
-  if (nowSec < originDepSec) return { kind: 'before' };
+  const firstDep = toRailwaySeconds(stops[0].dep);
+  if (nowSec < firstDep) return { kind: 'before' };
 
   for (let i = 0; i < stops.length; i++) {
     const arr = toRailwaySeconds(stops[i].arr);
@@ -55,14 +57,12 @@ function getTrainStatus(train: ScheduledTrain, nowSec: number): TrainStatus {
     }
   }
 
-  // 最後の駅の到着時刻を過ぎている場合
   const lastArr = toRailwaySeconds(stops[stops.length - 1].arr);
-  if (nowSec > lastArr) {
+  if (nowSec >= lastArr) {
     return { kind: 'arrived' };
   }
 
-  // 区間内最初の駅の到着前（直通運転中）
-  return { kind: 'running', index: -1 };
+  return { kind: 'arrived' };
 }
 
 export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
@@ -80,7 +80,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 開いている間は現在位置を10秒ごとに更新
+  // 10秒ごとに現在時刻を更新
   const [nowSec, setNowSec] = useState(() => getCurrentRailwaySeconds());
   useEffect(() => {
     if (!trainId) return;
@@ -89,7 +89,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     return () => clearInterval(timer);
   }, [trainId]);
 
-  // コンポーネント破棄時にタイマーをクリーンアップ
   useEffect(() => {
     return () => {
       if (closeTimeoutRef.current) {
@@ -99,7 +98,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     };
   }, []);
 
-  // 列車IDが切り替わったときの初期化処理（StationDetailSheet と完全同期）
   useEffect(() => {
     if (trainId) {
       const t = getScheduledTrainById(trainId);
@@ -127,7 +125,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     }
   }, [trainId]);
 
-  // Material 3 準拠のスムーズな閉じる処理（ボタンタップ・背景タップ・スワイプ共通）
+  // Material 3 準拠のスムーズな閉じる処理
   const handleClose = useCallback(() => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
@@ -181,7 +179,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
 
   const dismissWithSwipe = handleClose;
 
-  // ポインター・タッチ連動による「指に吸い付く」自由ドラッグ・スワイプ連動処理
+  // ポインター・タッチ連動
   useEffect(() => {
     const header = headerRef.current;
     const content = contentRef.current;
@@ -207,7 +205,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       return delta > distanceThreshold || (delta > flickThreshold && vel > 0.3);
     };
 
-    // ヘッダーでの操作（Pointer Events）
     const onPointerDown = (e: PointerEvent) => {
       if (isClosingRef.current) return;
       if ((e.target as HTMLElement).closest('button')) return;
@@ -279,7 +276,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       }
     };
 
-    // ヘッダーでの操作（Touch Events）
     const onHeaderTouchStart = (e: TouchEvent) => {
       if (isClosingRef.current || e.touches.length !== 1) return;
       if ((e.target as HTMLElement).closest('button')) return;
@@ -342,7 +338,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       }
     };
 
-    // コンテンツ領域でのプルダウン連動
     let isContentPulling = false;
     let contentStartY = 0;
 
@@ -463,12 +458,22 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     };
   }, [activeTrain, handleClose]);
 
+  // 停車駅リスト: 始発〜終着の全駅（allStops）を使用
+  const stopsToShow = useMemo(() => {
+    if (!activeTrain) return [];
+    if (activeTrain.allStops && activeTrain.allStops.length > 0) {
+      return activeTrain.allStops;
+    }
+    return activeTrain.stops;
+  }, [activeTrain]);
+
   const status = useMemo(
-    () => (activeTrain ? getTrainStatus(activeTrain, nowSec) : ({ kind: 'before' } as TrainStatus)),
-    [activeTrain, nowSec]
+    () => (activeTrain ? getTrainStatus(nowSec, stopsToShow) : ({ kind: 'before' } as TrainStatus)),
+    [activeTrain, nowSec, stopsToShow]
   );
 
-  const handleStopClick = (stationId: string) => {
+  const handleStopClick = (stationId?: string) => {
+    if (!stationId) return;
     const st = STATIONS.find((s) => s.id === stationId);
     if (st) {
       handleClose();
@@ -482,16 +487,19 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   const lineColor = getLineColor(train.line);
   const mantineColor = getMantineLineColor(train.line);
 
-  const originStation = train.originStation || train.stops[0]?.stationName || '';
-  const originDepTime = train.originDepartureTime || train.stops[0]?.dep || '';
-  const lastStop = train.stops[train.stops.length - 1];
+  const firstStop = stopsToShow[0];
+  const lastStop = stopsToShow[stopsToShow.length - 1];
+  const originStation = cleanStationName(train.originStation || firstStop?.stationName || '');
+  const originDepTime = train.originDepartureTime || firstStop?.dep || '';
+  const terminalStation = cleanStationName(train.destination || lastStop?.stationName || '');
+  const cleanDestination = cleanStationName(train.destination);
 
-  // Timeline の到達済みインデックス
+  // Mantine Timeline の到達済みアクティブインデックス
   const activeIndex =
     status.kind === 'before'
       ? -1
       : status.kind === 'arrived'
-      ? train.stops.length - 1
+      ? stopsToShow.length - 1
       : status.index;
 
   const statusText = (() => {
@@ -499,22 +507,13 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       case 'before':
         return `${originStation} ${originDepTime} 発車予定`;
       case 'stopped':
-        return `${train.stops[status.index].stationName}駅に停車中`;
+        return `${cleanStationName(stopsToShow[status.index]?.stationName)}駅に停車中`;
       case 'running':
-        if (status.index === -1) {
-          return `${originStation} → ${train.stops[0].stationName} 間（直通区間）を走行中`;
-        }
-        return `${train.stops[status.index].stationName} → ${train.stops[status.index + 1].stationName} 間を走行中`;
+        return `${cleanStationName(stopsToShow[status.index]?.stationName)} → ${cleanStationName(stopsToShow[status.index + 1]?.stationName)} 間を走行中`;
       case 'arrived':
-        return `${lastStop?.stationName || train.destination}に到着済み`;
+        return `${terminalStation}に到着済み`;
     }
   })();
-
-  // 下り列車等で始発駅が名取より手前（直通運転）の場合
-  const isThroughService =
-    train.stops.length > 0 &&
-    originStation &&
-    originStation !== train.stops[0].stationName;
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
@@ -530,7 +529,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         onClick={handleClose}
       />
 
-      {/* ボトムシート（StationDetailSheet 準拠のガラスサーフェス仕様） */}
+      {/* ボトムシート */}
       <div
         ref={sheetRef}
         onAnimationEnd={(e) => {
@@ -540,7 +539,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         }}
         className="relative z-50 w-full max-w-md mx-auto glass-surface-strong rounded-t-3xl shadow-glass-lg flex flex-col h-[calc(78vh+180px)] h-[calc(100dvh-5.5rem+180px)] -mb-[180px] border-t border-white/80 dark:border-slate-700/80 m3-bottom-sheet m3-sheet-enter"
       >
-        {/* シートヘッダー（ドラッグ／下スワイプで閉じられる領域） */}
+        {/* シートヘッダー */}
         <div
           ref={headerRef}
           className="pt-2.5 pb-3 px-4 bg-transparent rounded-t-3xl border-b border-[var(--mantine-color-default-border)] shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
@@ -585,7 +584,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                 {train.trainType ?? '普通'}
               </Badge>
               <Title order={3} fw={800} style={{ whiteSpace: 'nowrap' }}>
-                {train.destination}
+                {cleanDestination}
                 <Text component="span" fz="md" fw={700} ml={4}>
                   行
                 </Text>
@@ -597,7 +596,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
               )}
             </Group>
 
-            {/* 現在の運行状況 */}
+            {/* 現在の運行状況カード */}
             <Paper
               withBorder
               radius="md"
@@ -609,71 +608,108 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
               }}
             >
               <Group gap={8} wrap="nowrap" align="center">
-                <Box
-                  w={8}
-                  h={8}
-                  style={{
-                    backgroundColor: lineColor,
-                    borderRadius: '50%',
-                    flexShrink: 0,
-                  }}
-                />
+                {/* 静止した五角形トレインアイコン */}
+                <PentagonIcon lineColor={lineColor} size={14} />
                 <Text fz="sm" fw={700}>
                   {statusText}
                 </Text>
               </Group>
             </Paper>
 
-            {/* 基本情報 */}
+            {/* 基本情報セル */}
             <SimpleGrid cols={3} spacing="xs">
               <InfoCell label="列車番号" value={train.trainNumber} />
               <InfoCell label="両数" value={`${train.cars}両`} />
               <InfoCell
-                label="始発駅"
-                value={originStation ? `${originStation} ${originDepTime}` : '-'}
+                label="運転区間"
+                value={`${originStation} → ${terminalStation}`}
               />
             </SimpleGrid>
 
-            {/* 停車駅時刻表 */}
+            {/* Mantine Timeline による洗練された全区間時刻表 */}
             <Box>
-              <Group justify="space-between" align="baseline" mb={8} wrap="nowrap">
+              <Group justify="space-between" align="baseline" mb={12} wrap="nowrap">
                 <Text fz="xs" fw={700} c="dimmed">
-                  当アプリ区間の停車駅・時刻
+                  停車駅・時刻（全区間）
                 </Text>
-                {isThroughService && (
-                  <Text fz={10.5} c="dimmed" fw={600}>
-                    ※{originStation}始発（直通運転）
-                  </Text>
-                )}
+                <Text fz={10.5} c="dimmed" fw={600}>
+                  {stopsToShow.length}駅
+                </Text>
               </Group>
 
-              <Timeline active={activeIndex} bulletSize={14} lineWidth={3} color={mantineColor}>
-                {train.stops.map((s, i) => {
+              <Timeline
+                active={activeIndex}
+                bulletSize={18}
+                lineWidth={2.5}
+                color={mantineColor}
+              >
+                {stopsToShow.map((s, i) => {
                   const isFirst = i === 0;
-                  const isLast = i === train.stops.length - 1;
-                  const isCurrent = status.kind === 'stopped' && status.index === i;
+                  const isLast = i === stopsToShow.length - 1;
+                  const isStoppedHere = status.kind === 'stopped' && status.index === i;
+                  const isRunningAfterThis = status.kind === 'running' && status.index === i;
+                  const isCurrent = isStoppedHere;
                   const passed = i <= activeIndex && !isCurrent;
                   const sameTime = s.arr === s.dep;
+                  const isSelectable = !!s.stationId;
+
+                  // 駅の bullet（停車中は五角形電車アイコン、それ以外は標準）
+                  const customBullet = isStoppedHere ? (
+                    <PentagonIcon lineColor={lineColor} size={14} />
+                  ) : undefined;
+
                   return (
                     <Timeline.Item
-                      key={`${s.stationId}-${i}`}
-                      lineVariant={status.kind === 'running' && status.index === i ? 'dashed' : 'solid'}
+                      key={`${s.stationName}-${i}`}
+                      bullet={customBullet}
+                      lineVariant={isRunningAfterThis ? 'dashed' : 'solid'}
                     >
-                      <UnstyledButton onClick={() => handleStopClick(s.stationId)} w="100%">
+                      <UnstyledButton
+                        onClick={() => handleStopClick(s.stationId)}
+                        style={{
+                          cursor: isSelectable ? 'pointer' : 'default',
+                          width: '100%',
+                        }}
+                      >
                         <Group justify="space-between" wrap="nowrap" gap="xs">
-                          <Group gap={6} wrap="nowrap">
-                            <Text fz="sm" fw={isCurrent ? 800 : 700} c={passed ? 'dimmed' : undefined}>
-                              {s.stationName}
+                          {/* 駅名 ＋ バッジ */}
+                          <Group gap={6} wrap="nowrap" align="center">
+                            <Text
+                              fz={isSelectable ? 'sm' : 'xs'}
+                              fw={isStoppedHere ? 800 : isSelectable ? 700 : 500}
+                              c={passed ? 'dimmed' : undefined}
+                              style={{ whiteSpace: 'nowrap' }}
+                            >
+                              {cleanStationName(s.stationName)}
                             </Text>
-                            {isCurrent && (
-                              <Badge size="xs" radius="sm" color={mantineColor} variant="light" tt="none">
+
+                            {isStoppedHere && (
+                              <Badge size="xs" radius="xs" color={mantineColor} variant="filled" tt="none">
                                 停車中
                               </Badge>
                             )}
+                            {isFirst && !isStoppedHere && (
+                              <Badge size="xs" radius="xs" color="gray" variant="light" tt="none">
+                                始発
+                              </Badge>
+                            )}
+                            {isLast && !isStoppedHere && (
+                              <Badge size="xs" radius="xs" color="gray" variant="light" tt="none">
+                                終着
+                              </Badge>
+                            )}
                           </Group>
-                          <Group gap={8} wrap="nowrap">
-                            <Text fz="sm" fw={600} c={passed ? 'dimmed' : undefined} className="tabular-nums">
-                              {isFirst && !isThroughService
+
+                          {/* 到着時刻・発車時刻 ＆ 番線 */}
+                          <Group gap={8} wrap="nowrap" align="baseline">
+                            <Text
+                              fz="sm"
+                              fw={isStoppedHere ? 700 : 600}
+                              c={passed ? 'dimmed' : undefined}
+                              className="tabular-nums"
+                              style={{ whiteSpace: 'nowrap' }}
+                            >
+                              {isFirst
                                 ? `${s.dep} 発`
                                 : isLast
                                 ? `${s.arr} 着`
@@ -681,6 +717,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                                 ? `${s.dep} 発`
                                 : `${s.arr} 着 / ${s.dep} 発`}
                             </Text>
+
                             {s.track && (
                               <Text fz="xs" c="dimmed" w={32} ta="right" style={{ whiteSpace: 'nowrap' }}>
                                 {s.track}番線
@@ -689,6 +726,16 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                           </Group>
                         </Group>
                       </UnstyledButton>
+
+                      {/* 駅間を走行中の場合: レール線上に静止したミニ五角形電車を配置 */}
+                      {isRunningAfterThis && (
+                        <Group gap={6} align="center" mt={4} mb={2} wrap="nowrap">
+                          <PentagonIcon lineColor={lineColor} size={12} />
+                          <Text fz={10.5} fw={700} style={{ color: lineColor }}>
+                            走行中 →
+                          </Text>
+                        </Group>
+                      )}
                     </Timeline.Item>
                   );
                 })}
@@ -700,6 +747,42 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
           <div className="h-48 pb-safe bg-transparent" />
         </div>
       </div>
+    </div>
+  );
+};
+
+/** 静止した五角形トレインアイコン（下向き進行方向三角ノーズ ＋ 四角形車体） */
+const PentagonIcon: React.FC<{ lineColor: string; size?: number }> = ({ lineColor, size = 14 }) => {
+  const w = size;
+  const bodyH = Math.round(size * 0.6);
+  const noseH = Math.round(size * 0.4);
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <div
+        style={{
+          width: w,
+          height: bodyH,
+          backgroundColor: lineColor,
+          borderRadius: '2px 2px 0 0',
+        }}
+      />
+      <div
+        style={{
+          width: 0,
+          height: 0,
+          borderLeft: `${w / 2}px solid transparent`,
+          borderRight: `${w / 2}px solid transparent`,
+          borderTop: `${noseH}px solid ${lineColor}`,
+        }}
+      />
     </div>
   );
 };

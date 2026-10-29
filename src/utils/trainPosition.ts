@@ -42,6 +42,14 @@ export interface ScheduledStop {
   track?: string;
 }
 
+export interface ScheduledFullStop {
+  stationId?: string;
+  stationName: string;
+  arr: string;
+  dep: string;
+  track?: string;
+}
+
 export interface ScheduledTrain {
   id: string;
   trainNumber: string;
@@ -54,7 +62,10 @@ export interface ScheduledTrain {
   calendar?: string;
   originStation?: string;
   originDepartureTime?: string;
+  terminalStation?: string;
+  terminalArrivalTime?: string;
   stops: ScheduledStop[];
+  allStops?: ScheduledFullStop[];
 }
 
 /** 列車ID（公式列車番号）から trainSchedule.json の全停車駅データを取得 */
