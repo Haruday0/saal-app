@@ -6,7 +6,6 @@ import {
   Title,
   Badge,
   Box,
-  Paper,
   Timeline,
   UnstyledButton,
   CloseButton,
@@ -573,25 +572,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   const lineColor = getLineColor(train.line);
   const mantineColor = getMantineLineColor(train.line);
 
-  const firstStop = stopsToShow[0];
-  const lastStop = stopsToShow[stopsToShow.length - 1];
-  const originStation = cleanStationName(train.originStation || firstStop?.stationName || '');
-  const originDepTime = formatStopTime(train.originDepartureTime || firstStop?.dep || '');
-  const terminalStation = cleanStationName(train.destination || lastStop?.stationName || '');
   const cleanDestination = cleanStationName(train.destination);
-
-  const statusText = (() => {
-    switch (status.kind) {
-      case 'before':
-        return `${originStation} ${originDepTime} 発車予定`;
-      case 'stopped':
-        return `${cleanStationName(stopsToShow[status.index]?.stationName)}駅に停車中`;
-      case 'running':
-        return `${cleanStationName(stopsToShow[status.index]?.stationName)} → ${cleanStationName(stopsToShow[status.index + 1]?.stationName)} 間を走行中`;
-      case 'arrived':
-        return `${terminalStation}に到着済み`;
-    }
-  })();
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
@@ -681,26 +662,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         {/* コンテンツ領域 */}
         <div ref={contentRef} className="relative p-4 overflow-y-auto space-y-4 overscroll-contain">
           <Stack gap="md">
-            {/* 現在の運行状況カード */}
-            <Paper
-              withBorder
-              radius="md"
-              px="sm"
-              py={10}
-              style={{
-                borderColor: lineColor,
-                backgroundColor: 'var(--mantine-color-body)',
-              }}
-            >
-              <Group gap={8} wrap="nowrap" align="center">
-                {/* 静止した五角形トレインアイコン */}
-                <PentagonIcon lineColor={lineColor} size={14} />
-                <Text fz="sm" fw={700}>
-                  {statusText}
-                </Text>
-              </Group>
-            </Paper>
-
             {/* Mantine Timeline による洗練された全区間時刻表 */}
             <Box>
               <Group justify="space-between" align="baseline" mb={12} wrap="nowrap">
@@ -836,16 +797,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                           </Group>
                         </Group>
                       </UnstyledButton>
-
-                      {/* 駅間を走行中の場合: レール線上に静止したミニ五角形電車を配置 */}
-                      {isRunningAfterThis && (
-                        <Group gap={6} align="center" mt={4} mb={2} wrap="nowrap">
-                          <PentagonIcon lineColor={lineColor} size={12} />
-                          <Text fz={10.5} fw={700} style={{ color: lineColor }}>
-                            走行中 →
-                          </Text>
-                        </Group>
-                      )}
                     </Timeline.Item>
                   );
                 })}
