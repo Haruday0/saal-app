@@ -89,10 +89,12 @@ export interface MovingTrain {
   trainNumber: string;
   line: LineType;
   direction: DirectionType;
+  trainType?: '普通' | '快速' | '特急' | string;
   currentStationId: string; // 現在最寄りの駅
   nextStationId?: string; // 次の駅
   progress: number; // 0.0 (currentStation) ~ 1.0 (nextStation)
   destination: string;
   cars: 2 | 4 | 6 | 10;
   isAtStation: boolean;
+  isCompact?: boolean;
 }

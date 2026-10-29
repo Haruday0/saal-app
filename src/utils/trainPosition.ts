@@ -16,6 +16,7 @@ export interface RealtimeMovingTrain extends MovingTrain {
   positionRatio: number; // 0.0 (sendai) ~ 7.0 (sendai-airport)
   stationName?: string;
   nextStationName?: string;
+  isCompact?: boolean;
 }
 
 export function toRailwaySeconds(timeStr: string): number {
@@ -51,6 +52,7 @@ export function getActiveMovingTrains(
       id: string;
       trainNumber: string;
       line: LineType;
+      trainType?: string;
       destination: string;
       cars: 2 | 4 | 6 | 10;
       calendar?: string;
@@ -65,6 +67,7 @@ export function getActiveMovingTrains(
       id: string;
       trainNumber: string;
       line: LineType;
+      trainType?: string;
       destination: string;
       cars: 2 | 4 | 6 | 10;
       calendar?: string;
@@ -192,6 +195,7 @@ export function getActiveMovingTrains(
         trainNumber: item.train.trainNumber,
         line: item.train.line,
         direction: item.direction,
+        trainType: item.train.trainType || '普通',
         currentStationId: item.stationId,
         positionRatio: item.curIdx + offset,
         progress: 0.0,
@@ -223,10 +227,10 @@ export function getActiveMovingTrains(
     group.forEach((item, k) => {
       const curIdx = item.curIdx;
       const nextIdx = item.nextIdx!;
-      // N本走っているときは (N + 1) 等分
-      // k = 0 (後発) は 1 / (N + 1)
-      // k = N - 1 (先発) は N / (N + 1)
-      const ratio = (k + 1) / (n + 1);
+      // N本走っているときは等分配置
+      // 2本の場合は中央に密集しないよう 0.26 / 0.74 に離す
+      // 3本以上の場合は (k + 1) / (n + 1) 等分
+      const ratio = n === 2 ? (k === 0 ? 0.26 : 0.74) : (k + 1) / (n + 1);
       const positionRatio = curIdx + (nextIdx - curIdx) * ratio;
 
       results.push({
@@ -234,6 +238,7 @@ export function getActiveMovingTrains(
         trainNumber: item.train.trainNumber,
         line: item.train.line,
         direction: item.direction,
+        trainType: item.train.trainType || '普通',
         currentStationId: item.stationId,
         nextStationId: item.nextStationId,
         positionRatio,
@@ -245,8 +250,24 @@ export function getActiveMovingTrains(
         isAtStation: false,
         stationName: item.stationName,
         nextStationName: item.nextStationName,
+        isCompact: n >= 2,
       });
     });
+  }
+
+  // 4. 近接チェック（同一方向で距離が0.65未満の列車ペアは両方スリム化）
+  for (let i = 0; i < results.length; i++) {
+    for (let j = i + 1; j < results.length; j++) {
+      const t1 = results[i];
+      const t2 = results[j];
+      if (
+        t1.direction === t2.direction &&
+        Math.abs(t1.positionRatio - t2.positionRatio) < 0.65
+      ) {
+        t1.isCompact = true;
+        t2.isCompact = true;
+      }
+    }
   }
 
   return results;

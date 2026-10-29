@@ -19,25 +19,10 @@ const saal: MantineColorsTuple = [
   '#122b55',
 ];
 
-// ダークテーマ用パレット（グレー寄りのMantine標準ではなく、紺系スレートで統一）
-// [0]本文 [2]補助文字 [4]境界線 [5]ホバー [6]defaultボタン/入力 [7]背景(body) [8]最背面
-const dark: MantineColorsTuple = [
-  '#e2e8f0',
-  '#cbd5e1',
-  '#94a3b8',
-  '#64748b',
-  '#3b4a61',
-  '#2a3649',
-  '#1e293b',
-  '#111827',
-  '#0b1120',
-  '#060a14',
-];
-
 const theme = createTheme({
   primaryColor: 'saal',
   primaryShade: { light: 6, dark: 4 },
-  colors: { saal, dark },
+  colors: { saal },
   fontFamily: '"BIZ UDPGothic", "M PLUS 1", system-ui, sans-serif',
   defaultRadius: 'md',
 });
