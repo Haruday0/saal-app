@@ -2065,7 +2065,7 @@
           "stationName": "仙台空港",
           "arr": "11:57",
           "dep": "11:57",
-          "track": "1"
+          "track": "2"
         }
       ],
       "track": "3",
@@ -2128,7 +2128,7 @@
           "arr": "11:57",
           "dep": "11:57",
           "stationId": "sendai-airport",
-          "track": "1"
+          "track": "2"
         }
       ],
       "terminalStation": "仙台空港",
@@ -5257,7 +5257,7 @@
           "stationName": "仙台空港",
           "arr": "21:14",
           "dep": "21:14",
-          "track": "1"
+          "track": "2"
         }
       ],
       "track": "3",
@@ -5320,7 +5320,7 @@
           "arr": "21:14",
           "dep": "21:14",
           "stationId": "sendai-airport",
-          "track": "1"
+          "track": "2"
         }
       ],
       "terminalStation": "仙台空港",
