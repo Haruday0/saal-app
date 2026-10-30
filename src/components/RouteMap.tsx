@@ -302,13 +302,14 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
         px={2.5}
         py={isCompact ? 1.5 : 2}
         radius={0}
+        className="bg-[#f1f3f5] dark:bg-[#25262b]"
         style={{
           boxSizing: 'border-box',
           position: 'relative',
           zIndex: 0,
           borderColor: lineColor,
           borderWidth: 1.5,
-          backgroundColor: 'var(--mantine-color-body)',
+          backgroundColor: 'var(--train-badge-bg)',
           display: isCompact ? 'flex' : undefined,
           alignItems: isCompact ? 'center' : undefined,
           justifyContent: isCompact ? 'center' : undefined,

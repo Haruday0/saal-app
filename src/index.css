@@ -104,6 +104,7 @@
   --color-neutral-900: hsl(220, 16%, 9%);
 
   /* --- Glass / Surface --- */
+  --train-badge-bg: var(--mantine-color-gray-1, #f1f3f5);
   --glass-bg: rgba(255, 255, 255, 0.58);
   --glass-bg-strong: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(255, 255, 255, 0.72);
@@ -141,6 +142,7 @@
 
 /* Mantine Dark Color Scheme Overrides（Mantine標準の無彩色ダークグレーに統一） */
 [data-mantine-color-scheme="dark"] {
+  --train-badge-bg: var(--mantine-color-dark-6, #25262b);
   --glass-bg: rgba(26, 27, 30, 0.85);
   --glass-bg-strong: rgba(26, 27, 30, 0.95);
   --glass-border: rgba(255, 255, 255, 0.12);
