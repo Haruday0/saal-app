@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Paper, Stack, Group, Text, Divider, Button, UnstyledButton } from '@mantine/core';
+import { Paper, Stack, Group, Text, Divider, Button, UnstyledButton, Badge } from '@mantine/core';
 import { Station } from '../types';
 import { JisSubway, JisBus } from './icons';
 import { Icon } from './Icon';
 import { SubwayStationMark } from './SubwayStationMark';
 import { SubwayTimetableModal } from './SubwayTimetableModal';
+import { NatoringoTimetableModal } from './NatoringoTimetableModal';
 import {
   SubwayDirectionKey,
   SUBWAY_DIRECTIONS,
@@ -12,6 +13,10 @@ import {
   getAvailableSubwayDirections,
   getUpcomingSubwayTrains,
 } from '../utils/subwaySchedule';
+import {
+  getNatoringoStationSchedule,
+  getUpcomingNatoringoDepartures,
+} from '../utils/natoringoSchedule';
 
 interface TransferGuideProps {
   station: Station;
@@ -70,11 +75,11 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   // 15秒ごとに現在時刻を自動更新
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
-    if (!hasSubway) return;
+    if (!hasSubway && !hasNatoringo) return;
     setNow(new Date());
     const timer = setInterval(() => setNow(new Date()), 15000);
     return () => clearInterval(timer);
-  }, [hasSubway, stationId]);
+  }, [hasSubway, hasNatoringo, stationId]);
 
   // 地下鉄時刻表モーダルの状態管理
   const [subwayModalOpen, setSubwayModalOpen] = useState(false);
@@ -91,6 +96,20 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
     setSubwayModalOpen(true);
   };
 
+  // なとりん号時刻表モーダルの状態管理
+  const [natoringoModalOpen, setNatoringoModalOpen] = useState(false);
+  const [natoringoInitialStopId, setNatoringoInitialStopId] = useState<string | null>(null);
+  const [natoringoInitialDepId, setNatoringoInitialDepId] = useState<string | null>(null);
+
+  const openNatoringoTimetable = (
+    stopId: string | null = null,
+    departureId: string | null = null
+  ) => {
+    setNatoringoInitialStopId(stopId);
+    setNatoringoInitialDepId(departureId);
+    setNatoringoModalOpen(true);
+  };
+
   if (stationId === 'mitazono') {
     return (
       <Paper withBorder p="sm" radius="lg">
@@ -103,6 +122,7 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
   const subwayStationName = getSubwayStationNameById(stationId);
   const subwayDirections = getAvailableSubwayDirections(stationId);
+  const natoringoStation = getNatoringoStationSchedule(stationId);
 
   return (
     <Paper withBorder p="sm" radius="lg">
@@ -241,11 +261,165 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           </Block>
         )}
 
-        {/* なとりん号 */}
-        {hasNatoringo && (
-          <Block icon={<JisBus size={15} color="#d97706" />} title="コミュニティバス「なとりん号」">
-            <Row label="閖上線（閖上方面）" time="15:40" />
-            <Row label="愛島線（愛島台方面）" time="16:10" />
+        {/* なとりん号（GTFSリアルタイム直近発車 ＆ 路線絞り込み付き時刻表・全停車バス停＆運賃タイムラインモーダル連携） */}
+        {hasNatoringo && natoringoStation && (
+          <Block
+            icon={<JisBus size={15} color="#d97706" />}
+            title="名取市コミュニティバス「なとりん号」"
+            rightAction={
+              <Button
+                size="compact-xs"
+                variant="default"
+                radius="xl"
+                fw={700}
+                leftSection={<Icon name="schedule" size={13} />}
+                onClick={() =>
+                  openNatoringoTimetable(natoringoStation.busStops[0]?.stopId ?? null, null)
+                }
+              >
+                時刻表
+              </Button>
+            }
+          >
+            {natoringoStation.busStops.map((busStop, sIdx) => {
+              const limit = stationId === 'morisekinoshita' ? 4 : 3;
+              const upcoming = getUpcomingNatoringoDepartures(
+                stationId,
+                busStop.stopId,
+                now,
+                limit
+              );
+
+              return (
+                <React.Fragment key={busStop.stopId}>
+                  {sIdx > 0 && <Divider my={4} />}
+                  <Stack gap={3}>
+                    {/* のりば見出し行（タップでそのバス停の全時刻表一覧を開く） */}
+                    <UnstyledButton
+                      onClick={() => openNatoringoTimetable(busStop.stopId, null)}
+                      py={2}
+                      px={4}
+                      style={{ borderRadius: 'var(--mantine-radius-sm)' }}
+                      className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Group justify="space-between" wrap="nowrap" gap={6}>
+                        <Group gap={6} wrap="nowrap" align="center" className="min-w-0">
+                          <Badge
+                            size="xs"
+                            radius="sm"
+                            variant="default"
+                            fw={700}
+                            tt="none"
+                            className="shrink-0"
+                          >
+                            {busStop.stopName}
+                          </Badge>
+                          <Text fz={11} c="dimmed" className="truncate">
+                            {busStop.lines.map((l) => l.lineName).join('・')}
+                          </Text>
+                        </Group>
+                        <Group gap={2} wrap="nowrap" align="center" className="shrink-0">
+                          <Text fz={10.5} c="dimmed" fw={600}>
+                            一覧
+                          </Text>
+                          <Icon
+                            name="chevron_right"
+                            size={13}
+                            className="text-slate-400 dark:text-slate-500"
+                          />
+                        </Group>
+                      </Group>
+                    </UnstyledButton>
+
+                    {/* 直近発車便リスト（各便タップで全停車バス停＆運賃タイムラインを直接開く） */}
+                    {upcoming.length > 0 ? (
+                      <Stack gap={2}>
+                        {upcoming.map((dep, dIdx) => (
+                          <UnstyledButton
+                            key={dep.id}
+                            onClick={() => openNatoringoTimetable(busStop.stopId, dep.id)}
+                            py={3}
+                            px={6}
+                            style={{ borderRadius: 'var(--mantine-radius-sm)' }}
+                            className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            title={`${dep.departureTime}発 ${dep.routeCode} ${dep.headsign}行の全停車バス停・運賃を表示`}
+                          >
+                            <Group justify="space-between" wrap="nowrap" gap={6}>
+                              <Group gap={6} wrap="nowrap" align="center" className="min-w-0">
+                                <Badge
+                                  size="xs"
+                                  radius="sm"
+                                  tt="none"
+                                  fw={800}
+                                  style={{
+                                    backgroundColor: dep.routeColor,
+                                    color: '#ffffff',
+                                    flexShrink: 0,
+                                    minWidth: 48,
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  {dep.routeCode}
+                                </Badge>
+                                <Text
+                                  fz={12}
+                                  fw={dIdx === 0 ? 700 : 500}
+                                  c="var(--mantine-color-text)"
+                                  className="truncate"
+                                >
+                                  {dep.headsign}行
+                                </Text>
+                                <Text
+                                  fz={11}
+                                  c="dimmed"
+                                  className="truncate shrink-0"
+                                >
+                                  {dep.lineName}
+                                </Text>
+                              </Group>
+
+                              <Group
+                                gap={4}
+                                wrap="nowrap"
+                                align="center"
+                                className="font-english tabular-nums shrink-0"
+                              >
+                                <Text
+                                  fz={12.5}
+                                  fw={dIdx === 0 ? 800 : 600}
+                                  style={
+                                    dIdx === 0 ? { color: dep.routeColor } : undefined
+                                  }
+                                >
+                                  {dep.departureTime}
+                                </Text>
+                                <Icon
+                                  name="chevron_right"
+                                  size={13}
+                                  className="text-slate-400 dark:text-slate-500"
+                                />
+                              </Group>
+                            </Group>
+                          </UnstyledButton>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <UnstyledButton
+                        onClick={() => openNatoringoTimetable(busStop.stopId, null)}
+                        py={2}
+                        px={6}
+                        style={{ borderRadius: 'var(--mantine-radius-sm)' }}
+                        className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
+                      >
+                        <Text fz={11} c="dimmed">
+                          本日の運行は終了しました（タップで時刻表を表示）
+                        </Text>
+                      </UnstyledButton>
+                    )}
+                  </Stack>
+                </React.Fragment>
+              );
+            })}
           </Block>
         )}
       </Stack>
@@ -258,6 +432,18 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           stationId={stationId}
           initialDirectionKey={modalDirectionKey}
           initialTrainId={modalInitialTrainId}
+          now={now}
+        />
+      )}
+
+      {/* なとりん号 時刻表＆全停車バス停・運賃タイムラインモーダル */}
+      {hasNatoringo && (
+        <NatoringoTimetableModal
+          isOpen={natoringoModalOpen}
+          onClose={() => setNatoringoModalOpen(false)}
+          stationId={stationId}
+          initialStopId={natoringoInitialStopId}
+          initialDepartureId={natoringoInitialDepId}
           now={now}
         />
       )}

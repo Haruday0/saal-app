@@ -86,7 +86,9 @@
 1. **仙台市地下鉄（南北線全17駅・東西線全13駅）**:
    - `scripts/generate_subway_schedule.py` により、`data-raw/sendai-subway/*.csv`（全8ファイル、CP932エンコーディング、令和5年7月1日改正現行ダイヤ：南北線 平日157往復／土休日114・113本、東西線 平日140往復／土休日112・113本）から全列車・全停車駅時刻および公式駅ナンバリング（南北線 `N01`〜`N17`、東西線 `T01`〜`T13`）を抽出し、`src/data/subwaySchedule.json` を出力。
    - **フォールバック厳禁（厳格バリデーション）**: CSV全行・全セルの時刻フォーマット、列車本数、駅順序、および駅間・列車間の時系列昇順を厳格に検証し、空セルや不正値があれば即座に `ValueError` を送出して停止する。
-2. **なとりん号（南仙台・名取・杜せきのした・仙台空港）**: `data-raw/natoringo/*.zip` 内のGTFS（CSV）から対象駅バス停（南仙台駅西口、名取駅東口・西口、イオンモール名取/杜せきのした、仙台空港）の時刻表を抽出してJSON化（※美田園駅はなとりん号が通らないため対象外）。
+2. **なとりん号（南仙台・名取・杜せきのした・仙台空港）**:
+   - `scripts/generate_natoringo_schedule.py` により、`data-raw/natoringo/gtfs-bus-natoringo-miyagi-jp_20250415.zip`（UTF-8 with BOM）内のGTFS各ファイル（`routes.txt`, `stops.txt`, `trips.txt`, `stop_times.txt`, `calendar.txt`, `fare_attributes.txt`, `fare_rules.txt`, `translations.txt`, `feed_info.txt`）から、対象4駅・5バス停（南仙台駅西口 `77_01`、名取駅西口 `1_01`、名取駅東口 `8_01`、イオンモール名取 `14_01`、仙台空港 `98_01`）の平日・土日祝全発車便（系統コード `routeCode`・路線名 `lineName`・公式路線カラー `routeColor`・始発〜終着の全停車バス停時刻・乗車バス停からの運賃 `100円〜400円`）を抽出し、`src/data/natoringoSchedule.json` を出力（※美田園駅はなとりん号が通らないため対象外）。
+   - **フォールバック厳禁・降車専用便の厳格除外**: `pickup_type == "0"` かつ最終停留所ではない乗車可能発車のみを抽出し、終着降車便（`pickup_type == "1"` や `1_02`, `8_02` 等）を発車時刻表から厳格除外。時刻フォーマット、停留所順序、および `fare_rules.txt` / `fare_attributes.txt` による全降車バス停の運賃解決を厳格に検証し、不一致・欠損があれば即座に `ValueError` を送出して停止する。
 3. **仙台空港アクセス線（全8駅）＆ 東北本線・常磐線（仙台〜名取5駅）**:
    - `scripts/fetch_full_timetable.py` および `scripts/enrich_schedule_with_tracks.py` により、Yahoo!路線情報の全駅着発時刻、JR東日本デジタル時刻表（東北本線・仙台空港鉄道 `247u1.html`/`247d1.html` および常磐線 `240u1.html`/`240d1.html`）の番線・公式列車番号、所定両数データ（運用表）を機械的に突合・結合して `src/data/trainSchedule.json` および `src/data/stationDepartures.json` を生成。
    - **フォールバック厳禁（完全照合・即時エラー停止）**: 仙台駅の番線・公式列車番号の照合、および所定両数（`cars`）の照合において、一致しない場合に暗黙のデフォルト値（`'4'`番線・`'3'`番線・`4`両等）を入れるフォールバック処理は一切行わず、不一致があれば即座に `ValueError` を送出して停止する厳格仕様。
@@ -301,6 +303,12 @@
      - **駅別・方面別1日全時刻表 ＆ 全停車駅到着時刻タイムライン（`SubwayTimetableModal.tsx`）**:
        - 路線・方面（のりば）・ダイヤ種別（平日ダイヤ／土休日ダイヤ、初期値は実日時自動判定）の切り替え（`SegmentedControl`）を備え、開いた瞬間に直近列車へ自動スクロール（`targetTop - 85`、`overscroll-contain` 適用）。
        - 任意の列車をタップすると、その列車の全停車駅（南北線全17駅 `N01`〜`N17` ／ 東西線全13駅 `T01`〜`T13`）の発着時刻・所要時間（`+〇分`）タイムライン（Mantine `Timeline`、`lineVariant="solid"`）を表示し、「時刻表に戻る」ボタンで一覧へ戻ることが可能。乗車駅より前および通過済みの駅・丸・線は控えめなグレーとし、乗車駅（仙台 `N10`/`T07`・長町 `N15`）には「乗車駅」バッジを付与して開いた瞬間に乗車駅へ自動スクロールする。
+   - **名取市コミュニティバス「なとりん号」リアルタイム直近発車 ＆ 路線絞り込み付き時刻表・全停車バス停＆運賃タイムラインモーダル（`NatoringoTimetableModal`）仕様**:
+     - **直近発車便リアルタイム表示（`TransferGuide.tsx`）**: `src/data/natoringoSchedule.json` と現在時刻（`getCurrentRailwaySeconds`）および祝日・年末年始判定（`isWeekendHolidayOrYearEnd`）に基づき、南仙台駅（南仙台駅西口）、名取駅（名取駅西口・名取駅東口）、杜せきのした駅（イオンモール名取）、仙台空港駅（仙台空港）の各バス停から現在時刻以降の直近発車便（系統カラーバッジ `まち01`・`閖上53` 等 ＋ 行先 ＋ 路線名 ＋ 発車時刻）をリアルタイム表示。見出し右側の「時刻表」ボタンや各のりば行のタップで時刻表一覧を開き、各直近便のタップでその便の全停車バス停＆運賃タイムラインを直接開く。
+     - **のりば別・ダイヤ別・路線絞り込み付き1日全時刻表 ＆ 全停車バス停・運賃タイムライン（`NatoringoTimetableModal.tsx`）**:
+       - 名取駅では「名取駅西口」「名取駅東口」を `SegmentedControl` で切り替え可能とし、他3駅は単一バス停名を表示。「平日ダイヤ」「土日祝ダイヤ」も `SegmentedControl` で切り替え可能（初期値は実日時自動判定）。
+       - 複数路線が発着するバス停（名取駅西口・名取駅東口・イオンモール名取）では、JR時刻表モーダル（`TimetableModal.tsx`）と完全統一の路線絞り込みフィルター（左側に `<Icon name="filter_alt" size={16} />`、Mantine `<Button size="xs" radius="md">`、未選択時 `variant="default"`、選択時GTFS公式カラー `routeColor` で `variant="filled"`、初期状態は全路線表示のマルチセレクト）を表示。開いた瞬間に次発便（`targetTop - 85`）へ即時自動スクロール（`overscroll-contain` 適用）。
+       - 任意の便をタップすると、始発バス停から終着バス停までの全停車バス停タイムライン（Mantine `Timeline`, `lineVariant="solid"`）を表示し、乗車バス停より前・通過済みは控えめなグレー、乗車バス停（「乗車」バッジ）以降は路線カラー（`routeColor`）実線とし、各降車バス停の到着時刻・所要時間（`+〇分`）・乗車バス停からの運賃（`100円〜400円`）を表示して開いた瞬間に乗車バス停の位置へ自動スクロールする。
 
 3. **この駅から他駅への運賃一覧（運賃表 / FareTable）**
    - ヘッダーにJIS公式のきっぷ売り場・精算機記号（`JisTicketVending`）を配置。
