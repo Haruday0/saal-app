@@ -1,11 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Paper, Stack, Group, Text, Divider, Button, UnstyledButton, Badge } from '@mantine/core';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Paper,
+  Stack,
+  Group,
+  Text,
+  Divider,
+  Button,
+  UnstyledButton,
+  Badge,
+  Loader,
+  Skeleton,
+} from '@mantine/core';
 import { Station } from '../types';
 import { JisSubway, JisBus } from './icons';
 import { Icon } from './Icon';
 import { SubwayStationMark } from './SubwayStationMark';
 import { SubwayTimetableModal } from './SubwayTimetableModal';
 import { NatoringoTimetableModal } from './NatoringoTimetableModal';
+import { SendaiBusTimetableModal } from './SendaiBusTimetableModal';
 import {
   SubwayDirectionKey,
   SUBWAY_DIRECTIONS,
@@ -17,6 +29,12 @@ import {
   getNatoringoStationSchedule,
   getUpcomingNatoringoDepartures,
 } from '../utils/natoringoSchedule';
+import {
+  SENDAI_BUS_COLOR,
+  SendaiBusStationSchedule,
+  fetchSendaiBusStationSchedule,
+  getUpcomingSendaiBusDepartures,
+} from '../utils/sendaiBusApi';
 
 interface TransferGuideProps {
   station: Station;
@@ -75,11 +93,89 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   // 15秒ごとに現在時刻を自動更新
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
-    if (!hasSubway && !hasNatoringo) return;
+    if (!hasSubway && !hasNatoringo && !hasSendaiBus) return;
     setNow(new Date());
     const timer = setInterval(() => setNow(new Date()), 15000);
     return () => clearInterval(timer);
-  }, [hasSubway, hasNatoringo, stationId]);
+  }, [hasSubway, hasNatoringo, hasSendaiBus, stationId]);
+
+  // 仙台市営バス API データ取得状態管理
+  const [sendaiBusSchedule, setSendaiBusSchedule] = useState<SendaiBusStationSchedule | null>(
+    null
+  );
+  const [sendaiBusLoading, setSendaiBusLoading] = useState<boolean>(false);
+  const [sendaiBusError, setSendaiBusError] = useState<boolean>(false);
+
+  const loadSendaiBusData = useCallback(
+    async (isInitial: boolean, forceRefresh = false) => {
+      if (!hasSendaiBus) return;
+      if (isInitial) {
+        setSendaiBusLoading(true);
+        setSendaiBusError(false);
+      }
+      try {
+        const data = await fetchSendaiBusStationSchedule(stationId, forceRefresh);
+        setSendaiBusSchedule(data);
+        setSendaiBusError(false);
+      } catch {
+        if (isInitial) {
+          setSendaiBusError(true);
+        }
+      } finally {
+        if (isInitial) {
+          setSendaiBusLoading(false);
+        }
+      }
+    },
+    [hasSendaiBus, stationId]
+  );
+
+  useEffect(() => {
+    if (!hasSendaiBus) {
+      setSendaiBusSchedule(null);
+      setSendaiBusLoading(false);
+      setSendaiBusError(false);
+      return;
+    }
+
+    let cancelled = false;
+    setSendaiBusSchedule(null);
+    setSendaiBusLoading(true);
+    setSendaiBusError(false);
+
+    fetchSendaiBusStationSchedule(stationId, false)
+      .then((data) => {
+        if (cancelled) return;
+        setSendaiBusSchedule(data);
+        setSendaiBusError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSendaiBusError(true);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setSendaiBusLoading(false);
+      });
+
+    // 30秒ごとにリアルタイム遅延情報をバックグラウンド更新
+    const refreshTimer = setInterval(() => {
+      fetchSendaiBusStationSchedule(stationId, false)
+        .then((data) => {
+          if (!cancelled && data) {
+            setSendaiBusSchedule(data);
+          }
+        })
+        .catch(() => {
+          // バックグラウンド更新失敗時は既存表示を維持
+        });
+    }, 30000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(refreshTimer);
+    };
+  }, [hasSendaiBus, stationId]);
 
   // 地下鉄時刻表モーダルの状態管理
   const [subwayModalOpen, setSubwayModalOpen] = useState(false);
@@ -94,6 +190,20 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
     setModalDirectionKey(dirKey);
     setModalInitialTrainId(trainId);
     setSubwayModalOpen(true);
+  };
+
+  // 仙台市営バス時刻表モーダルの状態管理
+  const [sendaiBusModalOpen, setSendaiBusModalOpen] = useState(false);
+  const [sendaiBusInitialGroupId, setSendaiBusInitialGroupId] = useState<string | null>(null);
+  const [sendaiBusInitialDepId, setSendaiBusInitialDepId] = useState<string | null>(null);
+
+  const openSendaiBusTimetable = (
+    groupId: string | null = null,
+    departureId: string | null = null
+  ) => {
+    setSendaiBusInitialGroupId(groupId);
+    setSendaiBusInitialDepId(departureId);
+    setSendaiBusModalOpen(true);
   };
 
   // なとりん号時刻表モーダルの状態管理
@@ -235,22 +345,227 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           </Block>
         )}
 
-        {/* 仙台市営バス */}
+        {/* 仙台市営バス（Sendai Bus Map V2 API 連携・のりばグループ別直近発車・リアルタイム遅延・時刻表＆全停車バス停タイムライン） */}
         {hasSendaiBus && (
-          <Block icon={<JisBus size={15} color="#059669" />} title="仙台市営バス（直近発車）">
-            <Row
-              label={
-                <>
-                  <Text component="span" fz={12} fw={500} c="var(--mantine-color-text)">
-                    [60] 交通局東北大学病院前行
+          <Block
+            icon={<JisBus size={15} color={SENDAI_BUS_COLOR} />}
+            title="仙台市営バス"
+            rightAction={
+              sendaiBusSchedule ? (
+                <Button
+                  size="compact-xs"
+                  variant="default"
+                  radius="xl"
+                  fw={700}
+                  leftSection={<Icon name="schedule" size={13} />}
+                  onClick={() =>
+                    openSendaiBusTimetable(
+                      sendaiBusSchedule.groups[0]?.groupId ?? null,
+                      null
+                    )
+                  }
+                >
+                  時刻表
+                </Button>
+              ) : undefined
+            }
+          >
+            {sendaiBusLoading && !sendaiBusSchedule ? (
+              <Stack gap={6} py={4} px={2}>
+                <Group gap={8} align="center" wrap="nowrap">
+                  <Loader size="sm" color={SENDAI_BUS_COLOR} />
+                  <Text fz={11.5} fw={600} c="dimmed">
+                    市営バス時刻・リアルタイム運行情報を取得中...
                   </Text>
-                  <Text component="span" fz={11} c="dimmed" ml={8}>
-                    1番のりば
-                  </Text>
-                </>
-              }
-              time="15:45"
-            />
+                </Group>
+                <Skeleton height={22} radius="sm" />
+                <Skeleton height={22} radius="sm" />
+              </Stack>
+            ) : sendaiBusError && !sendaiBusSchedule ? (
+              <Group justify="space-between" align="center" py={4} px={4} wrap="nowrap">
+                <Text fz={11.5} c="dimmed">
+                  市営バス運行情報の取得に失敗しました
+                </Text>
+                <Button
+                  size="compact-xs"
+                  variant="default"
+                  radius="md"
+                  fw={700}
+                  leftSection={<Icon name="refresh" size={13} />}
+                  onClick={() => loadSendaiBusData(true, true)}
+                >
+                  再試行
+                </Button>
+              </Group>
+            ) : sendaiBusSchedule ? (
+              sendaiBusSchedule.groups.map((group, gIdx) => {
+                const upcoming = getUpcomingSendaiBusDepartures(group, now);
+
+                return (
+                  <React.Fragment key={group.groupId}>
+                    {gIdx > 0 && <Divider my={4} />}
+                    <Stack gap={3}>
+                      {/* のりばグループ見出し行（タップでそのグループの全時刻表一覧を開く） */}
+                      <UnstyledButton
+                        onClick={() => openSendaiBusTimetable(group.groupId, null)}
+                        py={2}
+                        px={4}
+                        style={{ borderRadius: 'var(--mantine-radius-sm)' }}
+                        className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
+                      >
+                        <Group justify="space-between" wrap="nowrap" gap={6}>
+                          <Group gap={6} wrap="nowrap" align="center" className="min-w-0">
+                            <Badge
+                              size="xs"
+                              radius="sm"
+                              variant="default"
+                              fw={700}
+                              tt="none"
+                              className="shrink-0"
+                            >
+                              {group.shortTitle}
+                            </Badge>
+                            <Text fz={11} c="dimmed" className="truncate">
+                              {group.title}
+                            </Text>
+                          </Group>
+                          <Group gap={2} wrap="nowrap" align="center" className="shrink-0">
+                            <Text fz={10.5} c="dimmed" fw={600}>
+                              一覧
+                            </Text>
+                            <Icon
+                              name="chevron_right"
+                              size={13}
+                              className="text-slate-400 dark:text-slate-500"
+                            />
+                          </Group>
+                        </Group>
+                      </UnstyledButton>
+
+                      {/* 直近発車便リスト（各便タップで全停車バス停タイムラインを直接開く） */}
+                      {upcoming.length > 0 ? (
+                        <Stack gap={2}>
+                          {upcoming.map((dep, dIdx) => (
+                            <UnstyledButton
+                              key={dep.id}
+                              onClick={() => openSendaiBusTimetable(group.groupId, dep.id)}
+                              py={3}
+                              px={6}
+                              style={{ borderRadius: 'var(--mantine-radius-sm)' }}
+                              className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                              title={`${dep.departureTime}発 [${dep.routeCode}] ${dep.headsign}行の全停車バス停を表示`}
+                            >
+                              <Group justify="space-between" wrap="nowrap" gap={6}>
+                                <Group
+                                  gap={6}
+                                  wrap="nowrap"
+                                  align="center"
+                                  className="min-w-0"
+                                >
+                                  <Badge
+                                    size="xs"
+                                    radius="sm"
+                                    tt="none"
+                                    fw={800}
+                                    style={{
+                                      backgroundColor: SENDAI_BUS_COLOR,
+                                      color: '#ffffff',
+                                      flexShrink: 0,
+                                      minWidth: 42,
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    {dep.routeCode}
+                                  </Badge>
+                                  <Text
+                                    fz={12}
+                                    fw={dIdx === 0 ? 700 : 500}
+                                    c="var(--mantine-color-text)"
+                                    className="truncate"
+                                  >
+                                    {dep.headsign}行
+                                  </Text>
+                                  {dep.via && (
+                                    <Text
+                                      fz={10.5}
+                                      c="dimmed"
+                                      className="truncate"
+                                    >
+                                      （{dep.via}）
+                                    </Text>
+                                  )}
+                                  {dep.platform && (
+                                    <Text
+                                      fz={11}
+                                      c="dimmed"
+                                      fw={600}
+                                      className="shrink-0"
+                                    >
+                                      {dep.platform}番のりば
+                                    </Text>
+                                  )}
+                                </Group>
+
+                                <Group
+                                  gap={4}
+                                  wrap="nowrap"
+                                  align="center"
+                                  className="font-english tabular-nums shrink-0"
+                                >
+                                  {dep.isDelayed && (
+                                    <Badge
+                                      size="xs"
+                                      color="red"
+                                      variant="light"
+                                      radius="sm"
+                                      tt="none"
+                                      fw={700}
+                                      className="shrink-0"
+                                    >
+                                      +{dep.delayMinutes}分遅れ
+                                    </Badge>
+                                  )}
+                                  <Text
+                                    fz={12.5}
+                                    fw={dIdx === 0 ? 800 : 600}
+                                    style={
+                                      dep.isDelayed
+                                        ? { color: 'var(--mantine-color-red-6)' }
+                                        : dIdx === 0
+                                          ? { color: SENDAI_BUS_COLOR }
+                                          : undefined
+                                    }
+                                  >
+                                    {dep.isDelayed ? dep.expectedTime : dep.departureTime}
+                                  </Text>
+                                  <Icon
+                                    name="chevron_right"
+                                    size={13}
+                                    className="text-slate-400 dark:text-slate-500"
+                                  />
+                                </Group>
+                              </Group>
+                            </UnstyledButton>
+                          ))}
+                        </Stack>
+                      ) : (
+                        <UnstyledButton
+                          onClick={() => openSendaiBusTimetable(group.groupId, null)}
+                          py={2}
+                          px={6}
+                          style={{ borderRadius: 'var(--mantine-radius-sm)' }}
+                          className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
+                        >
+                          <Text fz={11} c="dimmed">
+                            本日の運行は終了しました（タップで時刻表を表示）
+                          </Text>
+                        </UnstyledButton>
+                      )}
+                    </Stack>
+                  </React.Fragment>
+                );
+              })
+            ) : null}
           </Block>
         )}
 
@@ -432,6 +747,18 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           stationId={stationId}
           initialDirectionKey={modalDirectionKey}
           initialTrainId={modalInitialTrainId}
+          now={now}
+        />
+      )}
+
+      {/* 仙台市営バス 時刻表＆全停車バス停タイムラインモーダル */}
+      {hasSendaiBus && (
+        <SendaiBusTimetableModal
+          isOpen={sendaiBusModalOpen}
+          onClose={() => setSendaiBusModalOpen(false)}
+          stationSchedule={sendaiBusSchedule}
+          initialGroupId={sendaiBusInitialGroupId}
+          initialDepartureId={sendaiBusInitialDepId}
           now={now}
         />
       )}
