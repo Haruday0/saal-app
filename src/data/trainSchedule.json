@@ -12782,7 +12782,7 @@
       "trainType": "普通",
       "destination": "白石",
       "departureTime": "0:02",
-      "cars": 4,
+      "cars": 6,
       "stops": [
         {
           "stationId": "sendai",

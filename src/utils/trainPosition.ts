@@ -1,5 +1,6 @@
 import trainScheduleData from '../data/trainSchedule.json';
 import { MovingTrain, DirectionType, LineType } from '../types';
+import { isWeekendHolidayOrYearEnd } from './calendar';
 
 export const ROUTE_STATION_IDS = [
   'sendai',
@@ -86,7 +87,7 @@ export function getActiveMovingTrains(
   const currentSec = getCurrentRailwaySeconds(now);
   const isHoliday = dayType
     ? dayType === 'holiday'
-    : now.getDay() === 0 || now.getDay() === 6;
+    : isWeekendHolidayOrYearEnd(now);
 
   const data = trainScheduleData as unknown as {
     up: ScheduledTrain[];

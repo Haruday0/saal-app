@@ -1747,7 +1747,7 @@
         "departureTime": "0:02",
         "destination": "白石",
         "track": "6",
-        "cars": 4,
+        "cars": 6,
         "status": "normal",
         "calendar": "all"
       }
@@ -3460,7 +3460,7 @@
         "departureTime": "0:08",
         "destination": "白石",
         "track": "2",
-        "cars": 4,
+        "cars": 6,
         "status": "normal",
         "calendar": "all"
       }
@@ -6910,7 +6910,7 @@
         "departureTime": "0:10",
         "destination": "白石",
         "track": "2",
-        "cars": 4,
+        "cars": 6,
         "status": "normal",
         "calendar": "all"
       }
@@ -10360,7 +10360,7 @@
         "departureTime": "0:13",
         "destination": "白石",
         "track": "1",
-        "cars": 4,
+        "cars": 6,
         "status": "normal",
         "calendar": "all"
       }
@@ -13810,7 +13810,7 @@
         "departureTime": "0:16",
         "destination": "白石",
         "track": "1",
-        "cars": 4,
+        "cars": 6,
         "status": "normal",
         "calendar": "all"
       }
