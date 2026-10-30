@@ -232,7 +232,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
       onClose={onClose}
       title={
         <Group gap={8} wrap="nowrap" align="center">
-          <SubwayStationMark line={activeLineId} code={boardingStationCode} size={22} />
+          <SubwayStationMark line={activeLineId} code={boardingStationCode} size={26} />
           <Text fw={900} fz={15}>
             {boardingStationName}駅 仙台市地下鉄時刻表
           </Text>
@@ -318,7 +318,11 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                 />
                 <Stack gap={2}>
                   <Group gap={6} align="center" wrap="nowrap">
-                    <SubwayStationMark line={meta.lineId} code={meta.lineCode} size={17} />
+                    <SubwayStationMark
+                      line={meta.lineId}
+                      code={selectedTrainItem.stationCode || boardingStationCode}
+                      size={22}
+                    />
                     <Text fz="xs" fw={800} c="dimmed">
                       仙台市地下鉄 {meta.lineName}（{meta.directionLabel}）
                     </Text>
@@ -333,7 +337,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                     <SubwayStationMark
                       line={meta.lineId}
                       code={selectedTrainItem.terminalCode}
-                      size={19}
+                      size={24}
                     />
                   </Group>
                 </Stack>
@@ -461,7 +465,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                                 <SubwayStationMark
                                   line={meta.lineId}
                                   code={stCode}
-                                  size={22}
+                                  size={24}
                                   dimmed={passed && !isBoarding}
                                 />
                                 <Text
@@ -588,7 +592,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                     value: 'namboku',
                     label: (
                       <Group gap={5} justify="center" wrap="nowrap">
-                        <SubwayStationMark line="namboku" code="N" size={15} />
+                        <SubwayStationMark line="namboku" code="N10" size={20} />
                         <span>南北線（1・2番線）</span>
                       </Group>
                     ),
@@ -597,7 +601,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                     value: 'tozai',
                     label: (
                       <Group gap={5} justify="center" wrap="nowrap">
-                        <SubwayStationMark line="tozai" code="T" size={15} />
+                        <SubwayStationMark line="tozai" code="T07" size={20} />
                         <span>東西線（3・4番線）</span>
                       </Group>
                     ),
@@ -618,8 +622,8 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                   {
                     value: 'namboku-north',
                     label: (
-                      <Group gap={4} justify="center" wrap="nowrap">
-                        <SubwayStationMark line="namboku" code="N01" size={16} />
+                      <Group gap={5} justify="center" wrap="nowrap">
+                        <SubwayStationMark line="namboku" code="N01" size={20} />
                         <span>1番線 泉中央方面</span>
                       </Group>
                     ),
@@ -627,8 +631,8 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                   {
                     value: 'namboku-south',
                     label: (
-                      <Group gap={4} justify="center" wrap="nowrap">
-                        <SubwayStationMark line="namboku" code="N17" size={16} />
+                      <Group gap={5} justify="center" wrap="nowrap">
+                        <SubwayStationMark line="namboku" code="N17" size={20} />
                         <span>2番線 富沢方面</span>
                       </Group>
                     ),
@@ -646,8 +650,8 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                   {
                     value: 'tozai-east',
                     label: (
-                      <Group gap={4} justify="center" wrap="nowrap">
-                        <SubwayStationMark line="tozai" code="T13" size={16} />
+                      <Group gap={5} justify="center" wrap="nowrap">
+                        <SubwayStationMark line="tozai" code="T13" size={20} />
                         <span>3番線 荒井方面</span>
                       </Group>
                     ),
@@ -655,8 +659,8 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                   {
                     value: 'tozai-west',
                     label: (
-                      <Group gap={4} justify="center" wrap="nowrap">
-                        <SubwayStationMark line="tozai" code="T01" size={16} />
+                      <Group gap={5} justify="center" wrap="nowrap">
+                        <SubwayStationMark line="tozai" code="T01" size={20} />
                         <span>4番線 八木山動物公園方面</span>
                       </Group>
                     ),
@@ -736,11 +740,11 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                           {item.departureTime}
                         </Text>
 
-                        <Group gap={5} wrap="nowrap" className="shrink-0">
+                        <Group gap={6} wrap="nowrap" className="shrink-0">
                           <SubwayStationMark
                             line={meta.lineId}
                             code={item.terminalCode}
-                            size={18}
+                            size={22}
                           />
                           <Text
                             fz="sm"
