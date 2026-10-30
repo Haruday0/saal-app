@@ -674,7 +674,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
               </Group>
 
               <Timeline
-                active={activeIndex}
+                active={-1}
                 bulletSize={18}
                 lineWidth={2.5}
                 color={mantineColor}
@@ -683,9 +683,26 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                   const isFirst = i === 0;
                   const isLast = i === stopsToShow.length - 1;
                   const isStoppedHere = status.kind === 'stopped' && status.index === i;
-                  const isRunningAfterThis = status.kind === 'running' && status.index === i;
-                  const isCurrent = isStoppedHere;
-                  const passed = i <= activeIndex && !isCurrent;
+
+                  // すでに発車・通過済みの駅かどうか
+                  const passed =
+                    status.kind === 'arrived'
+                      ? true
+                      : status.kind === 'before'
+                      ? false
+                      : status.kind === 'stopped'
+                      ? i < status.index
+                      : i <= status.index;
+
+                  // この駅から次の駅へ向かう区間（下の線）がすでに通過済みかどうか
+                  // 駅間走行中（status.kind === 'running'）の status.index → status.index + 1 区間は現在走行中のため路線カラー実線とする
+                  const linePassed =
+                    status.kind === 'arrived'
+                      ? true
+                      : status.kind === 'before'
+                      ? false
+                      : i < status.index;
+
                   const isSelectable = !!s.stationId;
 
                   // 駅の bullet（停車中は五角形電車アイコン、それ以外は標準）
@@ -697,7 +714,22 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                     <Timeline.Item
                       key={`${s.stationName}-${i}`}
                       bullet={customBullet}
-                      lineVariant={isRunningAfterThis ? 'dashed' : 'solid'}
+                      lineVariant="solid"
+                      style={
+                        !linePassed
+                          ? ({ '--item-border-color': 'var(--tl-color)' } as React.CSSProperties)
+                          : undefined
+                      }
+                      styles={
+                        !passed
+                          ? {
+                              itemBullet: {
+                                borderColor: 'var(--tl-color)',
+                                backgroundColor: 'var(--mantine-color-body)',
+                              },
+                            }
+                          : undefined
+                      }
                     >
                       <UnstyledButton
                         data-stop-index={i}
