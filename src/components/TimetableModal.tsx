@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Modal, SegmentedControl, Chip, ScrollArea, Badge, Group, Text, Stack } from '@mantine/core';
+import { Modal, SegmentedControl, Button, ScrollArea, Badge, Group, Text, Stack } from '@mantine/core';
 import { DepartureTrain, LineType } from '../types';
 import { isWeekendHolidayOrYearEnd } from '../utils/calendar';
 import { LINE_COLORS } from '../config/trainLineRules';
+import { Icon } from './Icon';
 
 interface TimetableModalProps {
   isOpen: boolean;
@@ -196,21 +197,43 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
             />
           )}
 
-          {/* 路線絞り込み（複数選択 Chip） */}
+          {/* 路線絞り込み（Mantine Button + 左側に Filter Alt アイコン） */}
           {showLineFilter && (
-            <Chip.Group
-              multiple
-              value={selectedLines}
-              onChange={(value) => setSelectedLines(value as LineType[])}
-            >
-              <Group gap={6} wrap="wrap">
-                {LINE_OPTIONS.map((opt) => (
-                  <Chip key={opt.value} value={opt.value} size="xs" radius="md" color={LINE_COLORS[opt.value]}>
-                    {opt.label}
-                  </Chip>
-                ))}
+            <Group gap={6} align="center" wrap="wrap">
+              <Group gap={4} align="center" c="dimmed" mr={2}>
+                <Icon name="filter_alt" size={16} />
               </Group>
-            </Chip.Group>
+              {LINE_OPTIONS.map((opt) => {
+                const isSelected = selectedLines.includes(opt.value);
+                const color = LINE_COLORS[opt.value];
+                return (
+                  <Button
+                    key={opt.value}
+                    size="xs"
+                    radius="md"
+                    variant={isSelected ? 'filled' : 'default'}
+                    onClick={() => {
+                      setSelectedLines((prev) =>
+                        prev.includes(opt.value)
+                          ? prev.filter((l) => l !== opt.value)
+                          : [...prev, opt.value]
+                      );
+                    }}
+                    style={
+                      isSelected
+                        ? {
+                            backgroundColor: color,
+                            borderColor: color,
+                            color: '#ffffff',
+                          }
+                        : undefined
+                    }
+                  >
+                    {opt.label}
+                  </Button>
+                );
+              })}
+            </Group>
           )}
         </Stack>
       )}
