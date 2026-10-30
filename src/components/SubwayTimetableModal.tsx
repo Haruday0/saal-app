@@ -219,20 +219,13 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
     }
   };
 
-  const boardingStationCode =
-    activeLineId === 'namboku'
-      ? boardingStationName === '仙台'
-        ? 'N10'
-        : 'N15'
-      : 'T07';
-
   return (
     <Modal
       opened={isOpen}
       onClose={onClose}
       title={
         <Group gap={8} wrap="nowrap" align="center">
-          <SubwayStationMark line={activeLineId} code={boardingStationCode} size={26} />
+          <SubwayStationMark line={activeLineId} code={meta.lineCode} size={26} />
           <Text fw={900} fz={15}>
             {boardingStationName}駅 仙台市地下鉄時刻表
           </Text>
@@ -320,7 +313,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                   <Group gap={6} align="center" wrap="nowrap">
                     <SubwayStationMark
                       line={meta.lineId}
-                      code={selectedTrainItem.stationCode || boardingStationCode}
+                      code={meta.lineCode}
                       size={22}
                     />
                     <Text fz="xs" fw={800} c="dimmed">
@@ -592,7 +585,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                     value: 'namboku',
                     label: (
                       <Group gap={5} justify="center" wrap="nowrap">
-                        <SubwayStationMark line="namboku" code="N10" size={20} />
+                        <SubwayStationMark line="namboku" code="N" size={20} />
                         <span>南北線（1・2番線）</span>
                       </Group>
                     ),
@@ -601,7 +594,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                     value: 'tozai',
                     label: (
                       <Group gap={5} justify="center" wrap="nowrap">
-                        <SubwayStationMark line="tozai" code="T07" size={20} />
+                        <SubwayStationMark line="tozai" code="T" size={20} />
                         <span>東西線（3・4番線）</span>
                       </Group>
                     ),

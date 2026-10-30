@@ -9,7 +9,6 @@ import {
   SubwayDirectionKey,
   SUBWAY_DIRECTIONS,
   getSubwayStationNameById,
-  getSubwayStationCode,
   getAvailableSubwayDirections,
   getUpcomingSubwayTrains,
 } from '../utils/subwaySchedule';
@@ -130,8 +129,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
               const meta = SUBWAY_DIRECTIONS[dirKey];
               const upcoming = getUpcomingSubwayTrains(subwayStationName, dirKey, now, 3);
               const showTozaiDivider = idx === 2 && dirKey === 'tozai-east';
-              const stationCode =
-                getSubwayStationCode(meta.lineId, subwayStationName) || meta.lineCode;
 
               return (
                 <React.Fragment key={dirKey}>
@@ -145,13 +142,13 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                     style={{ borderRadius: 'var(--mantine-radius-sm)' }}
                     className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                   >
-                    {/* 左側: 駅ナンバリング丸枠マーク (N10 / T07 / N15) + 路線・のりば・方面（タップでその方面の時刻表一覧を開く） */}
+                    {/* 左側: 路線記号丸枠マーク (N / T) + 路線・のりば・方面（タップでその方面の時刻表一覧を開く） */}
                     <UnstyledButton
                       onClick={() => openSubwayTimetable(dirKey, null)}
                       className="min-w-0 flex-1 text-left"
                     >
                       <Group gap={6} wrap="nowrap" align="center">
-                        <SubwayStationMark line={meta.lineId} code={stationCode} size={22} />
+                        <SubwayStationMark line={meta.lineId} code={meta.lineCode} size={22} />
                         <Text
                           fz={12}
                           fw={600}
