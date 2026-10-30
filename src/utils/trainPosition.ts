@@ -72,7 +72,12 @@ export interface ScheduledTrain {
 /** 列車ID（公式列車番号）から trainSchedule.json の全停車駅データを取得 */
 export function getScheduledTrainById(id: string): ScheduledTrain | null {
   const data = trainScheduleData as unknown as { up: ScheduledTrain[]; down: ScheduledTrain[] };
-  return data.up.find((t) => t.id === id) || data.down.find((t) => t.id === id) || null;
+  const cleanId = id.includes('-') ? id.split('-')[0] : id;
+  return (
+    data.up.find((t) => t.id === cleanId || t.trainNumber === cleanId || t.id === id) ||
+    data.down.find((t) => t.id === cleanId || t.trainNumber === cleanId || t.id === id) ||
+    null
+  );
 }
 
 /**

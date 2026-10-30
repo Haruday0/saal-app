@@ -575,7 +575,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   const cleanDestination = cleanStationName(train.destination);
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
       {/* 背景スクリム */}
       <div
         ref={scrimRef}
@@ -596,7 +596,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
             sheetRef.current.classList.remove('m3-sheet-enter');
           }
         }}
-        className="relative z-50 w-full max-w-md mx-auto glass-surface-strong rounded-t-3xl shadow-glass-lg flex flex-col h-[calc(78vh+180px)] h-[calc(100dvh-5.5rem+180px)] -mb-[180px] border-t border-white/80 dark:border-slate-700/80 m3-bottom-sheet m3-sheet-enter"
+        className="relative z-[70] w-full max-w-md mx-auto glass-surface-strong rounded-t-3xl shadow-glass-lg flex flex-col h-[calc(78vh+180px)] h-[calc(100dvh-5.5rem+180px)] -mb-[180px] border-t border-white/80 dark:border-slate-700/80 m3-bottom-sheet m3-sheet-enter"
       >
         {/* シートヘッダー */}
         <div

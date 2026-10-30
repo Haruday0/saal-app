@@ -30,6 +30,7 @@ export const App: React.FC = () => {
       <StationDetailSheet
         station={selectedStation}
         onClose={() => setSelectedStation(null)}
+        onOpenTrainDetail={(trainId) => setSelectedTrainId(trainId)}
       />
 
       {/* 列車詳細パネル（電車タップで下から開くボトムシート） */}

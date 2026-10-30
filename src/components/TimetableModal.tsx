@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Modal, SegmentedControl, Button, ScrollArea, Badge, Group, Text, Stack } from '@mantine/core';
+import { Modal, SegmentedControl, Button, ScrollArea, Badge, Group, Text, Stack, UnstyledButton } from '@mantine/core';
 import { DepartureTrain, LineType } from '../types';
 import { isWeekendHolidayOrYearEnd } from '../utils/calendar';
 import { LINE_COLORS } from '../config/trainLineRules';
@@ -11,6 +11,7 @@ interface TimetableModalProps {
   stationId: string;
   allTrains: DepartureTrain[];
   now: Date;
+  onSelectTrain?: (train: DepartureTrain) => void;
 }
 
 /** 鉄道時刻分計算 (4:00〜翌3:59、深夜0〜3時は24〜27時) */
@@ -28,6 +29,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
   stationId,
   allTrains,
   now,
+  onSelectTrain,
 }) => {
   const isSendai = stationId === 'sendai';
   const isAirport = stationId === 'sendai-airport';
@@ -259,66 +261,80 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
               const dimmed = isSuspendedToday || (isPast && !isNext);
 
               return (
-                <Group
+                <UnstyledButton
                   key={train.id}
                   data-train-id={train.id}
-                  justify="space-between"
-                  wrap="nowrap"
-                  gap={6}
-                  px={8}
-                  py={8}
+                  onClick={() => {
+                    onClose();
+                    onSelectTrain?.(train);
+                  }}
                   style={{
                     borderRadius: 'var(--mantine-radius-md)',
                     backgroundColor: isNext ? 'var(--mantine-color-saal-light)' : undefined,
                     opacity: isSuspendedToday ? 0.45 : dimmed ? 0.5 : 1,
+                    width: '100%',
                   }}
+                  className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 >
-                  {/* 左側: 発車時刻 | 行先 | 種別 | 運休バッジ */}
-                  <Group gap={8} wrap="nowrap" className="min-w-0">
-                    <Text
-                      fz="sm"
-                      fw={800}
-                      w="3.2em"
-                      ta="right"
-                      c={isNext ? 'saal' : undefined}
-                      className="font-english tabular-nums shrink-0"
-                    >
-                      {train.departureTime}
-                    </Text>
-                    <Text fz="sm" fw={isNext ? 800 : 500} c={isNext ? 'saal' : undefined} className="shrink-0">
-                      {train.destination}
-                    </Text>
-                    {train.trainType !== '普通' && (
-                      <Badge size="xs" color="red" variant="light" radius="sm">
-                        {train.trainType}
-                      </Badge>
-                    )}
-                    {isWeekdayOnly && (
-                      <Badge
-                        size="xs"
-                        color={isSuspendedToday ? 'red' : 'yellow'}
-                        variant={isSuspendedToday ? 'filled' : 'light'}
-                        radius="sm"
-                        className="shrink-0"
+                  <Group
+                    justify="space-between"
+                    wrap="nowrap"
+                    gap={6}
+                    px={8}
+                    py={8}
+                  >
+                    {/* 左側: 発車時刻 | 行先 | 種別 | 運休バッジ */}
+                    <Group gap={8} wrap="nowrap" className="min-w-0">
+                      <Text
+                        fz="sm"
+                        fw={800}
+                        w="3.2em"
+                        ta="right"
+                        c={isNext ? 'saal' : undefined}
+                        className="font-english tabular-nums shrink-0"
                       >
-                        {isSuspendedToday ? '本日運休' : '土休日運休'}
-                      </Badge>
-                    )}
-                  </Group>
+                        {train.departureTime}
+                      </Text>
+                      <Text fz="sm" fw={isNext ? 800 : 500} c={isNext ? 'saal' : undefined} className="shrink-0">
+                        {train.destination}
+                      </Text>
+                      {train.trainType !== '普通' && (
+                        <Badge size="xs" color="red" variant="light" radius="sm">
+                          {train.trainType}
+                        </Badge>
+                      )}
+                      {isWeekdayOnly && (
+                        <Badge
+                          size="xs"
+                          color={isSuspendedToday ? 'red' : 'yellow'}
+                          variant={isSuspendedToday ? 'filled' : 'light'}
+                          radius="sm"
+                          className="shrink-0"
+                        >
+                          {isSuspendedToday ? '本日運休' : '土休日運休'}
+                        </Badge>
+                      )}
+                    </Group>
 
-                  {/* 右側: 列車番号・番線・両数（固定幅で桁ずれ防止） */}
-                  <Group gap={6} wrap="nowrap" className="shrink-0 font-english tabular-nums">
-                    <Text fz={10} c="dimmed" w={44} ta="right">
-                      {train.trainNumber}
-                    </Text>
-                    <Text fz="xs" c="dimmed" w={40} ta="right">
-                      {train.track}番線
-                    </Text>
-                    <Text fz="xs" fw={700} w={32} ta="right">
-                      {train.cars}両
-                    </Text>
+                    {/* 右側: 列車番号・番線・両数・詳細シェブロン */}
+                    <Group gap={6} wrap="nowrap" className="shrink-0 font-english tabular-nums" align="center">
+                      <Text fz={10} c="dimmed" w={44} ta="right">
+                        {train.trainNumber}
+                      </Text>
+                      <Text fz="xs" c="dimmed" w={40} ta="right">
+                        {train.track}番線
+                      </Text>
+                      <Text fz="xs" fw={700} w={32} ta="right">
+                        {train.cars}両
+                      </Text>
+                      <Icon
+                        name="chevron_right"
+                        size={15}
+                        className="text-slate-400 dark:text-slate-500"
+                      />
+                    </Group>
                   </Group>
-                </Group>
+                </UnstyledButton>
               );
             })}
           </Stack>
