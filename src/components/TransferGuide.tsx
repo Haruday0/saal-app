@@ -265,7 +265,7 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
         {hasNatoringo && natoringoStation && (
           <Block
             icon={<JisBus size={15} color="#d97706" />}
-            title="名取市コミュニティバス「なとりん号」"
+            title="なとりん号"
             rightAction={
               <Button
                 size="compact-xs"
