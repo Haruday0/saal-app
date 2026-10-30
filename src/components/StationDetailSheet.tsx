@@ -11,14 +11,12 @@ import { Group, Text, Title, CloseButton, Paper, UnstyledButton, Collapse, Box }
 interface StationDetailSheetProps {
   station: Station | null;
   onClose: () => void;
-  onOpenTrainDetail?: (trainId: string) => void;
 }
 
 interface StationSheetContentProps {
   station: Station;
   selectedTrain: DepartureTrain | null;
   onSelectTrain: (train: DepartureTrain) => void;
-  onOpenTrainDetail?: (trainId: string) => void;
 }
 
 // コンテンツ部分を memo 化して、アニメーション中やヘッダー操作時の不要な仮想DOM再計算を完全防止
@@ -26,7 +24,6 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
   station,
   selectedTrain,
   onSelectTrain,
-  onOpenTrainDetail,
 }) => {
   const [isTrainVisionOpen, setIsTrainVisionOpen] = useState(false);
 
@@ -45,7 +42,6 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
           stationId={station.id}
           selectedTrain={selectedTrain}
           onSelectTrain={onSelectTrain}
-          onOpenTrainDetail={onOpenTrainDetail}
         />
       </section>
 
@@ -119,7 +115,6 @@ StationSheetContent.displayName = 'StationSheetContent';
 export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
   station,
   onClose,
-  onOpenTrainDetail,
 }) => {
   const [activeStation, setActiveStation] = useState<Station | null>(station);
   const [selectedTrain, setSelectedTrain] = useState<DepartureTrain | null>(null);
@@ -608,7 +603,6 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
             station={activeStation}
             selectedTrain={selectedTrain}
             onSelectTrain={handleSelectTrain}
-            onOpenTrainDetail={onOpenTrainDetail}
           />
         </div>
       </div>

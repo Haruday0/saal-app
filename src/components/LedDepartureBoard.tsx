@@ -11,14 +11,12 @@ interface LedDepartureBoardProps {
   stationId: string;
   selectedTrain: DepartureTrain | null;
   onSelectTrain: (train: DepartureTrain) => void;
-  onOpenTrainDetail?: (trainId: string) => void;
 }
 
 export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
   stationId,
   selectedTrain,
   onSelectTrain,
-  onOpenTrainDetail,
 }) => {
   const isSendai = stationId === 'sendai';
   const isMorisekinoshita = stationId === 'morisekinoshita';
@@ -345,9 +343,6 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
         stationId={stationId}
         allTrains={allStationTrainsRaw}
         now={now}
-        onSelectTrain={(train) => {
-          onOpenTrainDetail?.(train.trainNumber || train.id);
-        }}
       />
     </Paper>
   );
