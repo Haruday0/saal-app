@@ -4,7 +4,9 @@ import { LedDepartureBoard } from './LedDepartureBoard';
 import { TrainVision } from './TrainVision';
 import { TransferGuide } from './TransferGuide';
 import { FareTable } from './FareTable';
-import { Group, Text, Title, CloseButton } from '@mantine/core';
+import { JisStairs } from './icons';
+import { Icon } from './Icon';
+import { Group, Text, Title, CloseButton, Paper, UnstyledButton, Collapse, Box } from '@mantine/core';
 
 interface StationDetailSheetProps {
   station: Station | null;
@@ -23,9 +25,15 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
   selectedTrain,
   onSelectTrain,
 }) => {
+  const [isTrainVisionOpen, setIsTrainVisionOpen] = useState(false);
+
+  useEffect(() => {
+    setIsTrainVisionOpen(false);
+  }, [station.id]);
+
   return (
     <>
-      {/* ① 発車案内 */}
+      {/* 1. 発車案内 */}
       <section>
         <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
           発車案内
@@ -37,18 +45,7 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
         />
       </section>
 
-      {/* ② 階段・改札口案内 */}
-      <section>
-        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
-          階段・改札口案内
-        </Text>
-        <TrainVision
-          station={station}
-          selectedTrain={selectedTrain}
-        />
-      </section>
-
-      {/* ③ 乗り換え案内 */}
+      {/* 2. 乗り換え案内 */}
       <section>
         <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
           接続路線・バス
@@ -56,12 +53,55 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
         <TransferGuide station={station} />
       </section>
 
-      {/* ④ 運賃一覧 */}
-      <section className="pb-4">
+      {/* 3. 運賃一覧 */}
+      <section>
         <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
           きっぷ・IC運賃表
         </Text>
         <FareTable currentStation={station} />
+      </section>
+
+      {/* 4. 階段・改札口案内（折りたたみ式・初期状態は閉） */}
+      <section className="pb-4">
+        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
+          階段・改札口案内
+        </Text>
+        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+          <UnstyledButton
+            onClick={() => setIsTrainVisionOpen((prev) => !prev)}
+            w="100%"
+            px={14}
+            py={10}
+            aria-expanded={isTrainVisionOpen}
+          >
+            <Group justify="space-between" wrap="nowrap" gap="xs">
+              <Group gap="xs" wrap="nowrap">
+                <JisStairs size={16} />
+                <Text fw={800} fz="xs">
+                  {station.name}駅の階段・改札口・設備位置
+                </Text>
+              </Group>
+              <Icon
+                name="expand_more"
+                size={18}
+                className={`text-slate-400 transition-transform duration-200 ${
+                  isTrainVisionOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </Group>
+          </UnstyledButton>
+          <Collapse expanded={isTrainVisionOpen}>
+            <Box
+              p="xs"
+              style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
+            >
+              <TrainVision
+                station={station}
+                selectedTrain={selectedTrain}
+              />
+            </Box>
+          </Collapse>
+        </Paper>
       </section>
 
       {/* 最下部スクロール時の余白（最下部までスクロールして上に引っ張ったときは同色背景が自然に追従） */}
