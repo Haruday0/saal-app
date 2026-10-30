@@ -241,7 +241,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                 <Icon
                   name="chevron_right"
                   size={16}
-                  className={`shrink-0 transition-transform ${isSelected ? 'rotate-90' : ''}`}
+                  className="shrink-0 text-slate-400"
                 />
               </Paper>
             </div>
