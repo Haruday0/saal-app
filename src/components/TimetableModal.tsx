@@ -36,8 +36,15 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
   // 1. 方面フィルター: 「上り」と「下り」の2択
   const [selectedDirection, setSelectedDirection] = useState<'up' | 'down'>('up');
 
-  // 2. 路線フィルター: 複数選択（マルチセレクト）可能。初期は全路線ON
-  const [selectedLines, setSelectedLines] = useState<LineType[]>(['tohoku', 'joban', 'saal']);
+  // 2. 路線フィルター: 複数選択（マルチセレクト）。初期状態は未選択（＝全路線表示）
+  const [selectedLines, setSelectedLines] = useState<LineType[]>([]);
+
+  // モーダルオープン時または駅・方面切り替え時にフィルターを初期化（未選択＝全路線表示）
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedLines([]);
+    }
+  }, [isOpen, stationId, selectedDirection]);
 
   // 並走区間（仙台〜名取）かつ上り（または仙台駅）で路線絞り込みを表示
   const hasMultipleLines = ['sendai', 'nagamachi', 'taishido', 'minami-sendai', 'natori'].includes(stationId);
@@ -63,8 +70,8 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
       list = list.filter((t) => t.direction === selectedDirection);
     }
 
-    // 路線フィルター（複数選択）
-    if (showLineFilter) {
+    // 路線フィルター（複数選択）: 未選択時は全路線表示、選択時はその路線のみ絞り込み
+    if (showLineFilter && selectedLines.length > 0) {
       list = list.filter((t) => selectedLines.includes(t.line));
     }
 
@@ -194,10 +201,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
             <Chip.Group
               multiple
               value={selectedLines}
-              onChange={(value) => {
-                const next = value as LineType[];
-                setSelectedLines(next.length === 0 ? ['tohoku', 'joban', 'saal'] : next);
-              }}
+              onChange={(value) => setSelectedLines(value as LineType[])}
             >
               <Group gap={6} wrap="wrap">
                 {LINE_OPTIONS.map((opt) => (
