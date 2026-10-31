@@ -505,7 +505,7 @@
         "sat": {
           "name": "アクセス線型",
           "digitWidth": 16,
-          "colonWidth": 8,
+          "colonWidth": 10,
           "digits": {},
           "parts": {},
           "slots": []
@@ -683,7 +683,7 @@
 
       // 0. 数字幅・コロン幅の反映
       numSysDigitWidth.value = sys.digitWidth || (targetSystem === "sendai" ? 18 : 16);
-      numSysColonWidth.value = sys.colonWidth || (targetSystem === "sendai" ? 12 : 7);
+      numSysColonWidth.value = sys.colonWidth || (targetSystem === "sendai" || targetSystem === "sat" ? 10 : (targetSystem === "minami-sendai" ? 8 : 7));
 
       // 1. 数字ボタンの生成 & 保存済みドット表示
       digitButtonsEl.innerHTML = "";
@@ -962,7 +962,7 @@
       let fitW = 16;
       if (targetKind === "digits") {
         fitW = targetDigitChar === ":" 
-          ? (sys.colonWidth || (targetSystem === "sendai" ? 12 : 7)) 
+          ? (sys.colonWidth || (targetSystem === "sendai" || targetSystem === "sat" ? 10 : (targetSystem === "minami-sendai" ? 8 : 7))) 
           : (sys.digitWidth || (targetSystem === "sendai" ? 18 : 16));
       } else {
         const cat = selPartCategory.value || "その他";
@@ -980,6 +980,8 @@
         } else if (cat === "両数") {
           if (targetSystem === "nagamachi") {
             fitW = pName === "両" ? 24 : 43; // 「4両」「6両」「2両」等は43dot、単文字「両」なら24dot
+          } else if (targetSystem === "sat") {
+            fitW = 86; // アクセス線 両数枠（4両編成・2両編成 = 86dot）
           } else {
             fitW = 48;
           }
@@ -990,6 +992,12 @@
               fitW = 52;
             } else if (pName.includes("両")) {
               fitW = pName === "両" ? 24 : 43;
+            } else {
+              fitW = 48;
+            }
+          } else if (targetSystem === "sat") {
+            if (pName.includes("両")) {
+              fitW = 86;
             } else {
               fitW = 48;
             }

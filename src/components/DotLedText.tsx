@@ -181,9 +181,9 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
     const halfPaths: string[] = [];
 
     const scope = getDigitFontScope(stationId);
-    const letterSpacing = scope === 'sendai' ? 1 : 0;
+    const letterSpacing = scope === 'sendai' ? 1 : scope === 'sat' ? 2 : 0;
 
-    // 先頭スペースのオフセット処理（数字1文字分 + 隙間1dot）
+    // 先頭スペースのオフセット処理（数字1文字分 + 文字間隔）
     const trimmed = formattedText.replace(/^\s+/, (spaces) => {
       currentX += spaces.length * (defaultWidth + letterSpacing);
       return '';

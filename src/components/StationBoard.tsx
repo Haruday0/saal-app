@@ -833,26 +833,30 @@ export const StationBoard: React.FC<StationBoardProps> = ({
             )}
           </div>
 
-          {/* ================= 下部：LED発車標筐体（印字ラベル帯＋2段白色LED） ================= */}
+          {/* ================= 下部：LED発車標筐体（印字ラベル帯＋2段白色LED：360×24 dot 実機確定レイアウト） ================= */}
           <div className="bg-[#0a0c0e] px-2.5 pt-1.5 pb-2 select-none">
-            {/* 印字ラベル帯（実機写真計測に基づき各項目の文字数に合わせた比率） */}
-            <div className="grid grid-cols-[1.8fr_2.4fr_3.8fr_3.2fr] items-center text-center px-1 pb-1 text-[8.5px] text-neutral-300 font-sans whitespace-nowrap leading-none tracking-tight">
+            {/* 印字ラベル帯（360dot LEDグリッドの各スロット位置に完全一致） */}
+            <div className="grid grid-cols-[48fr_7fr_82fr_19fr_96fr_17fr_86fr_5fr] items-center text-center px-1 pb-1 text-[8.5px] text-neutral-300 font-sans whitespace-nowrap leading-none tracking-tight">
               <div className="flex items-center justify-center gap-1">
                 <span className="font-bold">種別</span>
                 <span className="text-[6.5px] font-english text-neutral-400">Type</span>
               </div>
+              <span />
               <div className="flex items-center justify-center gap-1">
                 <span className="font-bold">時刻</span>
                 <span className="text-[6.5px] font-english text-neutral-400">Time</span>
               </div>
+              <span />
               <div className="flex items-center justify-center gap-1">
                 <span className="font-bold">行先</span>
                 <span className="text-[6.5px] font-english text-neutral-400">Destination</span>
               </div>
-              <div />
+              <span />
+              <span />
+              <span />
             </div>
 
-            {/* LED表示窓（内枠ガラス面） */}
+            {/* LED表示窓（内枠ガラス面・360×24 dot：48 + 7 + 82 + 19 + 96 + 17 + 86 + 5 = 360 dots） */}
             <div
               className="rounded-none px-1 py-0 font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950"
               style={bgStyle}
@@ -860,30 +864,51 @@ export const StationBoard: React.FC<StationBoardProps> = ({
               {/* 2段表示 */}
               <div className="flex flex-col gap-[4px]">
                 {rows.map((train, i) => {
-                  if (!train) return <div key={`e-${i}`} className="h-[26px]" />;
+                  if (!train) return <div key={`e-${i}`} className="h-[24px]" />;
 
                   const cleanDest = train.destination.trim();
 
                   return (
                     <div
                       key={train.id}
-                      className="w-full h-[26px] text-[20px] font-bold leading-none grid grid-cols-[1.8fr_2.4fr_3.8fr_3.2fr] items-center text-center whitespace-nowrap rounded-none cursor-default"
+                      className="w-full h-[24px] text-[20px] font-bold leading-none grid grid-cols-[48fr_7fr_82fr_19fr_96fr_17fr_86fr_5fr] items-center text-center whitespace-nowrap rounded-none cursor-default min-w-0"
                     >
-                      {/* 1. 種別: 普通（白色LED、上下2dot空き再現: text-[20px] py-[2px]） */}
-                      <div className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
+                      {/* 1. 種別（48 dots） */}
+                      <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const typeDots = getDestinationDots(stationId, train.trainType);
                           if (typeDots) {
-                            return <DotLedBitmap dots={typeDots} className="h-full w-auto max-w-full" ariaLabel={train.trainType} />;
+                            return (
+                              <DotLedBitmap
+                                dots={typeDots}
+                                targetWidth={48}
+                                className="h-full w-full block"
+                                preserveAspectRatio="xMidYMid meet"
+                                ariaLabel={train.trainType}
+                              />
+                            );
                           }
-                          return <span className="h-[20px] flex items-center justify-center leading-none text-[20px] py-[2px]">{train.trainType}</span>;
+                          return (
+                            <div className="w-full h-full grid grid-cols-2 items-center text-center text-[20px] leading-none py-[2px]">
+                              <span className="h-[20px] flex items-center justify-center">{train.trainType[0] ?? '普'}</span>
+                              <span className="h-[20px] flex items-center justify-center">{train.trainType[1] ?? '通'}</span>
+                            </div>
+                          );
                         })()}
                       </div>
 
-                      {/* 2. 時刻: 白色LED、1桁時刻は先頭スペース付き右揃え（実機通りコロン・分位置完全統一） */}
-                      <div className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
+                      {/* 2. 空白（7 dots） */}
+                      <span className="h-full w-full" />
+
+                      {/* 3. 時刻（82 dots = 16 + 2 + 16 + 2 + 10 + 2 + 16 + 2 + 16） */}
+                      <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES.white}`}>
                         {hasDotFont(stationId, train.departureTime) ? (
-                          <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-auto" />
+                          <DotLedText
+                            text={train.departureTime}
+                            stationId={stationId}
+                            targetWidth={82}
+                            className="h-full w-full block"
+                          />
                         ) : (
                           <span className="font-led font-bold whitespace-pre tracking-normal h-[20px] flex items-center justify-center leading-none text-[20px] py-[2px]">
                             {formatDepartureTime(train.departureTime)}
@@ -891,51 +916,106 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         )}
                       </div>
 
-                      {/* 3. 行先（上下2dot空き再現: text-[20px] py-[2px]） */}
-                      <div className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
+                      {/* 4. 空白（19 dots） */}
+                      <span className="h-full w-full" />
+
+                      {/* 5. 行先（96 dots） */}
+                      <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const satDots = getDestinationDots(stationId, cleanDest);
                           if (satDots) {
-                            return <DotLedBitmap dots={satDots} className="h-full w-auto max-w-full" ariaLabel={cleanDest} />;
+                            return (
+                              <DotLedBitmap
+                                dots={satDots}
+                                targetWidth={96}
+                                className="h-full w-full block"
+                                preserveAspectRatio="xMidYMid meet"
+                                ariaLabel={cleanDest}
+                              />
+                            );
                           }
 
                           if (cleanDest.length === 2) {
-                            /* 2文字（仙台）: 4文字幅枠に1:2:1の空白比率（0.5文字・1文字・0.5文字、上下2dot空き） */
+                            /* 2文字行先（仙台等）: 14dot空白 + 24dot(1文字目) + 20dot空白 + 24dot(2文字目) + 14dot空白 = 96dots */
                             return (
-                              <div className="inline-flex items-center justify-center leading-none whitespace-nowrap h-full text-[20px] py-[2px]">
-                                <span className="inline-block w-[0.5em]" />
+                              <div className="w-full h-full grid grid-cols-[14fr_24fr_20fr_24fr_14fr] items-center text-center text-[20px] leading-none py-[2px]">
+                                <span className="h-full w-full" />
                                 <span className="h-[20px] flex items-center justify-center">{cleanDest[0]}</span>
-                                <span className="inline-block w-[1.0em]" />
+                                <span className="h-full w-full" />
                                 <span className="h-[20px] flex items-center justify-center">{cleanDest[1]}</span>
-                                <span className="inline-block w-[0.5em]" />
+                                <span className="h-full w-full" />
                               </div>
                             );
                           }
                           if (cleanDest.length === 3) {
-                            return <span className="tracking-normal whitespace-nowrap h-[20px] flex items-center justify-center leading-none text-[20px] py-[2px]">{cleanDest}</span>;
+                            /* 3文字行先: 12dot空白 + 24dot×3文字 + 12dot空白 = 96dots */
+                            return (
+                              <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center text-[20px] leading-none py-[2px]">
+                                <span className="h-full w-full" />
+                                <span className="h-[20px] flex items-center justify-center">{cleanDest[0]}</span>
+                                <span className="h-[20px] flex items-center justify-center">{cleanDest[1]}</span>
+                                <span className="h-[20px] flex items-center justify-center">{cleanDest[2]}</span>
+                                <span className="h-full w-full" />
+                              </div>
+                            );
                           }
+                          /* 4文字行先（仙台空港等）: 24dot×4文字 = 96dots */
                           return (
-                            <span className="tracking-tight whitespace-nowrap h-[20px] flex items-center justify-center leading-none text-[20px] py-[2px]">{cleanDest}</span>
+                            <div className="w-full h-full grid grid-cols-[24fr_24fr_24fr_24fr] items-center text-center text-[20px] leading-none py-[2px]">
+                              <span className="h-[20px] flex items-center justify-center">{cleanDest[0]}</span>
+                              <span className="h-[20px] flex items-center justify-center">{cleanDest[1]}</span>
+                              <span className="h-[20px] flex items-center justify-center">{cleanDest[2]}</span>
+                              <span className="h-[20px] flex items-center justify-center">{cleanDest[3]}</span>
+                            </div>
                           );
                         })()}
                       </div>
 
-                      {/* 4. 両数: {train.cars}両編成（白色LED、中央寄せ、上下2dot空き） */}
-                      <div className={`h-full flex items-center justify-center text-center tracking-tight ${LED_COLOR_CLASSES.white}`}>
+                      {/* 6. 空白（17 dots） */}
+                      <span className="h-full w-full" />
+
+                      {/* 7. 両数（86 dots: 「4両編成」「2両編成」枠） */}
+                      <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const carsTextFull = `${train.cars}両編成`;
                           const carsDotsFull = getDestinationDots(stationId, carsTextFull);
                           if (carsDotsFull) {
-                            return <DotLedBitmap dots={carsDotsFull} className="h-full w-auto max-w-full" ariaLabel={carsTextFull} />;
+                            return (
+                              <DotLedBitmap
+                                dots={carsDotsFull}
+                                targetWidth={86}
+                                className="h-full w-full block"
+                                preserveAspectRatio="xMidYMid meet"
+                                ariaLabel={carsTextFull}
+                              />
+                            );
                           }
                           const carsTextShort = `${train.cars}両`;
                           const carsDotsShort = getDestinationDots(stationId, carsTextShort);
                           if (carsDotsShort) {
-                            return <DotLedBitmap dots={carsDotsShort} className="h-full w-auto max-w-full" ariaLabel={carsTextShort} />;
+                            return (
+                              <DotLedBitmap
+                                dots={carsDotsShort}
+                                targetWidth={86}
+                                className="h-full w-full block"
+                                preserveAspectRatio="xMidYMid meet"
+                                ariaLabel={carsTextShort}
+                              />
+                            );
                           }
-                          return <span className="h-[20px] flex items-center justify-center leading-none text-[20px] py-[2px]">{train.cars}両編成</span>;
+                          return (
+                            <div className="w-full h-full grid grid-cols-4 items-center text-center text-[20px] leading-none py-[2px]">
+                              <span className="h-[20px] flex items-center justify-center">{train.cars}</span>
+                              <span className="h-[20px] flex items-center justify-center">両</span>
+                              <span className="h-[20px] flex items-center justify-center">編</span>
+                              <span className="h-[20px] flex items-center justify-center">成</span>
+                            </div>
+                          );
                         })()}
                       </div>
+
+                      {/* 8. 右端空白（5 dots） */}
+                      <span className="h-full w-full" />
                     </div>
                   );
                 })}
