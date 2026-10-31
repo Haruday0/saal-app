@@ -446,11 +446,12 @@
           "digits": {},
           "parts": {},
           "slots": [
-            { "name": "種別", "role": "type", "part": "", "width": 48, "color": "#f59e0b" },
-            { "name": "両数", "role": "cars", "part": "", "width": 48, "color": "#ef4444" },
-            { "name": "余白", "role": "space", "part": "", "width": 24, "color": "#f59e0b" },
-            { "name": "時刻", "role": "time", "part": "time", "width": 72, "color": "#00e676" },
-            { "name": "余白", "role": "space", "part": "", "width": 24, "color": "#f59e0b" },
+            { "name": "余白", "role": "space", "part": "", "width": 21, "color": "#00e676" },
+            { "name": "種別", "role": "type", "part": "", "width": 52, "color": "#00e676" },
+            { "name": "余白", "role": "space", "part": "", "width": 8, "color": "#00e676" },
+            { "name": "両数", "role": "cars", "part": "", "width": 43, "color": "#00e676" },
+            { "name": "余白", "role": "space", "part": "", "width": 21, "color": "#00e676" },
+            { "name": "時刻", "role": "time", "part": "time", "width": 71, "color": "#00e676" },
             { "name": "行先", "role": "dest", "part": "", "width": 96, "color": "#f59e0b" }
           ]
         },
@@ -941,7 +942,21 @@
           ? (sys.colonWidth || (targetSystem === "sendai" ? 12 : 7)) 
           : (sys.digitWidth || (targetSystem === "sendai" ? 18 : 16));
       } else {
-        fitW = 48;
+        const cat = selPartCategory.value || "その他";
+        const pName = inputPartName.value.trim();
+        if (cat === "行先") {
+          fitW = 96;
+        } else if (cat === "種別") {
+          fitW = targetSystem === "nagamachi" ? 52 : 48;
+        } else if (cat === "両数") {
+          if (targetSystem === "nagamachi") {
+            fitW = pName === "両" ? 24 : 43;
+          } else {
+            fitW = 48;
+          }
+        } else {
+          fitW = 48;
+        }
       }
       numCanvasWidth.value = fitW;
       changeCanvasWidth(fitW);

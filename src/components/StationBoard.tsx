@@ -233,33 +233,49 @@ const Time: React.FC<{ t?: string; color: LedColor }> = ({ t, color }) => {
   );
 };
 
-/** LEDグリッド行先セル（手打ちドット優先、なければ2字・3字・4字を実機準拠で均等割付） */
+/** LEDグリッド行先セル（手打ちドット96dot優先、なければ2字・3字・4字を実機準拠で割付） */
 const renderDestGrid = (dest: string, dc: LedColor, stationId?: string) => {
   const clean = dest.trim();
 
-  // 手打ちドットデータがあれば優先描画
+  // 手打ちドットデータがあれば96dot枠全体にそのまま優先描画
   const dots = getDestinationDots(stationId, clean);
   if (dots) {
     return (
-      <div className={`col-span-4 h-full text-center flex items-center justify-center leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
-        <DotLedBitmap dots={dots} className="h-full w-auto max-w-full" ariaLabel={clean} />
+      <div className={`col-span-4 h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
+        <DotLedBitmap
+          dots={dots}
+          targetWidth={96}
+          className="h-full w-full block"
+          preserveAspectRatio="xMidYMid meet"
+          ariaLabel={clean}
+        />
       </div>
     );
   }
 
   return (
-    <div className={`col-span-4 h-full text-center flex items-center justify-center leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
+    <div className={`col-span-4 h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
       {clean.length === 2 ? (
-        /* 2文字: 4文字幅枠に1:2:1の空白比率（0.5文字・1文字・0.5文字） */
-        <div className="w-full grid grid-cols-8 items-center text-center leading-[24px]">
-          <span className="col-start-2 col-span-2">{clean[0]}</span>
-          <span className="col-start-6 col-span-2">{clean[1]}</span>
+        /* 2文字行先: 12dot空白 + 24dot(1文字目) + 24dot空白 + 24dot(2文字目) + 12dot空白 = 96dot */
+        <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center leading-[24px]">
+          <span className="h-full w-full" />
+          <span>{clean[0]}</span>
+          <span className="h-full w-full" />
+          <span>{clean[1]}</span>
+          <span className="h-full w-full" />
         </div>
       ) : clean.length === 3 ? (
-        <span className="tracking-normal leading-[24px]">{clean}</span>
+        /* 3文字行先: 12dot空白 + 24dot×3文字 + 12dot空白 = 96dot */
+        <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center leading-[24px]">
+          <span className="h-full w-full" />
+          <span>{clean[0]}</span>
+          <span>{clean[1]}</span>
+          <span>{clean[2]}</span>
+          <span className="h-full w-full" />
+        </div>
       ) : (
-        /* 4文字: 4文字幅枠なので縮小せず通常文字サイズでフル表示 */
-        <div className="w-full grid grid-cols-4 items-center text-center leading-[24px]">
+        /* 4文字行先: 24dot×4文字 = 96dot */
+        <div className="w-full h-full grid grid-cols-[24fr_24fr_24fr_24fr] items-center text-center leading-[24px]">
           <span>{clean[0]}</span>
           <span>{clean[1]}</span>
           <span>{clean[2]}</span>
@@ -1206,11 +1222,13 @@ export const StationBoard: React.FC<StationBoardProps> = ({
             <div
               className={`${
                 stationId === 'minami-sendai'
-                  ? 'w-[86%] max-w-[275px] mx-auto '
+                  ? 'w-[86%] max-w-[275px] mx-auto px-1 '
                   : isNarrowBoard
-                  ? 'w-[80%] max-w-[260px] mx-auto '
-                  : ''
-              }rounded-none px-1 py-[1.5px] font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950`}
+                  ? 'w-[80%] max-w-[260px] mx-auto px-1 '
+                  : isNagamachiTaishido
+                  ? 'px-0 '
+                  : 'px-1 '
+              }rounded-none py-[1.5px] font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950`}
               style={bgStyle}
             >
               {/* 1段目と2段目の間隔：新陽社モジュールに準拠（南仙台は密着gap-0、長町・名取はgap-[1px]） */}
@@ -1223,56 +1241,190 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
                   const dc = getDestinationLedColor(stationId, train.direction || direction, train.line, train.destination);
 
-                  // Case A: nagamachi / taishido
+                  // Case A: nagamachi / taishido（実機312×24dot確定仕様: 21空白 + 52種別 + 8空白 + 43両数 + 21空白 + 71時刻 + 96行先 = 312dot）
                   if (isNagamachiTaishido) {
+                    const cleanDest = train.destination.trim();
+                    const chType0 = train.trainType[0] ?? '普';
+                    const chType1 = train.trainType[1] ?? '通';
+
                     return (
                       <div
                         key={train.id}
-                        className="w-full h-[24px] text-[21.33px] font-bold leading-[24px] grid grid-cols-[repeat(13,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default"
+                        className="w-full h-[24px] text-[21.33px] font-bold leading-[24px] grid grid-cols-[21fr_52fr_8fr_43fr_21fr_71fr_96fr] items-center whitespace-nowrap rounded-none cursor-default min-w-0"
                       >
-                        {/* 1〜3マス目: 種別（両端に若干のスペースを持たせて均等配置・高さ20dot完全維持） */}
-                        <div className={`col-span-3 h-full flex items-center justify-around px-0.5 leading-[24px] ${LED_COLOR_CLASSES[theme.typeColor]}`}>
+                        {/* 1. 左端余白: 21dot */}
+                        <span className="h-full w-full" />
+
+                        {/* 2. 種別: 52dot (24 + 4 + 24 = 52dot) */}
+                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[theme.typeColor]}`}>
                           {(() => {
                             const typeDots = getDestinationDots(stationId, train.trainType);
                             if (typeDots) {
-                              return <DotLedBitmap dots={typeDots} className="h-full w-auto max-w-full" ariaLabel={train.trainType} />;
+                              return (
+                                <DotLedBitmap
+                                  dots={typeDots}
+                                  targetWidth={52}
+                                  className="h-full w-full block"
+                                  preserveAspectRatio="xMidYMid meet"
+                                  ariaLabel={train.trainType}
+                                />
+                              );
                             }
+                            const c0Dots = getDestinationDots(stationId, chType0);
+                            const c1Dots = getDestinationDots(stationId, chType1);
                             return (
-                              <>
-                                <span>{train.trainType[0] ?? '普'}</span>
-                                <span>{train.trainType[1] ?? '通'}</span>
-                              </>
-                            );
-                          })()}
-                        </div>
-
-                        {/* 4〜5マス目: 両数（2文字幅で「数字」「両」・高さ20dot完全維持） */}
-                        <div className={`col-span-2 h-full flex items-center justify-center leading-[24px] ${LED_COLOR_CLASSES[theme.carsColor]}`}>
-                          {(() => {
-                            const carsText = `${train.cars}両`;
-                            const carsDots = getDestinationDots(stationId, carsText);
-                            if (carsDots) {
-                              return <DotLedBitmap dots={carsDots} className="h-full w-auto max-w-full" ariaLabel={carsText} />;
-                            }
-                            return (
-                              <div className="w-full grid grid-cols-2 text-center items-center">
-                                <span>{toFW(train.cars)}</span>
-                                <span>両</span>
+                              <div className="w-full h-full grid grid-cols-[24fr_4fr_24fr] items-center text-center leading-[24px]">
+                                <div className="h-full w-full flex items-center justify-center overflow-hidden">
+                                  {c0Dots ? (
+                                    <DotLedBitmap
+                                      dots={c0Dots}
+                                      targetWidth={24}
+                                      className="h-full w-full block"
+                                      preserveAspectRatio="xMidYMid meet"
+                                      ariaLabel={chType0}
+                                    />
+                                  ) : (
+                                    <span>{chType0}</span>
+                                  )}
+                                </div>
+                                <span className="h-full w-full" />
+                                <div className="h-full w-full flex items-center justify-center overflow-hidden">
+                                  {c1Dots ? (
+                                    <DotLedBitmap
+                                      dots={c1Dots}
+                                      targetWidth={24}
+                                      className="h-full w-full block"
+                                      preserveAspectRatio="xMidYMid meet"
+                                      ariaLabel={chType1}
+                                    />
+                                  ) : (
+                                    <span>{chType1}</span>
+                                  )}
+                                </div>
                               </div>
                             );
                           })()}
                         </div>
 
-                        {/* 6マス目: 中央余白（両数と時刻の間の空きすぎを解消した1文字幅枠） */}
-                        <span className="col-span-1" />
+                        {/* 3. 種別〜両数の間: 8dot */}
+                        <span className="h-full w-full" />
 
-                        {/* 7〜9マス目: 発車時刻（行先の手前・3文字幅・長町太子堂名取専用手打ちドット・上下2dot余白込みで完全フィット） */}
-                        <div className={`col-span-3 h-full flex items-center justify-end pr-0.5 ${LED_COLOR_CLASSES[theme.timeColor]}`}>
-                          <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-auto" />
+                        {/* 4. 両数: 43dot (16 + 3 + 24 = 43dot) */}
+                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[theme.carsColor]}`}>
+                          {(() => {
+                            const carsText = `${train.cars}両`;
+                            const carsDots = getDestinationDots(stationId, carsText);
+                            if (carsDots) {
+                              return (
+                                <DotLedBitmap
+                                  dots={carsDots}
+                                  targetWidth={43}
+                                  className="h-full w-full block"
+                                  preserveAspectRatio="xMidYMid meet"
+                                  ariaLabel={carsText}
+                                />
+                              );
+                            }
+                            const carsNumStr = String(train.cars);
+                            const ryoDots = getDestinationDots(stationId, '両');
+                            return (
+                              <div className="w-full h-full grid grid-cols-[16fr_3fr_24fr] items-center text-center leading-[24px]">
+                                <div className="h-full w-full flex items-center justify-center overflow-hidden">
+                                  {carsNumStr.length === 1 && hasDotFont(stationId, carsNumStr) ? (
+                                    <DotLedText
+                                      text={carsNumStr}
+                                      stationId={stationId}
+                                      targetWidth={16}
+                                      className="h-full w-full block"
+                                      preserveAspectRatio="xMidYMid meet"
+                                    />
+                                  ) : (
+                                    <span>{toFW(train.cars)}</span>
+                                  )}
+                                </div>
+                                <span className="h-full w-full" />
+                                <div className="h-full w-full flex items-center justify-center overflow-hidden">
+                                  {ryoDots ? (
+                                    <DotLedBitmap
+                                      dots={ryoDots}
+                                      targetWidth={24}
+                                      className="h-full w-full block"
+                                      preserveAspectRatio="xMidYMid meet"
+                                      ariaLabel="両"
+                                    />
+                                  ) : (
+                                    <span>両</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
 
-                        {/* 10〜13マス目: 行先（右端から4文字幅枠・高さ20dot完全維持） */}
-                        {renderDestGrid(train.destination, dc, stationId)}
+                        {/* 5. 両数〜時刻の間: 21dot */}
+                        <span className="h-full w-full" />
+
+                        {/* 6. 発車時刻: 71dot (16 + 16 + 7 + 16 + 16 = 71dot) */}
+                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES[theme.timeColor]}`}>
+                          <DotLedText
+                            text={train.departureTime}
+                            stationId={stationId}
+                            targetWidth={71}
+                            className="h-full w-full block"
+                            preserveAspectRatio="xMidYMid meet"
+                          />
+                        </div>
+
+                        {/* 7. 行先: 96dot (24 × 4 = 96dot、時刻の直後から右端まで) */}
+                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
+                          {(() => {
+                            const destDots = getDestinationDots(stationId, cleanDest);
+                            if (destDots) {
+                              return (
+                                <DotLedBitmap
+                                  dots={destDots}
+                                  targetWidth={96}
+                                  className="h-full w-full block"
+                                  preserveAspectRatio="xMidYMid meet"
+                                  ariaLabel={cleanDest}
+                                />
+                              );
+                            }
+                            if (cleanDest.length === 2) {
+                              /* 2文字行先: 12dot空白 + 24dot(1文字目) + 24dot空白 + 24dot(2文字目) + 12dot空白 = 96dot */
+                              return (
+                                <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center leading-[24px]">
+                                  <span className="h-full w-full" />
+                                  <span>{cleanDest[0]}</span>
+                                  <span className="h-full w-full" />
+                                  <span>{cleanDest[1]}</span>
+                                  <span className="h-full w-full" />
+                                </div>
+                              );
+                            }
+                            if (cleanDest.length === 3) {
+                              /* 3文字行先: 12dot空白 + 24dot×3文字 + 12dot空白 = 96dot */
+                              return (
+                                <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center leading-[24px]">
+                                  <span className="h-full w-full" />
+                                  <span>{cleanDest[0]}</span>
+                                  <span>{cleanDest[1]}</span>
+                                  <span>{cleanDest[2]}</span>
+                                  <span className="h-full w-full" />
+                                </div>
+                              );
+                            }
+                            /* 4文字行先: 24dot×4文字 = 96dot */
+                            return (
+                              <div className="w-full h-full grid grid-cols-[24fr_24fr_24fr_24fr] items-center text-center leading-[24px]">
+                                <span>{cleanDest[0]}</span>
+                                <span>{cleanDest[1]}</span>
+                                <span>{cleanDest[2]}</span>
+                                <span>{cleanDest[3]}</span>
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     );
                   }
