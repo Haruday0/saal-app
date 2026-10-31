@@ -103,9 +103,9 @@ export const LedSlotRow: React.FC<LedSlotRowProps> = ({
               {typeDots ? (
                 <DotLedBitmap dots={typeDots} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={train.trainType} />
               ) : (
-                <div className="w-full h-full flex items-center justify-around px-0.5 font-led text-[20px]">
-                  <span>{train.trainType[0] ?? '普'}</span>
-                  <span>{train.trainType[1] ?? '通'}</span>
+                <div className="w-full h-full flex items-center justify-around px-0.5 font-led text-[23.5px] leading-none">
+                  <span className="h-full flex items-center justify-center">{train.trainType[0] ?? '普'}</span>
+                  <span className="h-full flex items-center justify-center">{train.trainType[1] ?? '通'}</span>
                 </div>
               )}
             </div>
@@ -121,9 +121,9 @@ export const LedSlotRow: React.FC<LedSlotRowProps> = ({
               {carsDots ? (
                 <DotLedBitmap dots={carsDots} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={carsText} />
               ) : (
-                <div className="w-full grid grid-cols-2 text-center text-[20px] font-led">
-                  <span>{toFW(train.cars)}</span>
-                  <span>両</span>
+                <div className="w-full h-full grid grid-cols-2 text-center text-[23.5px] font-led leading-none">
+                  <span className="h-full flex items-center justify-center">{toFW(train.cars)}</span>
+                  <span className="h-full flex items-center justify-center">両</span>
                 </div>
               )}
             </div>
@@ -137,7 +137,7 @@ export const LedSlotRow: React.FC<LedSlotRowProps> = ({
               {hasDotFont(stationId, train.departureTime) ? (
                 <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" />
               ) : (
-                <span className="text-right pr-0.5 tracking-normal whitespace-pre text-[20px] font-led font-bold leading-none">
+                <span className="text-right pr-0.5 tracking-normal whitespace-pre text-[23.5px] font-led font-bold leading-none h-full flex items-center justify-end">
                   {formatDepartureTime(train.departureTime)}
                 </span>
               )}
@@ -153,12 +153,13 @@ export const LedSlotRow: React.FC<LedSlotRowProps> = ({
               {customDots ? (
                 <DotLedBitmap dots={customDots} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={cleanDest} />
               ) : cleanDest.length === 2 ? (
-                <div className="w-full text-center text-[21px] font-led font-bold leading-none tracking-normal">
-                  <span>{cleanDest[0]}　{cleanDest[1]}</span>
+                <div className="w-full h-full flex items-center justify-around px-0.5 text-center text-[23.5px] font-led font-bold leading-none tracking-normal">
+                  <span className="h-full flex items-center justify-center">{cleanDest[0]}</span>
+                  <span className="h-full flex items-center justify-center">{cleanDest[1]}</span>
                 </div>
               ) : (
-                <div className="w-full text-center text-[21px] font-led font-bold leading-none">
-                  <span>{cleanDest}</span>
+                <div className="w-full h-full flex items-center justify-center text-center text-[23.5px] font-led font-bold leading-none">
+                  <span className="h-full flex items-center justify-center">{cleanDest}</span>
                 </div>
               )}
             </div>
@@ -172,7 +173,7 @@ export const LedSlotRow: React.FC<LedSlotRowProps> = ({
               {hasDotFont(stationId, effectiveTrack) ? (
                 <DotLedText text={effectiveTrack} stationId={stationId} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" />
               ) : (
-                <span className="text-center text-[20px] font-led font-bold leading-none">{effectiveTrack}</span>
+                <span className="text-center text-[23.5px] font-led font-bold leading-none h-full flex items-center justify-center">{effectiveTrack}</span>
               )}
             </div>
           );

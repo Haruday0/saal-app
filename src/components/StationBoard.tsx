@@ -257,29 +257,29 @@ const renderDestGrid = (dest: string, dc: LedColor, stationId?: string) => {
     <div className={`col-span-4 h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
       {clean.length === 2 ? (
         /* 2文字行先: 12dot空白 + 24dot(1文字目) + 24dot空白 + 24dot(2文字目) + 12dot空白 = 96dot */
-        <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center leading-[24px]">
+        <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center text-[24px] leading-none">
           <span className="h-full w-full" />
-          <span>{clean[0]}</span>
+          <span className="h-full flex items-center justify-center">{clean[0]}</span>
           <span className="h-full w-full" />
-          <span>{clean[1]}</span>
+          <span className="h-full flex items-center justify-center">{clean[1]}</span>
           <span className="h-full w-full" />
         </div>
       ) : clean.length === 3 ? (
         /* 3文字行先: 12dot空白 + 24dot×3文字 + 12dot空白 = 96dot */
-        <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center leading-[24px]">
+        <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center text-[24px] leading-none">
           <span className="h-full w-full" />
-          <span>{clean[0]}</span>
-          <span>{clean[1]}</span>
-          <span>{clean[2]}</span>
+          <span className="h-full flex items-center justify-center">{clean[0]}</span>
+          <span className="h-full flex items-center justify-center">{clean[1]}</span>
+          <span className="h-full flex items-center justify-center">{clean[2]}</span>
           <span className="h-full w-full" />
         </div>
       ) : (
         /* 4文字行先: 24dot×4文字 = 96dot */
-        <div className="w-full h-full grid grid-cols-[24fr_24fr_24fr_24fr] items-center text-center leading-[24px]">
-          <span>{clean[0]}</span>
-          <span>{clean[1]}</span>
-          <span>{clean[2]}</span>
-          <span>{clean[3]}</span>
+        <div className="w-full h-full grid grid-cols-[24fr_24fr_24fr_24fr] items-center text-center text-[24px] leading-none">
+          <span className="h-full flex items-center justify-center">{clean[0]}</span>
+          <span className="h-full flex items-center justify-center">{clean[1]}</span>
+          <span className="h-full flex items-center justify-center">{clean[2]}</span>
+          <span className="h-full flex items-center justify-center">{clean[3]}</span>
         </div>
       )}
     </div>
@@ -507,7 +507,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   return (
                     <div
                       key={train.id}
-                      className="w-full h-[25px] sm:h-[26px] text-[20px] font-bold leading-none grid grid-cols-[repeat(16,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default min-w-0"
+                      className="w-full h-[25px] sm:h-[26px] text-[23.5px] sm:text-[24px] font-bold leading-none grid grid-cols-[repeat(16,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default min-w-0"
                     >
                       {/* 1〜2マス目: 種別（48ドット / 2文字幅、特急は赤色・普通は橙色、左端スペースなし・縦24ドット全面密着） */}
                       <div className={`col-span-2 h-full w-full flex items-center justify-start p-0 overflow-hidden ${typeColorClass}`}>
@@ -524,9 +524,9 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                             );
                           }
                           return (
-                            <div className="w-full h-full flex items-center justify-around px-0.5 text-[20px] leading-none font-bold">
-                              <span>{train.trainType[0] ?? '普'}</span>
-                              <span>{train.trainType[1] ?? '通'}</span>
+                            <div className="w-full h-full flex items-center justify-around px-0.5 text-[23.5px] sm:text-[24px] leading-none font-bold">
+                              <span className="h-full flex items-center justify-center">{train.trainType[0] ?? '普'}</span>
+                              <span className="h-full flex items-center justify-center">{train.trainType[1] ?? '通'}</span>
                             </div>
                           );
                         })()}
@@ -534,11 +534,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
                       {/* 3〜7マス目: 愛称・号数枠 / 中央余白（120ドット / 5文字幅、特急時は赤文字「ひたち 12号」等・手打ち同サイズ） */}
                       {isLimitedExpress ? (
-                        <div className={`col-span-5 h-full w-full grid grid-cols-5 items-center text-center text-[20px] font-bold leading-none ${LED_COLOR_CLASSES.red}`}>
-                          <span>ひ</span>
-                          <span>た</span>
-                          <span>ち</span>
-                          <span className="col-span-2 text-center tracking-tight">
+                        <div className={`col-span-5 h-full w-full grid grid-cols-5 items-center text-center text-[23.5px] sm:text-[24px] font-bold leading-none ${LED_COLOR_CLASSES.red}`}>
+                          <span className="h-full flex items-center justify-center">ひ</span>
+                          <span className="h-full flex items-center justify-center">た</span>
+                          <span className="h-full flex items-center justify-center">ち</span>
+                          <span className="col-span-2 text-center tracking-tight h-full flex items-center justify-center">
                             {train.departureTime === '8:48' ? '12号' : train.departureTime === '14:16' ? '22号' : '30号'}
                           </span>
                         </div>
@@ -553,7 +553,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           stationId="sendai"
                           targetWidth={96}
                           className="h-full w-full block"
-                          fallback={<span className="text-center tracking-wider whitespace-nowrap">{train.departureTime}</span>}
+                          fallback={<span className="text-center tracking-wider whitespace-nowrap h-full flex items-center justify-center text-[23.5px] sm:text-[24px] leading-none">{train.departureTime}</span>}
                         />
                       </div>
 
@@ -576,46 +576,46 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           if (isSaal) {
                             return (
                               /* 仙台空港: 上向きLED飛行機とともに番線数字に干渉せず左右切れゼロで美しく表示 */
-                              <div className="w-full h-full flex items-center justify-center text-[20px] font-bold leading-none tracking-[-0.05em]">
+                              <div className="w-full h-full flex items-center justify-center text-[23.5px] sm:text-[24px] font-bold leading-none tracking-[-0.05em]">
                                 <svg
                                   viewBox="-2 0 20 24"
                                   className="w-[12px] h-[18px] fill-current shrink-0 mr-0.5"
                                 >
                                   <path d="M7 1h2v7l7 5.5v2.5l-7-2.5V19l3.5 2.5V23L8 21.5 4.5 23v-1.5L7 19v-5.5L0 16v-2.5L7 8V1z" />
                                 </svg>
-                                <span>仙</span>
-                                <span>台</span>
-                                <span>空</span>
-                                <span>港</span>
+                                <span className="h-full flex items-center justify-center">仙</span>
+                                <span className="h-full flex items-center justify-center">台</span>
+                                <span className="h-full flex items-center justify-center">空</span>
+                                <span className="h-full flex items-center justify-center">港</span>
                               </div>
                             );
                           }
                           if (cleanDest.length === 2) {
                             /* 2文字（白石、岩沼、郡山等）: 4文字幅に1:2:1の空白比率（0.5文字・1文字・0.5文字） */
                             return (
-                              <div className="w-full h-full grid grid-cols-8 items-center text-center text-[20px] leading-none">
-                                <span className="col-start-2 col-span-2">{cleanDest[0]}</span>
-                                <span className="col-start-6 col-span-2">{cleanDest[1]}</span>
+                              <div className="w-full h-full grid grid-cols-8 items-center text-center text-[23.5px] sm:text-[24px] leading-none">
+                                <span className="col-start-2 col-span-2 h-full flex items-center justify-center">{cleanDest[0]}</span>
+                                <span className="col-start-6 col-span-2 h-full flex items-center justify-center">{cleanDest[1]}</span>
                               </div>
                             );
                           }
                           if (cleanDest.length === 3) {
                             /* 3文字（浜吉田、原ノ町、小牛田等）: 4文字枠の中で均等配置（等間隔） */
                             return (
-                              <div className="w-full h-full flex items-center justify-around px-1 text-[20px] leading-none font-bold">
-                                <span>{cleanDest[0]}</span>
-                                <span>{cleanDest[1]}</span>
-                                <span>{cleanDest[2]}</span>
+                              <div className="w-full h-full flex items-center justify-around px-1 text-[23.5px] sm:text-[24px] leading-none font-bold">
+                                <span className="h-full flex items-center justify-center">{cleanDest[0]}</span>
+                                <span className="h-full flex items-center justify-center">{cleanDest[1]}</span>
+                                <span className="h-full flex items-center justify-center">{cleanDest[2]}</span>
                               </div>
                             );
                           }
                           return (
                             /* 4文字: 4文字幅枠なので縮小せずフル表示 */
-                            <div className="w-full h-full grid grid-cols-4 items-center text-center text-[20px] leading-none">
-                              <span>{cleanDest[0]}</span>
-                              <span>{cleanDest[1]}</span>
-                              <span>{cleanDest[2]}</span>
-                              <span>{cleanDest[3]}</span>
+                            <div className="w-full h-full grid grid-cols-4 items-center text-center text-[23.5px] sm:text-[24px] leading-none">
+                              <span className="h-full flex items-center justify-center">{cleanDest[0]}</span>
+                              <span className="h-full flex items-center justify-center">{cleanDest[1]}</span>
+                              <span className="h-full flex items-center justify-center">{cleanDest[2]}</span>
+                              <span className="h-full flex items-center justify-center">{cleanDest[3]}</span>
                             </div>
                           );
                         })()}
@@ -632,11 +632,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                                 stationId="sendai"
                                 targetWidth={24}
                                 className="h-full w-full block"
-                                fallback={<span className="text-center text-[18px] sm:text-[20px] font-bold">{trackNum}</span>}
+                                fallback={<span className="text-center text-[23.5px] sm:text-[24px] font-bold h-full flex items-center justify-center leading-none">{trackNum}</span>}
                               />
                             );
                           }
-                          return <span className="text-center text-[18px] sm:text-[20px] font-bold">{trackNum}</span>;
+                          return <span className="text-center text-[23.5px] sm:text-[24px] font-bold h-full flex items-center justify-center leading-none">{trackNum}</span>;
                         })()}
                       </div>
                     </div>
@@ -854,7 +854,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
             {/* LED表示窓（内枠ガラス面） */}
             <div
-              className="rounded-none px-1 py-[2px] font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950"
+              className="rounded-none px-1 py-0 font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950"
               style={bgStyle}
             >
               {/* 2段表示 */}
@@ -867,32 +867,32 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   return (
                     <div
                       key={train.id}
-                      className="w-full h-[26px] text-[22.5px] font-bold leading-none grid grid-cols-[1.8fr_2.4fr_3.8fr_3.2fr] items-center text-center whitespace-nowrap rounded-none cursor-default"
+                      className="w-full h-[26px] text-[23px] sm:text-[24px] font-bold leading-none grid grid-cols-[1.8fr_2.4fr_3.8fr_3.2fr] items-center text-center whitespace-nowrap rounded-none cursor-default"
                     >
                       {/* 1. 種別: 普通（白色LED、隙間なしで詰めて中央寄せ） */}
-                      <div className={`flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
+                      <div className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const typeDots = getDestinationDots(stationId, train.trainType);
                           if (typeDots) {
                             return <DotLedBitmap dots={typeDots} className="h-full w-auto max-w-full" ariaLabel={train.trainType} />;
                           }
-                          return <span>{train.trainType}</span>;
+                          return <span className="h-full flex items-center justify-center leading-none text-[23px] sm:text-[24px]">{train.trainType}</span>;
                         })()}
                       </div>
 
                       {/* 2. 時刻: 白色LED、1桁時刻は先頭スペース付き右揃え（実機通りコロン・分位置完全統一） */}
-                      <div className={`flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
+                      <div className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
                         {hasDotFont(stationId, train.departureTime) ? (
                           <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-auto" />
                         ) : (
-                          <span className="font-led font-bold whitespace-pre tracking-normal">
+                          <span className="font-led font-bold whitespace-pre tracking-normal h-full flex items-center justify-center leading-none text-[23px] sm:text-[24px]">
                             {formatDepartureTime(train.departureTime)}
                           </span>
                         )}
                       </div>
 
                       {/* 3. 行先 */}
-                      <div className={`flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
+                      <div className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const satDots = getDestinationDots(stationId, cleanDest);
                           if (satDots) {
@@ -902,26 +902,26 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           if (cleanDest.length === 2) {
                             /* 2文字（仙台）: 4文字幅枠に1:2:1の空白比率（0.5文字・1文字・0.5文字） */
                             return (
-                              <div className="inline-flex items-center justify-center leading-none whitespace-nowrap">
+                              <div className="inline-flex items-center justify-center leading-none whitespace-nowrap h-full text-[23px] sm:text-[24px]">
                                 <span className="inline-block w-[0.5em]" />
-                                <span>{cleanDest[0]}</span>
+                                <span className="h-full flex items-center justify-center">{cleanDest[0]}</span>
                                 <span className="inline-block w-[1.0em]" />
-                                <span>{cleanDest[1]}</span>
+                                <span className="h-full flex items-center justify-center">{cleanDest[1]}</span>
                                 <span className="inline-block w-[0.5em]" />
                               </div>
                             );
                           }
                           if (cleanDest.length === 3) {
-                            return <span className="tracking-normal whitespace-nowrap">{cleanDest}</span>;
+                            return <span className="tracking-normal whitespace-nowrap h-full flex items-center justify-center leading-none text-[23px] sm:text-[24px]">{cleanDest}</span>;
                           }
                           return (
-                            <span className="tracking-tight whitespace-nowrap">{cleanDest}</span>
+                            <span className="tracking-tight whitespace-nowrap h-full flex items-center justify-center leading-none text-[23px] sm:text-[24px]">{cleanDest}</span>
                           );
                         })()}
                       </div>
 
                       {/* 4. 両数: {train.cars}両編成（白色LED、中央寄せ） */}
-                      <div className={`flex items-center justify-center text-center tracking-tight ${LED_COLOR_CLASSES.white}`}>
+                      <div className={`h-full flex items-center justify-center text-center tracking-tight ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const carsTextFull = `${train.cars}両編成`;
                           const carsDotsFull = getDestinationDots(stationId, carsTextFull);
@@ -933,7 +933,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           if (carsDotsShort) {
                             return <DotLedBitmap dots={carsDotsShort} className="h-full w-auto max-w-full" ariaLabel={carsTextShort} />;
                           }
-                          return <span>{train.cars}両編成</span>;
+                          return <span className="h-full flex items-center justify-center leading-none text-[23px] sm:text-[24px]">{train.cars}両編成</span>;
                         })()}
                       </div>
                     </div>
@@ -1228,7 +1228,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   : isNagamachiTaishido
                   ? 'px-0 '
                   : 'px-1 '
-              }rounded-none py-[1.5px] font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950`}
+              }rounded-none py-0 font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950`}
               style={bgStyle}
             >
               {/* 1段目と2段目の間隔：新陽社モジュールに準拠（南仙台は密着gap-0、長町・名取はgap-[1px]） */}
@@ -1250,7 +1250,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     return (
                       <div
                         key={train.id}
-                        className="w-full h-[24px] text-[21.33px] font-bold leading-[24px] grid grid-cols-[21fr_52fr_8fr_43fr_21fr_71fr_96fr] items-center whitespace-nowrap rounded-none cursor-default min-w-0"
+                        className="w-full h-[24px] text-[24px] font-bold leading-none grid grid-cols-[21fr_52fr_8fr_43fr_21fr_71fr_96fr] items-center whitespace-nowrap rounded-none cursor-default min-w-0"
                       >
                         {/* 1. 左端余白: 21dot */}
                         <span className="h-full w-full" />
@@ -1273,7 +1273,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                             const c0Dots = getDestinationDots(stationId, chType0);
                             const c1Dots = getDestinationDots(stationId, chType1);
                             return (
-                              <div className="w-full h-full grid grid-cols-[24fr_4fr_24fr] items-center text-center leading-[24px]">
+                              <div className="w-full h-full grid grid-cols-[24fr_4fr_24fr] items-center text-center text-[24px] leading-none">
                                 <div className="h-full w-full flex items-center justify-center overflow-hidden">
                                   {c0Dots ? (
                                     <DotLedBitmap
@@ -1284,7 +1284,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                                       ariaLabel={chType0}
                                     />
                                   ) : (
-                                    <span>{chType0}</span>
+                                    <span className="h-full flex items-center justify-center">{chType0}</span>
                                   )}
                                 </div>
                                 <span className="h-full w-full" />
@@ -1298,7 +1298,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                                       ariaLabel={chType1}
                                     />
                                   ) : (
-                                    <span>{chType1}</span>
+                                    <span className="h-full flex items-center justify-center">{chType1}</span>
                                   )}
                                 </div>
                               </div>
@@ -1326,20 +1326,23 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                               );
                             }
                             const carsNumStr = String(train.cars);
+                            const carsNumDots =
+                              getDestinationDots(stationId, `両数_${carsNumStr}`) ||
+                              getDestinationDots(stationId, `両数${carsNumStr}`);
                             const ryoDots = getDestinationDots(stationId, '両');
                             return (
                               <div className="w-full h-full grid grid-cols-[16fr_3fr_24fr] items-center text-center leading-[24px]">
                                 <div className="h-full w-full flex items-center justify-center overflow-hidden">
-                                  {carsNumStr.length === 1 && hasDotFont(stationId, carsNumStr) ? (
-                                    <DotLedText
-                                      text={carsNumStr}
-                                      stationId={stationId}
+                                  {carsNumDots ? (
+                                    <DotLedBitmap
+                                      dots={carsNumDots}
                                       targetWidth={16}
                                       className="h-full w-full block"
                                       preserveAspectRatio="xMidYMid meet"
+                                      ariaLabel={carsNumStr}
                                     />
                                   ) : (
-                                    <span>{toFW(train.cars)}</span>
+                                    <span className="h-full flex items-center justify-center text-[24px] leading-none">{toFW(train.cars)}</span>
                                   )}
                                 </div>
                                 <span className="h-full w-full" />
@@ -1353,7 +1356,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                                       ariaLabel="両"
                                     />
                                   ) : (
-                                    <span>両</span>
+                                    <span className="h-full flex items-center justify-center text-[24px] leading-none">両</span>
                                   )}
                                 </div>
                               </div>
@@ -1393,11 +1396,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                             if (cleanDest.length === 2) {
                               /* 2文字行先: 12dot空白 + 24dot(1文字目) + 24dot空白 + 24dot(2文字目) + 12dot空白 = 96dot */
                               return (
-                                <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center leading-[24px]">
+                                <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center text-[24px] leading-none">
                                   <span className="h-full w-full" />
-                                  <span>{cleanDest[0]}</span>
+                                  <span className="h-full flex items-center justify-center">{cleanDest[0]}</span>
                                   <span className="h-full w-full" />
-                                  <span>{cleanDest[1]}</span>
+                                  <span className="h-full flex items-center justify-center">{cleanDest[1]}</span>
                                   <span className="h-full w-full" />
                                 </div>
                               );
@@ -1405,22 +1408,22 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                             if (cleanDest.length === 3) {
                               /* 3文字行先: 12dot空白 + 24dot×3文字 + 12dot空白 = 96dot */
                               return (
-                                <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center leading-[24px]">
+                                <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center text-[24px] leading-none">
                                   <span className="h-full w-full" />
-                                  <span>{cleanDest[0]}</span>
-                                  <span>{cleanDest[1]}</span>
-                                  <span>{cleanDest[2]}</span>
+                                  <span className="h-full flex items-center justify-center">{cleanDest[0]}</span>
+                                  <span className="h-full flex items-center justify-center">{cleanDest[1]}</span>
+                                  <span className="h-full flex items-center justify-center">{cleanDest[2]}</span>
                                   <span className="h-full w-full" />
                                 </div>
                               );
                             }
                             /* 4文字行先: 24dot×4文字 = 96dot */
                             return (
-                              <div className="w-full h-full grid grid-cols-[24fr_24fr_24fr_24fr] items-center text-center leading-[24px]">
-                                <span>{cleanDest[0]}</span>
-                                <span>{cleanDest[1]}</span>
-                                <span>{cleanDest[2]}</span>
-                                <span>{cleanDest[3]}</span>
+                              <div className="w-full h-full grid grid-cols-[24fr_24fr_24fr_24fr] items-center text-center text-[24px] leading-none">
+                                <span className="h-full flex items-center justify-center">{cleanDest[0]}</span>
+                                <span className="h-full flex items-center justify-center">{cleanDest[1]}</span>
+                                <span className="h-full flex items-center justify-center">{cleanDest[2]}</span>
+                                <span className="h-full flex items-center justify-center">{cleanDest[3]}</span>
                               </div>
                             );
                           })()}
@@ -1438,7 +1441,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     return (
                       <div
                         key={train.id}
-                        className="w-full h-[24px] text-[21.33px] font-bold leading-[24px] grid grid-cols-[repeat(10,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default"
+                        className="w-full h-[24px] text-[24px] font-bold leading-none grid grid-cols-[repeat(10,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default"
                       >
                         {/* 1〜3マス目: 種別・両数（3文字幅枠に4文字を美しく収める16dot準拠の小型フォント）
                             名取駅は番線に関係なく「普通何両」が上り緑・下りオレンジ */}
@@ -1450,11 +1453,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                               return <DotLedBitmap dots={comboDots} className="h-full w-auto max-w-full" ariaLabel={comboText} />;
                             }
                             return (
-                              <div className="w-full grid grid-cols-4 items-center text-center text-[14px] leading-none font-bold">
-                                <span className={LED_COLOR_CLASSES[comboColor]}>{train.trainType[0] ?? '普'}</span>
-                                <span className={LED_COLOR_CLASSES[comboColor]}>{train.trainType[1] ?? '通'}</span>
-                                <span className={LED_COLOR_CLASSES[comboColor]}>{toFW(train.cars)}</span>
-                                <span className={LED_COLOR_CLASSES[comboColor]}>両</span>
+                              <div className="w-full h-full grid grid-cols-4 items-center text-center text-[15px] leading-none font-bold">
+                                <span className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>{train.trainType[0] ?? '普'}</span>
+                                <span className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>{train.trainType[1] ?? '通'}</span>
+                                <span className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>{toFW(train.cars)}</span>
+                                <span className={`h-full flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>両</span>
                               </div>
                             );
                           })()}
@@ -1506,7 +1509,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
   return (
     <FixedRatioBoardWrapper baseWidth={baseWidth}>
       <div className="w-full">
-      <div className="rounded-none border border-neutral-800 bg-[#060806] px-2.5 py-1.5 font-led select-none" style={bgStyle}>
+      <div className="rounded-none border border-neutral-800 bg-[#060806] px-2.5 py-0 font-led select-none" style={bgStyle}>
         <div className="flex flex-col gap-[6px]">
           {rows.map((train, i) => {
             if (!train) {

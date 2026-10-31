@@ -271,7 +271,7 @@
         <div class="tool-group">
           <span class="label">駅系統（型）:</span>
           <select id="sel-target-system" style="font-weight: 700; color: #f0f6fc;">
-            <option value="nagamachi">長町・太子堂・名取型</option>
+            <option value="nagamachi">長町・太子堂・名取（フォント共通）</option>
             <option value="sendai">仙台型</option>
             <option value="minami-sendai">南仙台型</option>
             <option value="sat">アクセス線型 (SAT)</option>
@@ -310,10 +310,11 @@
         <!-- B: パーツセレクター（手入力または既存選択） -->
         <div class="tool-group" id="group-target-parts" style="display: none;">
           <span class="label">カテゴリ:</span>
-          <select id="sel-part-category" style="width: 80px; font-weight: 600;">
+          <select id="sel-part-category" style="width: 155px; font-weight: 600;">
             <option value="種別">種別</option>
             <option value="行先">行先</option>
             <option value="両数">両数</option>
+            <option value="種別両数一体">種別両数一体（名取用）</option>
             <option value="その他">その他</option>
           </select>
           <span class="label" style="margin-left: 4px;">パーツ名:</span>
@@ -331,8 +332,10 @@
           <button type="button" class="primary" id="btn-load-from-target">このターゲットから読込</button>
           <button type="button" class="danger" id="btn-delete-target">削除</button>
         </div>
-        <div style="font-size: 11px; color: #8b949e;">
-          ※ 型や文字を選び変えても、キャンバスの内容は勝手に消えません。「保存」で反映、「読込」で展開されます。
+        <div style="font-size: 11px; color: #8b949e; line-height: 1.5;">
+          ※ 型や文字を選び変えても、キャンバスの内容は勝手に消えません。「保存」で反映、「読込」で展開されます。<br>
+          <span style="color: #d29922;">※長町・太子堂と名取はフォントが共通ですが、レイアウトは長町・太子堂（種別52dot/両数43dot分離）と名取（種別両数一体72dot）で異なります。</span><br>
+          <span style="color: #58a6ff;">※両数の数字は時刻の数字フォントとは字形が異なるため、「4両」等の43dot一体型、または両数専用パーツとして作成します。</span>
         </div>
       </div>
     </div>
@@ -440,7 +443,7 @@
             function getEmptyData() {
       return {
         "nagamachi": {
-          "name": "長町・太子堂・名取型",
+          "name": "長町・太子堂・名取（フォント共通）",
           "digitWidth": 16,
           "colonWidth": 7,
           "digits": {},
@@ -700,18 +703,31 @@
 
       // 2. パーツ選択プルダウンの更新（カテゴリ別グループ化）
       selExistingParts.innerHTML = '<option value="">(登録済から選ぶ)</option>';
-      const groups = { "種別": [], "行先": [], "両数": [], "その他": [] };
+      const groups = { "種別": [], "行先": [], "両数": [], "種別両数一体": [], "その他": [] };
       Object.keys(parts).forEach(name => {
         const p = parts[name];
-        const cat = p.category || (name.includes("両") ? "両数" : (name.includes("普通") || name.includes("快速") || name.includes("特急") ? "種別" : "その他"));
+        let cat = p.category;
+        if (!cat) {
+          if ((name.includes("普通") || name.includes("快速") || name.includes("特急")) && name.includes("両")) {
+            cat = "種別両数一体";
+          } else if (name.includes("両")) {
+            cat = "両数";
+          } else if (name.includes("普通") || name.includes("快速") || name.includes("特急")) {
+            cat = "種別";
+          } else {
+            cat = "その他";
+          }
+        } else if (cat.includes("種別両数一体")) {
+          cat = "種別両数一体";
+        }
         if (!groups[cat]) groups[cat] = [];
         groups[cat].push({ name, width: p.width || 0 });
       });
 
-      ["種別", "行先", "両数", "その他"].forEach(cat => {
+      ["種別", "行先", "両数", "種別両数一体", "その他"].forEach(cat => {
         if (groups[cat] && groups[cat].length > 0) {
           const optGroup = document.createElement("optgroup");
-          optGroup.label = cat;
+          optGroup.label = cat === "種別両数一体" ? "種別両数一体（名取用）" : cat;
           groups[cat].forEach(item => {
             const opt = document.createElement("option");
             opt.value = item.name;
@@ -780,6 +796,12 @@
     // パーツ名入力・既存選択
     inputPartName.addEventListener("input", () => {
       targetPartName = inputPartName.value.trim();
+      const p = targetPartName;
+      if ((p.includes("普通") || p.includes("快速") || p.includes("特急")) && p.includes("両")) {
+        selPartCategory.value = "種別両数一体";
+      } else if (p.includes("両") && !p.includes("普通") && !p.includes("快速") && !p.includes("特急")) {
+        selPartCategory.value = "両数";
+      }
       updateTargetStatusIndicator();
     });
 
@@ -791,7 +813,7 @@
         if (sys && sys.parts && sys.parts[e.target.value]) {
           const p = sys.parts[e.target.value];
           if (p.category) {
-            selPartCategory.value = p.category;
+            selPartCategory.value = p.category.includes("種別両数一体") ? "種別両数一体" : p.category;
           }
         }
         updateTargetStatusIndicator();
@@ -873,7 +895,7 @@
 
         pushHistory();
         if (p.category) {
-          selPartCategory.value = p.category;
+          selPartCategory.value = p.category.includes("種別両数一体") ? "種別両数一体" : p.category;
         }
         currentWidth = p.width || 48;
         numCanvasWidth.value = currentWidth;
@@ -944,18 +966,35 @@
       } else {
         const cat = selPartCategory.value || "その他";
         const pName = inputPartName.value.trim();
+        const isCombo = cat === "種別両数一体" || 
+          cat.includes("種別両数一体") ||
+          ((pName.includes("普通") || pName.includes("快速") || pName.includes("特急")) && pName.includes("両"));
+
         if (cat === "行先") {
           fitW = 96;
+        } else if (isCombo) {
+          fitW = 72; // 名取駅用 種別両数一体パーツ（24×3枠）
         } else if (cat === "種別") {
           fitW = targetSystem === "nagamachi" ? 52 : 48;
         } else if (cat === "両数") {
           if (targetSystem === "nagamachi") {
-            fitW = pName === "両" ? 24 : 43;
+            fitW = pName === "両" ? 24 : 43; // 「4両」「6両」「2両」等は43dot、単文字「両」なら24dot
           } else {
             fitW = 48;
           }
         } else {
-          fitW = 48;
+          // その他カテゴリ
+          if (targetSystem === "nagamachi") {
+            if (pName.includes("普通") || pName.includes("快速") || pName.includes("特急")) {
+              fitW = 52;
+            } else if (pName.includes("両")) {
+              fitW = pName === "両" ? 24 : 43;
+            } else {
+              fitW = 48;
+            }
+          } else {
+            fitW = 48;
+          }
         }
       }
       numCanvasWidth.value = fitW;
@@ -976,8 +1015,14 @@
         const pTop = parseFloat(style.paddingTop) || 16;
         const pBottom = parseFloat(style.paddingBottom) || 16;
 
-        const availableW = Math.max(container.clientWidth - pLeft - pRight, 80);
-        const availableH = Math.max(container.clientHeight - pTop - pBottom, 80);
+        // ウィンドウ全体およびコンテナの利用可能領域を計算
+        const containerRect = container.getBoundingClientRect();
+        const winH = window.innerHeight || document.documentElement.clientHeight;
+        const remainingH = winH - containerRect.top - 100;
+        const effectiveH = Math.max(container.clientHeight, remainingH, 360);
+
+        const availableW = Math.max(container.clientWidth - pLeft - pRight, 100);
+        const availableH = Math.max(effectiveH - pTop - pBottom, 100);
 
         // #dot-grid: padding 10px*2 + border 1px*2 = 22px + safety margin 4px = 26px
         const gridChrome = 26;
@@ -985,15 +1030,22 @@
         const cols = currentWidth || 16;
         const rows = 24;
 
-        const maxWForCells = availableW - gridChrome - (cols - 1) * gap;
-        const maxHForCells = availableH - gridChrome - (rows - 1) * gap;
+        const maxWForCells = Math.max(availableW - gridChrome - (cols - 1) * gap, 20);
+        const maxHForCells = Math.max(availableH - gridChrome - (rows - 1) * gap, 20);
 
         const cellW = maxWForCells / cols;
         const cellH = maxHForCells / rows;
 
+        // 縦24dotが画面利用可能領域をいっぱいに使えるよう、セルサイズをダイナミックに最大拡大
         let bestSize = Math.floor(Math.min(cellW, cellH));
-        // 制約: 最小8px, 最大36px
-        bestSize = Math.max(8, Math.min(36, bestSize));
+        // 数字16dotならセルサイズ24px〜36px以上に大きく表示、最小16pxを担保
+        if (cols <= 24) {
+          bestSize = Math.max(22, Math.min(42, bestSize));
+        } else if (cols <= 52) {
+          bestSize = Math.max(16, Math.min(32, bestSize));
+        } else {
+          bestSize = Math.max(10, Math.min(22, bestSize));
+        }
 
         document.documentElement.style.setProperty("--cell-size", `${bestSize}px`);
       } else {
@@ -1308,6 +1360,7 @@
     // =========================================================================
     // 初期実行
     // =========================================================================
+    selCellSize.value = "auto";
     refreshTargetUI();
     renderCanvas();
   </script>
