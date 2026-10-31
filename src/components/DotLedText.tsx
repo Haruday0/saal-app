@@ -190,7 +190,7 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
     });
 
     const isCircle = variant === 'circle';
-    const effectiveRadius = dotRadius ?? (isCircle ? 0.41 : 0.18);
+    const effectiveRadius = dotRadius ?? (isCircle ? 0.41 : 0.20);
     const r = Math.min(Math.max(effectiveRadius, 0.05), 0.48);
     const d = 2 * r;
     const s = Math.min(Math.max(dotSize, 0.4), 0.98);
@@ -198,41 +198,29 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
     const p = (1.0 - s) / 2;
     const edge = s - 2 * rx;
 
-    // 半点灯用（実物通りハレーション膨張がないため一回り小ぶりで控えめな発光スポット）
-    const sHalf = Math.max(s * 0.82, 0.5);
-    const rxHalf = Math.min(0.22, sHalf / 2.5);
-    const pHalf = (1.0 - sHalf) / 2;
-    const edgeHalf = sHalf - 2 * rxHalf;
-    const rHalf = r * 0.82;
-    const dHalf = 2 * rHalf;
-
-    const renderDot = (x: number, y: number, isHalf = false): string => {
+    const renderDot = (x: number, y: number): string => {
       if (isCircle) {
-        const curR = isHalf ? rHalf : r;
-        const curD = isHalf ? dHalf : d;
         const cx = x + 0.5;
         const cy = y + 0.5;
         return (
-          `M${(cx - curR).toFixed(2)} ${cy.toFixed(2)}` +
-          `a${curR.toFixed(2)} ${curR.toFixed(2)} 0 1 0 ${curD.toFixed(2)} 0` +
-          `a${curR.toFixed(2)} ${curR.toFixed(2)} 0 1 0 -${curD.toFixed(2)} 0z`
+          `M${(cx - r).toFixed(2)} ${cy.toFixed(2)}` +
+          `a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${d.toFixed(2)} 0` +
+          `a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 -${d.toFixed(2)} 0z`
         );
       } else {
-        const curP = isHalf ? pHalf : p;
-        const curRx = isHalf ? rxHalf : rx;
-        const curEdge = isHalf ? edgeHalf : edge;
-        const x0 = x + curP;
-        const y0 = y + curP;
+        // 実機高密度角丸素子 (size: 0.94, rx: 0.20)
+        const x0 = x + p;
+        const y0 = y + p;
         return (
-          `M${(x0 + curRx).toFixed(2)} ${y0.toFixed(2)}` +
-          `h${curEdge.toFixed(2)}` +
-          `a${curRx.toFixed(2)} ${curRx.toFixed(2)} 0 0 1 ${curRx.toFixed(2)} ${curRx.toFixed(2)}` +
-          `v${curEdge.toFixed(2)}` +
-          `a${curRx.toFixed(2)} ${curRx.toFixed(2)} 0 0 1 -${curRx.toFixed(2)} ${curRx.toFixed(2)}` +
-          `h-${curEdge.toFixed(2)}` +
-          `a${curRx.toFixed(2)} ${curRx.toFixed(2)} 0 0 1 -${curRx.toFixed(2)} -${curRx.toFixed(2)}` +
-          `v-${curEdge.toFixed(2)}` +
-          `a${curRx.toFixed(2)} ${curRx.toFixed(2)} 0 0 1 ${curRx.toFixed(2)} -${curRx.toFixed(2)}z`
+          `M${(x0 + rx).toFixed(2)} ${y0.toFixed(2)}` +
+          `h${edge.toFixed(2)}` +
+          `a${rx.toFixed(2)} ${rx.toFixed(2)} 0 0 1 ${rx.toFixed(2)} ${rx.toFixed(2)}` +
+          `v${edge.toFixed(2)}` +
+          `a${rx.toFixed(2)} ${rx.toFixed(2)} 0 0 1 -${rx.toFixed(2)} ${rx.toFixed(2)}` +
+          `h-${edge.toFixed(2)}` +
+          `a${rx.toFixed(2)} ${rx.toFixed(2)} 0 0 1 -${rx.toFixed(2)} -${rx.toFixed(2)}` +
+          `v-${edge.toFixed(2)}` +
+          `a${rx.toFixed(2)} ${rx.toFixed(2)} 0 0 1 ${rx.toFixed(2)} -${rx.toFixed(2)}z`
         );
       }
     };
@@ -254,15 +242,15 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
 
       // 【高密度角丸LED素子 ＆ 多階調（全点灯/半点灯）レンダリング】
       // # = 全点灯 (100%発光)
-      // + or * = 半点灯 (実物通りの控えめな減光・ハレーションなし小ぶりスポット)
+      // + or * = 半点灯 (opacity 0.28)
       for (let y = 0; y < grid.length; y++) {
         const row = grid[y];
         for (let x = 0; x < w; x++) {
           const char = row[x];
           if (char === '#') {
-            fullPaths.push(renderDot(currentX + x, y, false));
+            fullPaths.push(renderDot(currentX + x, y));
           } else if (char === '+' || char === '*') {
-            halfPaths.push(renderDot(currentX + x, y, true));
+            halfPaths.push(renderDot(currentX + x, y));
           }
         }
       }
