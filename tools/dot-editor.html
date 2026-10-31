@@ -1136,12 +1136,14 @@
       if (val === "1") {
         el.style.backgroundColor = color;
         el.style.opacity = "1";
-        el.style.boxShadow = `0 0 5px ${color}`;
+        el.style.boxShadow = `0 0 6px ${color}`;
         el.style.borderColor = "transparent";
       } else if (val === "2") {
+        // 半点灯: 実機のPWM 50%発光（ガンマ2.2補正: 0.5^(1/2.2) ≒ 0.72）
+        // 灰色に濁らず、発光色のまま明るさ（光量）が約50%に落ちた自然な点灯光を再現
         el.style.backgroundColor = color;
-        el.style.opacity = "0.5";
-        el.style.boxShadow = "none";
+        el.style.opacity = "0.72";
+        el.style.boxShadow = `0 0 2px ${color}`;
         el.style.borderColor = "transparent";
       } else {
         el.style.backgroundColor = "#111418";
@@ -1212,7 +1214,7 @@
 
       let svg = `<svg viewBox="0 0 ${width} 24" style="height: 38px; width: auto; display: block;" preserveAspectRatio="xMidYMid meet">`;
       if (halfDots.length > 0) {
-        svg += `<path d="${halfDots.join("")}" fill="${color}" opacity="0.5" />`;
+        svg += `<path d="${halfDots.join("")}" fill="${color}" opacity="0.72" />`;
       }
       if (fullDots.length > 0) {
         svg += `<path d="${fullDots.join("")}" fill="${color}" filter="drop-shadow(0 0 0.5px ${color})" />`;

@@ -287,7 +287,8 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
       <g transform={offsetX > 0 ? `translate(${offsetX}, 0)` : undefined}>
         <path d={fullPathData} fill="currentColor" />
         {halfPathData ? (
-          <path d={halfPathData} fill="currentColor" opacity="0.5" />
+          /* 実機のPWM調光50%発光（ガンマ2.2補正: 0.5^(1/2.2) ≒ 0.72 により真の輝度50%の光を再現） */
+          <path d={halfPathData} fill="currentColor" opacity="0.72" />
         ) : null}
       </g>
     </svg>
