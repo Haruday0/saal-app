@@ -198,29 +198,41 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
     const p = (1.0 - s) / 2;
     const edge = s - 2 * rx;
 
-    const renderDot = (x: number, y: number): string => {
+    // 半点灯用（実物通りハレーション膨張がないため一回り小ぶりで控えめな発光スポット）
+    const sHalf = Math.max(s * 0.82, 0.5);
+    const rxHalf = Math.min(0.22, sHalf / 2.5);
+    const pHalf = (1.0 - sHalf) / 2;
+    const edgeHalf = sHalf - 2 * rxHalf;
+    const rHalf = r * 0.82;
+    const dHalf = 2 * rHalf;
+
+    const renderDot = (x: number, y: number, isHalf = false): string => {
       if (isCircle) {
+        const curR = isHalf ? rHalf : r;
+        const curD = isHalf ? dHalf : d;
         const cx = x + 0.5;
         const cy = y + 0.5;
         return (
-          `M${(cx - r).toFixed(2)} ${cy.toFixed(2)}` +
-          `a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${d.toFixed(2)} 0` +
-          `a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 -${d.toFixed(2)} 0z`
+          `M${(cx - curR).toFixed(2)} ${cy.toFixed(2)}` +
+          `a${curR.toFixed(2)} ${curR.toFixed(2)} 0 1 0 ${curD.toFixed(2)} 0` +
+          `a${curR.toFixed(2)} ${curR.toFixed(2)} 0 1 0 -${curD.toFixed(2)} 0z`
         );
       } else {
-        // 実機高密度角丸素子 (size: 0.94, rx: 0.18)
-        const x0 = x + p;
-        const y0 = y + p;
+        const curP = isHalf ? pHalf : p;
+        const curRx = isHalf ? rxHalf : rx;
+        const curEdge = isHalf ? edgeHalf : edge;
+        const x0 = x + curP;
+        const y0 = y + curP;
         return (
-          `M${(x0 + rx).toFixed(2)} ${y0.toFixed(2)}` +
-          `h${edge.toFixed(2)}` +
-          `a${rx.toFixed(2)} ${rx.toFixed(2)} 0 0 1 ${rx.toFixed(2)} ${rx.toFixed(2)}` +
-          `v${edge.toFixed(2)}` +
-          `a${rx.toFixed(2)} ${rx.toFixed(2)} 0 0 1 -${rx.toFixed(2)} ${rx.toFixed(2)}` +
-          `h-${edge.toFixed(2)}` +
-          `a${rx.toFixed(2)} ${rx.toFixed(2)} 0 0 1 -${rx.toFixed(2)} -${rx.toFixed(2)}` +
-          `v-${edge.toFixed(2)}` +
-          `a${rx.toFixed(2)} ${rx.toFixed(2)} 0 0 1 ${rx.toFixed(2)} -${rx.toFixed(2)}z`
+          `M${(x0 + curRx).toFixed(2)} ${y0.toFixed(2)}` +
+          `h${curEdge.toFixed(2)}` +
+          `a${curRx.toFixed(2)} ${curRx.toFixed(2)} 0 0 1 ${curRx.toFixed(2)} ${curRx.toFixed(2)}` +
+          `v${curEdge.toFixed(2)}` +
+          `a${curRx.toFixed(2)} ${curRx.toFixed(2)} 0 0 1 -${curRx.toFixed(2)} ${curRx.toFixed(2)}` +
+          `h-${curEdge.toFixed(2)}` +
+          `a${curRx.toFixed(2)} ${curRx.toFixed(2)} 0 0 1 -${curRx.toFixed(2)} -${curRx.toFixed(2)}` +
+          `v-${curEdge.toFixed(2)}` +
+          `a${curRx.toFixed(2)} ${curRx.toFixed(2)} 0 0 1 ${curRx.toFixed(2)} -${curRx.toFixed(2)}z`
         );
       }
     };
@@ -242,15 +254,15 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
 
       // 【高密度角丸LED素子 ＆ 多階調（全点灯/半点灯）レンダリング】
       // # = 全点灯 (100%発光)
-      // + or * = 半点灯 (PWM調光 約48%減光、アンチエイリアス曲線用)
+      // + or * = 半点灯 (実物通りの控えめな減光・ハレーションなし小ぶりスポット)
       for (let y = 0; y < grid.length; y++) {
         const row = grid[y];
         for (let x = 0; x < w; x++) {
           const char = row[x];
           if (char === '#') {
-            fullPaths.push(renderDot(currentX + x, y));
+            fullPaths.push(renderDot(currentX + x, y, false));
           } else if (char === '+' || char === '*') {
-            halfPaths.push(renderDot(currentX + x, y));
+            halfPaths.push(renderDot(currentX + x, y, true));
           }
         }
       }
@@ -287,8 +299,8 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
       <g transform={offsetX > 0 ? `translate(${offsetX}, 0)` : undefined}>
         <path d={fullPathData} fill="currentColor" />
         {halfPathData ? (
-          /* 実機のPWM調光50%発光（ガンマ2.2補正: 0.5^(1/2.2) ≒ 0.72 により真の輝度50%の光を再現） */
-          <path d={halfPathData} fill="currentColor" opacity="0.72" />
+          /* 実物の半点灯: 主線の邪魔をせず角を滑らかに補間する控えめな光量（opacity 0.28） */
+          <path d={halfPathData} fill="currentColor" opacity="0.28" />
         ) : null}
       </g>
     </svg>
