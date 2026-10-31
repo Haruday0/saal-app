@@ -10,12 +10,14 @@
       background: #0d1117;
       color: #c9d1d9;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      padding: 16px;
+      padding: 14px 20px;
       display: flex;
       flex-direction: column;
       gap: 14px;
-      max-width: 1200px;
-      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      box-sizing: border-box;
+      margin: 0;
       user-select: none;
     }
 
@@ -138,21 +140,24 @@
       padding: 16px;
       overflow-x: auto;
       overflow-y: auto;
-      min-height: 280px;
+      flex: 1;
+      min-height: 420px;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-start;
+      align-items: center;
+      justify-content: center;
     }
     :root {
-      --cell-size: 14px;
+      --cell-size: 22px;
     }
     #dot-grid {
       display: inline-grid;
       gap: 1.5px;
       background: #000;
-      padding: 8px;
-      border: 1px solid #161e2b;
+      padding: 10px;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
       touch-action: none;
       margin: auto;
       flex-shrink: 0;
@@ -252,7 +257,7 @@
   <!-- =========================================================================
        メイン: ドット編集
        ========================================================================= -->
-  <main style="display: flex; flex-direction: column; gap: 14px;">
+  <main style="display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0;">
     
     <!-- 1. 保存先・読出ターゲット指定カード -->
     <div class="target-card">
@@ -333,7 +338,7 @@
     </div>
 
     <!-- 2. キャンバス作業エリア -->
-    <div class="section-card">
+    <div class="section-card" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
       <div class="toolbar-row">
         <div class="tool-group">
           <span class="label">キャンバス幅:</span>
@@ -345,10 +350,13 @@
         <div class="tool-group">
           <span class="label">表示倍率:</span>
           <select id="sel-cell-size" style="font-size: 11.5px;">
-            <option value="9">縮小 (9px・96dot用)</option>
-            <option value="12">中 (12px)</option>
-            <option value="14" selected>標準 (14px)</option>
-            <option value="18">拡大 (18px)</option>
+            <option value="auto" selected>自動フィット (Auto)</option>
+            <option value="10">縮小 (10px・96dot用)</option>
+            <option value="14">中 (14px)</option>
+            <option value="18">標準 (18px)</option>
+            <option value="22">大 (22px)</option>
+            <option value="26">特大 (26px)</option>
+            <option value="32">超特大 (32px)</option>
           </select>
         </div>
 
@@ -868,10 +876,6 @@
         }
         currentWidth = p.width || 48;
         numCanvasWidth.value = currentWidth;
-        if (currentWidth >= 72) {
-          selCellSize.value = "9";
-          document.documentElement.style.setProperty("--cell-size", "9px");
-        }
         currentGrid = stringsToGrid(p.dots, currentWidth);
         renderCanvas();
         showStatusMsg(`パーツ「${pName}」[${p.category || 'その他'}] (${currentWidth}dot) をキャンバスに読み込みました`, "ok");
@@ -944,9 +948,77 @@
     });
 
     // =========================================================================
+    // キャンバス表示倍率・自動フィット (Auto Fit)
+    // =========================================================================
+    function applyCellSize() {
+      const mode = selCellSize.value;
+      if (mode === "auto") {
+        const container = document.querySelector(".canvas-container");
+        if (!container) return;
+        const style = window.getComputedStyle(container);
+        const pLeft = parseFloat(style.paddingLeft) || 16;
+        const pRight = parseFloat(style.paddingRight) || 16;
+        const pTop = parseFloat(style.paddingTop) || 16;
+        const pBottom = parseFloat(style.paddingBottom) || 16;
+
+        const availableW = Math.max(container.clientWidth - pLeft - pRight, 80);
+        const availableH = Math.max(container.clientHeight - pTop - pBottom, 80);
+
+        // #dot-grid: padding 10px*2 + border 1px*2 = 22px + safety margin 4px = 26px
+        const gridChrome = 26;
+        const gap = 1.5;
+        const cols = currentWidth || 16;
+        const rows = 24;
+
+        const maxWForCells = availableW - gridChrome - (cols - 1) * gap;
+        const maxHForCells = availableH - gridChrome - (rows - 1) * gap;
+
+        const cellW = maxWForCells / cols;
+        const cellH = maxHForCells / rows;
+
+        let bestSize = Math.floor(Math.min(cellW, cellH));
+        // 制約: 最小8px, 最大36px
+        bestSize = Math.max(8, Math.min(36, bestSize));
+
+        document.documentElement.style.setProperty("--cell-size", `${bestSize}px`);
+      } else {
+        const fixedSize = parseInt(mode, 10);
+        if (!isNaN(fixedSize)) {
+          document.documentElement.style.setProperty("--cell-size", `${fixedSize}px`);
+        }
+      }
+    }
+
+    let lastObservedW = 0;
+    let lastObservedH = 0;
+    const canvasContainerEl = document.querySelector(".canvas-container");
+    if (window.ResizeObserver && canvasContainerEl) {
+      const ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const cr = entry.contentRect;
+          if (Math.abs(cr.width - lastObservedW) > 2 || Math.abs(cr.height - lastObservedH) > 2) {
+            lastObservedW = cr.width;
+            lastObservedH = cr.height;
+            if (selCellSize.value === "auto") {
+              applyCellSize();
+            }
+          }
+        }
+      });
+      ro.observe(canvasContainerEl);
+    } else {
+      window.addEventListener("resize", () => {
+        if (selCellSize.value === "auto") {
+          applyCellSize();
+        }
+      });
+    }
+
+    // =========================================================================
     // キャンバスレンダリング & 左右クリック描画
     // =========================================================================
     function renderCanvas() {
+      applyCellSize();
       dotGridEl.innerHTML = "";
       dotGridEl.style.gridTemplateColumns = `repeat(${currentWidth}, var(--cell-size))`;
       dotGridEl.style.gridTemplateRows = `repeat(24, var(--cell-size))`;
@@ -1073,10 +1145,6 @@
       pushHistory();
       const oldGrid = currentGrid;
       currentWidth = newW;
-      if (newW >= 72 && selCellSize.value === "14") {
-        selCellSize.value = "9";
-        document.documentElement.style.setProperty("--cell-size", "9px");
-      }
       currentGrid = createEmptyGrid(newW);
 
       for (let r = 0; r < 24; r++) {
@@ -1104,8 +1172,8 @@
       renderCanvas();
     });
 
-    selCellSize.addEventListener("change", (e) => {
-      document.documentElement.style.setProperty("--cell-size", `${e.target.value}px`);
+    selCellSize.addEventListener("change", () => {
+      applyCellSize();
     });
 
     btnClear.addEventListener("click", () => {
