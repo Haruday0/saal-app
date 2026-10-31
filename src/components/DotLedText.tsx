@@ -242,7 +242,7 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
 
       // 【高密度角丸LED素子 ＆ 多階調（全点灯/半点灯）レンダリング】
       // # = 全点灯 (100%発光)
-      // + or * = 半点灯 (opacity 0.28)
+      // + or * = 半点灯 (filter: brightness(0.55))
       for (let y = 0; y < grid.length; y++) {
         const row = grid[y];
         for (let x = 0; x < w; x++) {
@@ -287,8 +287,8 @@ export const DotLedText: React.FC<DotLedTextProps> = ({
       <g transform={offsetX > 0 ? `translate(${offsetX}, 0)` : undefined}>
         <path d={fullPathData} fill="currentColor" />
         {halfPathData ? (
-          /* 実物の半点灯: 主線の邪魔をせず角を滑らかに補間する控えめな光量（opacity 0.28） */
-          <path d={halfPathData} fill="currentColor" opacity="0.28" />
+          /* 実物の半点灯: 背景を一切透かさず、元の発光色のまま光量だけ落とす filter: brightness(0.55) */
+          <path d={halfPathData} fill="currentColor" style={{ filter: 'brightness(0.55)' }} />
         ) : null}
       </g>
     </svg>

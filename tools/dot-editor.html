@@ -1141,18 +1141,21 @@
     function applyCellColor(el, val, color) {
       if (val === "1") {
         // 全点灯: アプリと完全同一のソリッド発光（100%点灯、不要なボカシなし）
-        el.style.background = color;
+        el.style.backgroundColor = color;
         el.style.opacity = "1";
+        el.style.filter = "none";
         el.style.boxShadow = "none";
       } else if (val === "2") {
-        // 半点灯: アプリ（黒背景 #060806 上に opacity 0.28）と完全同一の発色・ソリッド角丸素子
-        el.style.background = `color-mix(in srgb, ${color} 28%, #060806)`;
+        // 半点灯: 背景を一切透かさず、元の発光色のまま純粋に輝度だけを落とす
+        el.style.backgroundColor = color;
         el.style.opacity = "1";
+        el.style.filter = "brightness(0.55)";
         el.style.boxShadow = "none";
       } else {
         // 消灯
-        el.style.background = "#121518";
+        el.style.backgroundColor = "#121518";
         el.style.opacity = "1";
+        el.style.filter = "none";
         el.style.boxShadow = "none";
       }
     }
@@ -1218,7 +1221,7 @@
 
       let svg = `<svg viewBox="0 0 ${width} 24" style="height: 38px; width: auto; display: block;" preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">`;
       if (halfDots.length > 0) {
-        svg += `<path d="${halfDots.join("")}" fill="${color}" opacity="0.28" />`;
+        svg += `<path d="${halfDots.join("")}" fill="${color}" style="filter: brightness(0.55);" />`;
       }
       if (fullDots.length > 0) {
         svg += `<path d="${fullDots.join("")}" fill="${color}" />`;

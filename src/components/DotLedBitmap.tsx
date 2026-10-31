@@ -278,8 +278,8 @@ export const DotLedBitmap: React.FC<DotLedBitmapProps> = ({
       <g transform={offsetX > 0 ? `translate(${offsetX}, 0)` : undefined}>
         <path d={fullPathData} fill="currentColor" />
         {halfPathData ? (
-          /* 実物の半点灯: 主線の邪魔をせず角を滑らかに補間する控えめな光量（opacity 0.28） */
-          <path d={halfPathData} fill="currentColor" opacity="0.28" />
+          /* 実物の半点灯: 背景を一切透かさず、元の発光色のまま光量だけ落とす filter: brightness(0.55) */
+          <path d={halfPathData} fill="currentColor" style={{ filter: 'brightness(0.55)' }} />
         ) : null}
       </g>
     </svg>
