@@ -11,11 +11,13 @@ import {
 } from '@mantine/core';
 import { Icon } from './Icon';
 import { LINE_COLORS } from '../config/trainLineRules';
+import { useDebug } from '../context/DebugContext';
 
 export const Header: React.FC = () => {
   const { setColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
   const isDark = computedColorScheme === 'dark';
+  const { isDebugMode, isHeaderPanelOpen, setIsHeaderPanelOpen, isTimeOverridden } = useDebug();
 
   return (
     <Box
@@ -42,6 +44,22 @@ export const Header: React.FC = () => {
 
         {/* 右側アクションエリア */}
         <Group gap={6} wrap="nowrap">
+          {/* デバッグモード（?debug=1）時のみ表示されるDEBUGトグルボタン */}
+          {isDebugMode && (
+            <Button
+              size="compact-sm"
+              radius="xl"
+              variant={isHeaderPanelOpen ? 'filled' : 'light'}
+              color={isTimeOverridden ? 'yellow' : 'gray'}
+              onClick={() => setIsHeaderPanelOpen((prev) => !prev)}
+              fz={10.5}
+              fw={800}
+              px={8}
+            >
+              DEBUG
+            </Button>
+          )}
+
           {/* ライト / ダーク テーマ切り替え */}
           <ActionIcon
             onClick={() => setColorScheme(isDark ? 'light' : 'dark')}

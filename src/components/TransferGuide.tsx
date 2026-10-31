@@ -35,6 +35,7 @@ import {
   fetchSendaiBusStationSchedule,
   getUpcomingSendaiBusDepartures,
 } from '../utils/sendaiBusApi';
+import { useDebug } from '../context/DebugContext';
 
 interface TransferGuideProps {
   station: Station;
@@ -90,14 +91,8 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
     stationId
   );
 
-  // 15秒ごとに現在時刻を自動更新
-  const [now, setNow] = useState<Date>(() => new Date());
-  useEffect(() => {
-    if (!hasSubway && !hasNatoringo && !hasSendaiBus) return;
-    setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 15000);
-    return () => clearInterval(timer);
-  }, [hasSubway, hasNatoringo, hasSendaiBus, stationId]);
+  // アプリ基準時刻（実時刻またはデバッグシミュレーション時刻）
+  const { now } = useDebug();
 
   // 仙台市営バス API データ取得状態管理
   const [sendaiBusSchedule, setSendaiBusSchedule] = useState<SendaiBusStationSchedule | null>(

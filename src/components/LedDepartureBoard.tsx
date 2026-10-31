@@ -6,6 +6,7 @@ import { StationBoard } from './StationBoard';
 import { Icon } from './Icon';
 import { TimetableModal } from './TimetableModal';
 import { isWeekendHolidayOrYearEnd } from '../utils/calendar';
+import { useDebug } from '../context/DebugContext';
 
 interface LedDepartureBoardProps {
   stationId: string;
@@ -25,12 +26,8 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
   const isNagamachiTaishido = stationId === 'nagamachi' || stationId === 'taishido';
   const isNatoriMinamiSendai = stationId === 'natori' || stationId === 'minami-sendai';
 
-  // 1. リアルタイム現在時刻 (5秒更新)
-  const [now, setNow] = useState<Date>(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 5000);
-    return () => clearInterval(timer);
-  }, []);
+  // 1. アプリ基準時刻（実時刻またはデバッグシミュレーション時刻）
+  const { now } = useDebug();
 
   // 今日が土曜・休日・年末年始（12/30〜1/3）かどうか
   const isTodayHoliday = useMemo(() => isWeekendHolidayOrYearEnd(now), [now]);

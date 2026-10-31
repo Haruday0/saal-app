@@ -6,6 +6,7 @@ import { TransferGuide } from './TransferGuide';
 import { FareTable } from './FareTable';
 import { JisStairs } from './icons';
 import { Icon } from './Icon';
+import { DebugControlPanel } from './DebugControlPanel';
 import { Group, Text, Title, CloseButton, Paper, UnstyledButton, Collapse, Box } from '@mantine/core';
 
 interface StationDetailSheetProps {
@@ -38,6 +39,8 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
         <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
           発車案内
         </Text>
+        {/* デバッグモード（?debug=1）時のみ表示される電光掲示板直上操作パネル */}
+        <DebugControlPanel variant="sheet" isSendai={station.id === 'sendai'} />
         <LedDepartureBoard
           stationId={station.id}
           selectedTrain={selectedTrain}

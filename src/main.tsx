@@ -5,6 +5,7 @@ import { createTheme, MantineProvider, MantineColorsTuple } from '@mantine/core'
 import App from './App';
 import './index.css';
 import { MANTINE_LINE_PALETTES } from './config/trainLineRules';
+import { DebugProvider } from './context/DebugContext';
 
 // 各路線の公式カラーに基づく Mantine 10階調パレット
 const saal = MANTINE_LINE_PALETTES.saal as unknown as MantineColorsTuple;
@@ -26,7 +27,9 @@ const theme = createTheme({
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="auto">
-      <App />
+      <DebugProvider>
+        <App />
+      </DebugProvider>
     </MantineProvider>
   </React.StrictMode>
 );

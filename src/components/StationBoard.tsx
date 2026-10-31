@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { DepartureTrain, DirectionType } from '../types';
+import { DepartureTrain, DirectionType, LineType } from '../types';
+import { useDebug } from '../context/DebugContext';
 import {
   getDestinationLedColor,
   getStationThemeColors,
@@ -361,11 +362,68 @@ export const StationBoard: React.FC<StationBoardProps> = ({
     return { ...base, ...getStationThemeColors(stationId, direction, base) };
   }, [stationId, activeTrack, direction]);
 
-  const rows: (DepartureTrain | null)[] = useMemo(() => [trains[0] ?? null, trains[1] ?? null], [trains]);
-  const sendaiRows: (DepartureTrain | null)[] = useMemo(
-    () => [trains[0] ?? null, trains[1] ?? null, trains[2] ?? null],
-    [trains]
-  );
+  // デバッグオーバーライド（?debug=1 時の電光掲示板直接書き換え・0〜9数字テスト）
+  const { isDebugMode, rowOverrides, hasRowOverrides } = useDebug();
+
+  const applyOverride = (original: DepartureTrain | null, idx: 0 | 1 | 2): DepartureTrain | null => {
+    if (!isDebugMode || !hasRowOverrides) return original;
+    const ov = rowOverrides[idx];
+    if (!ov || (ov.departureTime === '' && ov.destination === '' && ov.cars === '')) {
+      return original;
+    }
+
+    const isSat =
+      stationId === 'morisekinoshita' ||
+      stationId === 'mitazono' ||
+      stationId === 'sendai-airport';
+
+    const defaultLine: LineType = isSat
+      ? 'saal'
+      : (direction === 'down' ? 'tohoku' : 'saal');
+
+    const defaultDestination =
+      stationId === 'sendai-airport' ? '仙台' : '仙台空港';
+
+    const base: DepartureTrain = original ?? {
+      id: `debug-override-${idx}`,
+      trainNumber: `DEBUG${idx + 1}`,
+      line: defaultLine,
+      lineName: defaultLine === 'saal' ? '仙台空港アクセス線' : '東北本線',
+      direction: direction,
+      trainType: '普通',
+      departureTime: '12:00',
+      destination: defaultDestination,
+      track: activeTrack === 'default' ? '1' : activeTrack,
+      cars: 4,
+      status: 'normal',
+    };
+
+    let parsedCars: 2 | 4 | 6 | 10 = base.cars;
+    if (ov.cars.trim()) {
+      const num = parseInt(ov.cars.trim(), 10);
+      if (num === 2 || num === 4 || num === 6 || num === 10) {
+        parsedCars = num;
+      }
+    }
+
+    return {
+      ...base,
+      departureTime: ov.departureTime !== '' ? ov.departureTime : base.departureTime,
+      destination: ov.destination !== '' ? ov.destination : base.destination,
+      cars: parsedCars,
+    };
+  };
+
+  const rows: (DepartureTrain | null)[] = useMemo(() => [
+    applyOverride(trains[0] ?? null, 0),
+    applyOverride(trains[1] ?? null, 1),
+  ], [trains, isDebugMode, hasRowOverrides, rowOverrides, stationId, direction, activeTrack]);
+
+  const sendaiRows: (DepartureTrain | null)[] = useMemo(() => [
+    applyOverride(trains[0] ?? null, 0),
+    applyOverride(trains[1] ?? null, 1),
+    applyOverride(trains[2] ?? null, 2),
+  ], [trains, isDebugMode, hasRowOverrides, rowOverrides, stationId, direction, activeTrack]);
 
   const bgStyle: React.CSSProperties = {
     backgroundColor: '#16191d',

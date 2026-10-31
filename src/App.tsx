@@ -4,10 +4,13 @@ import { Header } from './components/Header';
 import { RouteMap } from './components/RouteMap';
 import { StationDetailSheet } from './components/StationDetailSheet';
 import { TrainDetailSheet } from './components/TrainDetailSheet';
+import { DebugControlPanel } from './components/DebugControlPanel';
+import { useDebug } from './context/DebugContext';
 
 export const App: React.FC = () => {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [selectedTrainId, setSelectedTrainId] = useState<string | null>(null);
+  const { now } = useDebug();
 
   return (
     <div
@@ -17,12 +20,16 @@ export const App: React.FC = () => {
       {/* 上部固定ヘッダー */}
       <Header />
 
+      {/* デバッグモード（?debug=1）時のみ表示されるヘッダー直下デバッグパネル */}
+      <DebugControlPanel variant="header" />
+
       {/* メイン路線図エリア（画面下端までスクロールなしで1画面完全均等フィット） */}
       <main className="flex-1 min-h-0 w-full flex flex-col overflow-hidden">
         <RouteMap
           selectedStationId={selectedStation?.id || null}
           onSelectStation={setSelectedStation}
           onSelectTrain={(train) => setSelectedTrainId(train.id)}
+          now={now}
         />
       </main>
 

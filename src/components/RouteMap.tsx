@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Station } from '../types';
 import { STATIONS } from '../data/mockData';
 import { Paper, Group, Text, Badge, Box, Stack, UnstyledButton } from '@mantine/core';
@@ -6,24 +6,23 @@ import { Icon } from './Icon';
 import { JisTrain, JisSubway } from './icons';
 import { getActiveMovingTrains, RealtimeMovingTrain } from '../utils/trainPosition';
 import { LINE_COLORS, getLineColor, getMantineLineColor } from '../config/trainLineRules';
+import { useDebug } from '../context/DebugContext';
 
 interface RouteMapProps {
   selectedStationId: string | null;
   onSelectStation: (station: Station) => void;
   onSelectTrain?: (train: RealtimeMovingTrain) => void;
+  now?: Date;
 }
 
 export const RouteMap: React.FC<RouteMapProps> = ({
   selectedStationId,
   onSelectStation,
   onSelectTrain,
+  now: propNow,
 }) => {
-  // リアルタイム時計（1秒更新で駅間走行・停車位置を滑らかに計算）
-  const [now, setNow] = useState<Date>(() => new Date());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const { now: debugNow } = useDebug();
+  const now = propNow ?? debugNow;
 
   // 時刻表データ（着時刻・発時刻）から現在走行中・停車中の列車をリアルタイム算出
   const movingTrains = useMemo(() => {
