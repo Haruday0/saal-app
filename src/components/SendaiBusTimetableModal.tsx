@@ -412,8 +412,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                       {selectedDeparture.departureTime}
                     </del>
                     <span
-                      style={{ color: '#2563eb', fontWeight: 800, fontSize: 16 }}
-                      className="font-english tabular-nums dark:text-[#60a5fa]"
+                      style={{ color: 'var(--mantine-color-text)', fontWeight: 800, fontSize: 16 }}
+                      className="font-english tabular-nums"
                     >
                       {selectedDeparture.expectedTime}発
                     </span>
@@ -691,11 +691,11 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                                         </del>
                                         <span
                                           style={{
-                                            color: '#3b82f6',
+                                            color: 'var(--mantine-color-text)',
                                             fontWeight: 800,
                                             fontSize: 14,
                                           }}
-                                          className="font-english tabular-nums dark:text-[#60a5fa]"
+                                          className="font-english tabular-nums"
                                         >
                                           {stopExpectedTime}
                                         </span>

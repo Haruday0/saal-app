@@ -161,7 +161,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
               style={{
                 fontSize: 18,
                 fontWeight: 700,
-                color: 'var(--mantine-color-red-6)',
+                color: isNext ? 'var(--mantine-color-blue-filled)' : 'var(--mantine-color-text)',
                 letterSpacing: '-0.03em',
               }}
             >
