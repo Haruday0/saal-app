@@ -470,7 +470,6 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                 }
 
                 const boardingIdx = selectedDeparture.boardingStopIndex;
-                const boardingMin = selectedDeparture.scheduledMinutes;
 
                 return (
                   <Timeline active={-1} bulletSize={18} lineWidth={2.5}>
@@ -488,7 +487,6 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                         i < boardingIdx ||
                         (isCurrentlyRunning && i < currentStopIdx);
 
-                      const diffFromBoarding = st.scheduledMinutes - boardingMin;
                       const customBullet = isCurrentPos ? (
                         <PentagonIcon lineColor={selectedDeparture.routeColor} size={14} />
                       ) : undefined;
@@ -579,7 +577,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                                     )}
                                   </Group>
 
-                                  {/* 右側: 所要時間（乗車バス停以降） ＋ 発着時刻（定時取消線＋予想時刻） */}
+                                  {/* 右側: 発着時刻（定時取消線＋予想時刻） */}
                                   <Group
                                     gap={6}
                                     wrap="nowrap"
@@ -587,22 +585,6 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                                     justify="flex-end"
                                     style={{ flexShrink: 0 }}
                                   >
-                                    {i > boardingIdx && diffFromBoarding >= 0 && (
-                                      <Text
-                                        fz={11}
-                                        fw={600}
-                                        c="dimmed"
-                                        className="font-english tabular-nums"
-                                        style={{
-                                          whiteSpace: 'nowrap',
-                                          minWidth: 32,
-                                          textAlign: 'right',
-                                        }}
-                                      >
-                                        +{diffFromBoarding}分
-                                      </Text>
-                                    )}
-
                                     {hasStopDelay ? (
                                       <Group
                                         gap={4}
