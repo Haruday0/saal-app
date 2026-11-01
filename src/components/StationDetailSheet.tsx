@@ -240,12 +240,21 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     const sheet = sheetRef.current;
     if (!sheet || !activeStation) return;
 
-    let isTouching = false;
+    let isDragging = false;
+    let isContentPulling = false;
+    let isAnimatingBack = false;
+    let finishResetFn: (() => void) | null = null;
+
     let startY = 0;
     let lastY = 0;
     let lastTime = 0;
     let currentDeltaY = 0;
     let velocity = 0;
+
+    let contentStartY = 0;
+    let pullStartY = 0;
+    let startScrollTop = 0;
+    let isTouchOnScrollableChild = false;
 
     // 可視領域のシート高さを取得（画面外の180px延長部を除く）
     const getVisibleSheetHeight = () => {
@@ -253,27 +262,85 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       return Math.max(300, totalH - 180);
     };
 
-    // シート全体の可視高さに対する比率（%）で判定するヘルパー
-    // ・ゆっくり操作時：シート高さの約 18%（スマホで約90〜115px）以上引き下げたら閉じる（それ未満は上に戻る）
-    // ・素早いフリック時：わずか 5%（約25〜30px）でも下向きに勢いよく払えば閉じる
+    // 閉じる判定ヘルパー
+    // ・ゆっくりドラッグ時：シート高さの約11%（約55〜85px）以上引き下げたら閉じる
+    // ・素早いフリック時：20px以上引いて velocity > 0.25、または高速フリック（velocity > 0.55 かつ 10px以上）
     const checkShouldDismiss = (delta: number, vel: number) => {
       const visibleH = getVisibleSheetHeight();
-      const distanceThreshold = visibleH * 0.18;
-      const flickThreshold = Math.max(25, visibleH * 0.05);
-      return delta > distanceThreshold || (delta > flickThreshold && vel > 0.3);
+      const distanceThreshold = Math.min(85, Math.max(55, visibleH * 0.11));
+      const isFlick = (delta > 20 && vel > 0.25) || (delta > 10 && vel > 0.55);
+      return delta > distanceThreshold || isFlick;
     };
 
-    // ヘッダーでの操作開始（Pointer Events）
+    // 元の位置へスムーズに戻す処理（インラインスタイルを確実に完全消去）
+    const resetPosition = () => {
+      if (!sheet || isClosingRef.current) return;
+      if (finishResetFn) {
+        finishResetFn();
+      }
+
+      isAnimatingBack = true;
+      sheet.style.setProperty('transition', 'transform 240ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
+      sheet.style.setProperty('transform', 'translate3d(0, 0, 0)', 'important');
+      if (scrimRef.current) {
+        scrimRef.current.style.setProperty('transition', 'opacity 240ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
+        scrimRef.current.style.removeProperty('opacity');
+      }
+
+      let resetTimer: ReturnType<typeof setTimeout> | null = null;
+      const finish = () => {
+        if (resetTimer) {
+          clearTimeout(resetTimer);
+          resetTimer = null;
+        }
+        sheet.removeEventListener('transitionend', onResetTransitionEnd);
+        finishResetFn = null;
+        isAnimatingBack = false;
+        currentDeltaY = 0;
+        if (!isClosingRef.current) {
+          sheet.style.removeProperty('transform');
+          sheet.style.removeProperty('transition');
+          if (scrimRef.current) {
+            scrimRef.current.style.removeProperty('opacity');
+            scrimRef.current.style.removeProperty('transition');
+          }
+        }
+      };
+
+      const onResetTransitionEnd = (e: TransitionEvent) => {
+        if (e.target === sheet && e.propertyName === 'transform') {
+          finish();
+        }
+      };
+
+      finishResetFn = finish;
+      sheet.addEventListener('transitionend', onResetTransitionEnd);
+      resetTimer = setTimeout(finish, 260);
+    };
+
+    // リセットアニメーションの即時中断（アニメーション中に新規ドラッグが入った場合）
+    const cancelResetAnimation = () => {
+      if (finishResetFn) {
+        finishResetFn();
+      }
+      isAnimatingBack = false;
+    };
+
+    // ----------------------------------------------------
+    // 1. ヘッダーでの操作（Pointer Events 単一化）
+    // ----------------------------------------------------
     const onPointerDown = (e: PointerEvent) => {
       if (isClosingRef.current) return;
       if ((e.target as HTMLElement).closest('button')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
 
+      cancelResetAnimation();
+
       try {
         header?.setPointerCapture(e.pointerId);
       } catch (_) {}
 
-      isTouching = true;
+      isDragging = true;
       startY = e.clientY;
       lastY = startY;
       lastTime = Date.now();
@@ -283,11 +350,15 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       sheet.style.animation = 'none';
       sheet.classList.remove('m3-sheet-enter');
       sheet.style.setProperty('transition', 'none', 'important');
-      if (scrimRef.current) scrimRef.current.style.setProperty('transition', 'none', 'important');
+      if (scrimRef.current) {
+        scrimRef.current.style.animation = 'none';
+        scrimRef.current.classList.remove('m3-scrim-enter');
+        scrimRef.current.style.setProperty('transition', 'none', 'important');
+      }
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!isTouching || isClosingRef.current) return;
+      if (!isDragging || isClosingRef.current) return;
       const clientY = e.clientY;
       const delta = clientY - startY;
 
@@ -296,12 +367,11 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         sheet.style.setProperty('transform', `translate3d(0, ${delta}px, 0)`, 'important');
         if (scrimRef.current) {
           const visibleH = getVisibleSheetHeight();
-          const fade = Math.max(0, 1 - delta / (visibleH * 0.6));
+          const fade = Math.max(0, 1 - delta / (visibleH * 0.55));
           scrimRef.current.style.setProperty('opacity', String(fade), 'important');
         }
       } else {
-        // 上に引っ張ったときは最大100pxまで弾性抵抗で引き上げ（画面外の180pxコンテンツが自然に現れる）
-        const damp = Math.max(-100, delta * 0.18);
+        const damp = Math.max(-40, delta * 0.15);
         currentDeltaY = damp;
         sheet.style.setProperty('transform', `translate3d(0, ${damp}px, 0)`, 'important');
       }
@@ -316,31 +386,33 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      if (!isTouching) return;
-      isTouching = false;
+      if (!isDragging) return;
+      isDragging = false;
       try {
         header?.releasePointerCapture(e.pointerId);
       } catch (_) {}
+
+      // 最後の移動から60ms以上経過して指を離した場合は静止とみなす
+      if (Date.now() - lastTime > 60) {
+        velocity = 0;
+      }
 
       const delta = currentDeltaY;
       if (checkShouldDismiss(delta, velocity)) {
         dismissWithSwipe();
       } else {
-        sheet.style.setProperty('transition', 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
-        sheet.style.setProperty('transform', 'translate3d(0, 0, 0)', 'important');
-        if (scrimRef.current) {
-          scrimRef.current.style.setProperty('transition', 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
-          scrimRef.current.style.removeProperty('opacity');
-        }
-        currentDeltaY = 0;
+        resetPosition();
       }
     };
 
-    // ヘッダーでの操作（Touch Eventsレガシーフォールバック）
+    // レガシーブラウザ向け TouchEvent フォールバック（PointerEvent 非対応環境のみ）
     const onHeaderTouchStart = (e: TouchEvent) => {
       if (isClosingRef.current || e.touches.length !== 1) return;
       if ((e.target as HTMLElement).closest('button')) return;
-      isTouching = true;
+
+      cancelResetAnimation();
+
+      isDragging = true;
       startY = e.touches[0].clientY;
       lastY = startY;
       lastTime = Date.now();
@@ -350,25 +422,29 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       sheet.style.animation = 'none';
       sheet.classList.remove('m3-sheet-enter');
       sheet.style.setProperty('transition', 'none', 'important');
-      if (scrimRef.current) scrimRef.current.style.setProperty('transition', 'none', 'important');
+      if (scrimRef.current) {
+        scrimRef.current.style.animation = 'none';
+        scrimRef.current.classList.remove('m3-scrim-enter');
+        scrimRef.current.style.setProperty('transition', 'none', 'important');
+      }
     };
 
     const onHeaderTouchMove = (e: TouchEvent) => {
-      if (!isTouching || isClosingRef.current || e.touches.length !== 1) return;
-      e.preventDefault();
+      if (!isDragging || isClosingRef.current || e.touches.length !== 1) return;
       const clientY = e.touches[0].clientY;
       const delta = clientY - startY;
 
       if (delta > 0) {
+        if (e.cancelable) e.preventDefault();
         currentDeltaY = delta;
         sheet.style.setProperty('transform', `translate3d(0, ${delta}px, 0)`, 'important');
         if (scrimRef.current) {
           const visibleH = getVisibleSheetHeight();
-          const fade = Math.max(0, 1 - delta / (visibleH * 0.6));
+          const fade = Math.max(0, 1 - delta / (visibleH * 0.55));
           scrimRef.current.style.setProperty('opacity', String(fade), 'important');
         }
       } else {
-        const damp = Math.max(-100, delta * 0.18);
+        const damp = Math.max(-40, delta * 0.15);
         currentDeltaY = damp;
         sheet.style.setProperty('transform', `translate3d(0, ${damp}px, 0)`, 'important');
       }
@@ -383,41 +459,45 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onHeaderTouchEnd = () => {
-      if (!isTouching) return;
-      isTouching = false;
+      if (!isDragging) return;
+      isDragging = false;
+
+      if (Date.now() - lastTime > 60) {
+        velocity = 0;
+      }
+
       const delta = currentDeltaY;
       if (checkShouldDismiss(delta, velocity)) {
         dismissWithSwipe();
       } else {
-        sheet.style.setProperty('transition', 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
-        sheet.style.setProperty('transform', 'translate3d(0, 0, 0)', 'important');
-        if (scrimRef.current) {
-          scrimRef.current.style.setProperty('transition', 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
-          scrimRef.current.style.removeProperty('opacity');
-        }
-        currentDeltaY = 0;
+        resetPosition();
       }
     };
 
-    // コンテンツ領域でのプルダウン連動（最上部で下向きにスワイプしたときにシート連動）
-    let isContentPulling = false;
-    let contentStartY = 0;
-    let isTouchOnScrollableChild = false;
-
+    // ----------------------------------------------------
+    // 2. コンテンツ領域での操作（内部スクロール最優先＆プルダウン連動）
+    // ----------------------------------------------------
     const onContentTouchStart = (e: TouchEvent) => {
       if (isClosingRef.current || e.touches.length !== 1) return;
+
       const target = e.target as HTMLElement | null;
-      // 時刻表リスト（data-scrollable="true"）内部でのタッチ時のみ、シートのプルダウン判定を無効化
       if (target?.closest('[data-scrollable="true"]')) {
         isTouchOnScrollableChild = true;
         isContentPulling = false;
         return;
       }
       isTouchOnScrollableChild = false;
+
+      cancelResetAnimation();
+
       contentStartY = e.touches[0].clientY;
+      pullStartY = contentStartY;
+      startScrollTop = content?.scrollTop ?? 0;
       lastY = contentStartY;
       lastTime = Date.now();
       isContentPulling = false;
+      currentDeltaY = 0;
+      velocity = 0;
     };
 
     const onContentTouchMove = (e: TouchEvent) => {
@@ -426,34 +506,44 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       const scrollTop = content?.scrollTop ?? 0;
 
       if (isContentPulling) {
-        const pullDelta = clientY - contentStartY;
+        const pullDelta = clientY - pullStartY;
         if (pullDelta > 0) {
-          e.preventDefault();
+          if (e.cancelable) e.preventDefault();
           currentDeltaY = pullDelta;
           sheet.style.setProperty('transform', `translate3d(0, ${pullDelta}px, 0)`, 'important');
           if (scrimRef.current) {
             const visibleH = getVisibleSheetHeight();
-            const fade = Math.max(0, 1 - pullDelta / (visibleH * 0.6));
+            const fade = Math.max(0, 1 - pullDelta / (visibleH * 0.55));
             scrimRef.current.style.setProperty('opacity', String(fade), 'important');
           }
         } else {
           currentDeltaY = 0;
           sheet.style.setProperty('transform', 'translate3d(0, 0, 0)', 'important');
           if (scrimRef.current) scrimRef.current.style.removeProperty('opacity');
-          if (pullDelta < -10) isContentPulling = false;
+          if (pullDelta < -10) {
+            isContentPulling = false;
+          }
         }
       } else {
-        if (scrollTop <= 0 && clientY > contentStartY + 5) {
+        // プルダウン開始の判定:
+        // タッチ開始時・現在の両方で最上部（scrollTop <= 0）にあり、かつ下に12px以上ドラッグされた場合
+        if (startScrollTop <= 0 && scrollTop <= 0 && clientY > contentStartY + 12) {
           isContentPulling = true;
-          contentStartY = clientY;
+          pullStartY = clientY;
           currentDeltaY = 0;
+
           sheet.style.animation = 'none';
           sheet.classList.remove('m3-sheet-enter');
           sheet.style.setProperty('transition', 'none', 'important');
-          if (scrimRef.current) scrimRef.current.style.setProperty('transition', 'none', 'important');
-          e.preventDefault();
+          if (scrimRef.current) {
+            scrimRef.current.style.animation = 'none';
+            scrimRef.current.classList.remove('m3-scrim-enter');
+            scrimRef.current.style.setProperty('transition', 'none', 'important');
+          }
+          if (e.cancelable) e.preventDefault();
         } else if (scrollTop > 0) {
           contentStartY = clientY;
+          startScrollTop = scrollTop;
         }
       }
 
@@ -468,19 +558,24 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
     const onContentTouchEnd = () => {
       isTouchOnScrollableChild = false;
-      if (!isContentPulling) return;
+      if (!isContentPulling) {
+        if (currentDeltaY !== 0 || isAnimatingBack) {
+          resetPosition();
+        }
+        return;
+      }
+
       isContentPulling = false;
+
+      if (Date.now() - lastTime > 60) {
+        velocity = 0;
+      }
+
       const delta = currentDeltaY;
       if (checkShouldDismiss(delta, velocity)) {
         dismissWithSwipe();
       } else {
-        sheet.style.setProperty('transition', 'transform 260ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
-        sheet.style.setProperty('transform', 'translate3d(0, 0, 0)', 'important');
-        if (scrimRef.current) {
-          scrimRef.current.style.setProperty('transition', 'opacity 260ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
-          scrimRef.current.style.removeProperty('opacity');
-        }
-        currentDeltaY = 0;
+        resetPosition();
       }
     };
 
@@ -510,6 +605,8 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     }
 
     return () => {
+      cancelResetAnimation();
+
       if (header) {
         if (supportsPointerEvents) {
           header.removeEventListener('pointerdown', onPointerDown);
