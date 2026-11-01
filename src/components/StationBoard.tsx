@@ -88,20 +88,20 @@ export const STATION_BOARD_WIDTH_CLASSES: Record<string, string> = {
   sendai: 'w-full max-w-[385px]',
   nagamachi: 'w-full max-w-[385px]',
   taishido: 'w-full max-w-[385px]',
-  morisekinoshita: 'w-full max-w-[370px]',
-  mitazono: 'w-full max-w-[370px]',
-  'sendai-airport': 'w-full max-w-[370px]',
+  morisekinoshita: 'w-full max-w-[424px]',
+  mitazono: 'w-full max-w-[424px]',
+  'sendai-airport': 'w-full max-w-[424px]',
 };
 
 export const STATION_BOARD_BASE_WIDTHS: Record<string, number> = {
   'minami-sendai': 326,
   natori: 326,
-  sendai: 385,
+  sendai: 408,
   nagamachi: 385,
   taishido: 385,
-  morisekinoshita: 370,
-  mitazono: 370,
-  'sendai-airport': 370,
+  morisekinoshita: 424,
+  mitazono: 424,
+  'sendai-airport': 424,
 };
 
 /**
@@ -550,12 +550,12 @@ export const StationBoard: React.FC<StationBoardProps> = ({
           {/* ================= 下部：LED発車標筐体（実機新陽社384ドット・16列構成：時刻・行先各96ドット） ================= */}
           <div className="bg-[#080a0c] px-2.5 sm:px-3 pt-2 pb-1.5 select-none">
             <div
-              className="rounded-none font-led shadow-[inset_0_1px_4px_rgba(0,0,0,0.95)]"
+              className="w-[384px] mx-auto rounded-none font-led shadow-[inset_0_1px_4px_rgba(0,0,0,0.95)]"
               style={bgStyle}
             >
               <div className="flex flex-col gap-0">
                 {sendaiRows.map((train, i) => {
-                  if (!train) return <div key={`e-${i}`} className="w-full h-[25px] sm:h-[26px]" />;
+                  if (!train) return <div key={`e-${i}`} className="w-full h-[24px]" />;
 
                   const cleanDest = train.destination.trim();
                   const isSaal = train.destination === '仙台空港' || train.line === 'saal';
@@ -565,7 +565,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   return (
                     <div
                       key={train.id}
-                      className="w-full h-[25px] sm:h-[26px] text-[23.5px] sm:text-[24px] font-bold leading-none grid grid-cols-[repeat(16,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default min-w-0"
+                      className="w-full h-[24px] text-[24px] font-bold leading-none grid grid-cols-[repeat(16,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default min-w-0"
                     >
                       {/* 1〜2マス目: 種別（48ドット / 2文字幅、特急は赤色・普通は橙色、左端スペースなし・縦24ドット全面密着） */}
                       <div className={`col-span-2 h-full w-full flex items-center justify-start p-0 overflow-hidden ${typeColorClass}`}>
@@ -725,21 +725,21 @@ export const StationBoard: React.FC<StationBoardProps> = ({
           {/* ================= 上部白看板（SAT仕様・斜め青ライン＆番線数字左右反転対応） ================= */}
           <div className="bg-[#eef2f6] text-slate-900 px-3 h-[46px] border-b-2 border-neutral-950 flex items-center justify-between select-none relative font-signboard overflow-hidden">
             {satTrack === '1' ? (
-              /* ── 1番線: 左端に数字「1」、青ラインは1の下を通って右上へ滑らかに駆け上がり、方面テキストの上を通る ── */
+              /* ── 1番線: 左側〜中央に方面テキスト、青ラインは中央下部を通って右上へ滑らかに駆け上がり、右端の数字「1」の上を通る（実機写真通り） ── */
               <>
-                {/* 連続アクセス線青ライン（#0085ca・角ばらない滑らかなS字曲線ベジェ・均一線幅・端部は上下で内側が中心向きに斜めカット） */}
+                {/* 連続アクセス線青ライン（#0085ca・実機準拠424px幅・角ばらない滑らかなS字曲線ベジェ・均一線幅） */}
                 <svg
-                  viewBox="0 0 370 46"
+                  viewBox="0 0 424 46"
                   preserveAspectRatio="none"
                   className="absolute inset-0 w-full h-full pointer-events-none"
                 >
                   <defs>
                     <clipPath id="sat-line-clip-1">
-                      <polygon points="7,46 79,-2 366,-2 294,46" />
+                      <polygon points="7,46 79,-2 420,-2 348,46" />
                     </clipPath>
                   </defs>
                   <path
-                    d="M 0 42 L 52 42 C 74 42, 74 4, 96 4 L 370 4"
+                    d="M 0 42 L 328 42 C 350 42, 350 4, 372 4 L 424 4"
                     fill="none"
                     stroke="#0085ca"
                     strokeWidth="3.5"
@@ -747,13 +747,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   />
                 </svg>
 
-                {/* 左端：のりば数字「1」（下部青線から離れるよう若干小さく上寄りに配置） */}
-                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-2 pr-3 -mt-[4px]">
-                  <TrackNumeral num="1" className="h-[26px] w-auto text-slate-900" />
-                </div>
-
-                {/* 中央〜右側：方面テキスト（青ラインが上を通るため pt-[5px]） */}
-                <div className="flex-1 flex items-center justify-center h-full pt-[5px] z-10 pl-2 pr-4">
+                {/* 左側〜中央：方面テキスト（青ラインが下を通るため pb-[4px]） */}
+                <div className="flex-1 flex items-center justify-center h-full pb-[4px] z-10 pl-6 pr-2">
                   {stationId === 'sendai-airport' ? (
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
@@ -805,23 +800,28 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* 右端：のりば数字「1」（実機写真通り、上部青線から離れるよう若干下寄りに配置） */}
+                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-2 pr-5 mt-[2px]">
+                  <TrackNumeral num="1" className="h-[26px] w-auto text-slate-900" />
+                </div>
               </>
             ) : (
-              /* ── 2番線: 右端に数字「2」、青ラインは方面テキストの下を通って右上へ滑らかに駆け上がり、2の上を通る ── */
+              /* ── 2番線: 左端に数字「2」、青ラインは「2」の上を通って右下へ下り方面テキストの下を通る（実機写真通り） ── */
               <>
-                {/* 連続アクセス線青ライン（#0085ca・角ばらない滑らかなS字曲線ベジェ・均一線幅・端部は上下で内側が中心向きに斜めカット） */}
+                {/* 連続アクセス線青ライン（#0085ca・実機準拠424px幅・角ばらない滑らかなS字曲線ベジェ・均一線幅） */}
                 <svg
-                  viewBox="0 0 370 46"
+                  viewBox="0 0 424 46"
                   preserveAspectRatio="none"
                   className="absolute inset-0 w-full h-full pointer-events-none"
                 >
                   <defs>
                     <clipPath id="sat-line-clip-2">
-                      <polygon points="7,46 79,-2 366,-2 294,46" />
+                      <polygon points="7,46 79,-2 420,-2 348,46" />
                     </clipPath>
                   </defs>
                   <path
-                    d="M 0 42 L 274 42 C 296 42, 296 4, 318 4 L 370 4"
+                    d="M 0 4 L 52 4 C 74 4, 74 42, 96 42 L 424 42"
                     fill="none"
                     stroke="#0085ca"
                     strokeWidth="3.5"
@@ -829,8 +829,13 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   />
                 </svg>
 
-                {/* 左側〜中央：方面テキスト（青ラインが下を通るため pb-[5px]） */}
-                <div className="flex-1 flex items-center justify-center h-full pb-[5px] z-10 pl-4 pr-2">
+                {/* 左端：のりば数字「2」（実機写真通り、上部青線から離れるよう若干下寄りに配置） */}
+                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-5 pr-2 mt-[2px]">
+                  <TrackNumeral num="2" className="h-[26px] w-auto text-slate-900" />
+                </div>
+
+                {/* 中央〜右側：方面テキスト（青ラインが下を通るため pb-[4px]） */}
+                <div className="flex-1 flex items-center justify-center h-full pb-[4px] z-10 pl-2 pr-6">
                   {stationId === 'sendai-airport' ? (
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
@@ -882,19 +887,14 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     </div>
                   )}
                 </div>
-
-                {/* 右端：のりば数字「2」（上部青線から離れるよう若干小さく下寄りに配置） */}
-                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-3 pr-2 mt-[4px]">
-                  <TrackNumeral num="2" className="h-[26px] w-auto text-slate-900" />
-                </div>
               </>
             )}
           </div>
 
-          {/* ================= 下部：LED発車標筐体（印字ラベル帯＋2段白色LED：360×24 dot 実機確定レイアウト） ================= */}
-          <div className="bg-[#0a0c0e] px-2.5 pt-1.5 pb-2 select-none">
+          {/* ================= 下部：LED発車標筐体（実機測定比率準拠：左右ベゼル32px・印字帯＋2段白色LED：360×24 dot） ================= */}
+          <div className="bg-[#0a0c0e] px-8 pt-2.5 pb-2.5 select-none">
             {/* 印字ラベル帯（360dot LEDグリッドの各スロット位置に完全一致: 48 + 96 + 12 + 96 + 12 + 96 = 360 dots） */}
-            <div className="grid grid-cols-[48fr_96fr_12fr_96fr_12fr_96fr] items-center text-center px-1 pb-1 text-[8.5px] text-neutral-300 font-sans whitespace-nowrap leading-none tracking-tight">
+            <div className="w-[360px] mx-auto grid grid-cols-[48fr_96fr_12fr_96fr_12fr_96fr] items-center text-center px-0 pb-1 text-[8.5px] text-neutral-300 font-sans whitespace-nowrap leading-none tracking-tight">
               <div className="flex items-center justify-center gap-1">
                 <span className="font-bold">種別</span>
                 <span className="text-[6.5px] font-english text-neutral-400">Type</span>
@@ -914,11 +914,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
             {/* LED表示窓（内枠ガラス面・360×24 dot：48 + 96 + 12 + 96 + 12 + 96 = 360 dots） */}
             <div
-              className="rounded-none px-1 py-0 font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950"
+              className="w-[360px] mx-auto rounded-none px-0 py-0 font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950"
               style={bgStyle}
             >
-              {/* 2段表示 */}
-              <div className="flex flex-col gap-[4px]">
+              {/* 2段表示（実機測定値：段間ギャップちょうど8.0ドット） */}
+              <div className="flex flex-col gap-[8px]">
                 {rows.map((train, i) => {
                   if (!train) return <div key={`e-${i}`} className="h-[24px]" />;
 
@@ -1351,12 +1351,10 @@ export const StationBoard: React.FC<StationBoardProps> = ({
             {/* 実機のLEDドットマトリクス表示窓（インセット画面・角ばった直角ベゼル） */}
             <div
               className={`${
-                stationId === 'minami-sendai'
-                  ? 'w-[86%] max-w-[275px] mx-auto px-1 '
-                  : isNarrowBoard
-                  ? 'w-[80%] max-w-[260px] mx-auto px-1 '
+                stationId === 'minami-sendai' || stationId === 'natori'
+                  ? 'w-[240px] mx-auto px-0 '
                   : isNagamachiTaishido
-                  ? 'px-0 '
+                  ? 'w-[312px] mx-auto px-0 '
                   : 'px-1 '
               }rounded-none py-0 font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950`}
               style={bgStyle}
