@@ -350,3 +350,25 @@ body,
   opacity: 0 !important;
   transition: opacity 240ms cubic-bezier(0.3, 0.0, 0.8, 0.15) !important;
 }
+
+/* ====================================================
+   sendai-bus-map-v2 準拠 — バス発車案内・系統バッジスタイル
+   ==================================================== */
+.route-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  line-height: 1.2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+[data-mantine-color-scheme="dark"] .route-badge {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}

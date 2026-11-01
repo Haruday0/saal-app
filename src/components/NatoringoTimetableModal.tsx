@@ -22,6 +22,7 @@ import {
 } from '../utils/natoringoSchedule';
 import { JisBus } from './icons';
 import { Icon } from './Icon';
+import { BusRouteBadge } from './BusRouteBadge';
 
 interface NatoringoTimetableModalProps {
   isOpen: boolean;
@@ -329,19 +330,11 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                 />
                 <Stack gap={2} className="min-w-0">
                   <Group gap={6} align="center" wrap="nowrap">
-                    <Badge
-                      size="xs"
-                      radius="sm"
-                      tt="none"
-                      fw={800}
-                      style={{
-                        backgroundColor: selectedDeparture.routeColor,
-                        color: '#ffffff',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {selectedDeparture.routeCode}
-                    </Badge>
+                    <BusRouteBadge
+                      routeCode={selectedDeparture.routeCode}
+                      color={selectedDeparture.routeColor}
+                      size="sm"
+                    />
                     <Text fz="xs" fw={800} c="dimmed" className="truncate">
                       {selectedDeparture.lineName}
                     </Text>
@@ -737,21 +730,11 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                             {dep.departureTime}
                           </Text>
 
-                          <Badge
-                            size="xs"
-                            radius="sm"
-                            tt="none"
-                            fw={800}
-                            style={{
-                              backgroundColor: dep.routeColor,
-                              color: '#ffffff',
-                              flexShrink: 0,
-                              minWidth: 50,
-                              textAlign: 'center',
-                            }}
-                          >
-                            {dep.routeCode}
-                          </Badge>
+                          <BusRouteBadge
+                            routeCode={dep.routeCode}
+                            color={dep.routeColor}
+                            size="sm"
+                          />
 
                           <Stack gap={0} className="min-w-0">
                             <Group gap={5} wrap="nowrap" align="center">

@@ -4,17 +4,19 @@ import {
   Stack,
   Group,
   Text,
-  Divider,
+  Badge,
   Button,
   UnstyledButton,
-  Badge,
+  Box,
+  Divider,
   Loader,
   Skeleton,
 } from '@mantine/core';
 import { Station } from '../types';
 import { JisSubway, JisBus } from './icons';
 import { Icon } from './Icon';
-import { SubwayStationMark } from './SubwayStationMark';
+import { BusDepartureRow } from './BusDepartureRow';
+import { SubwayDepartureRow } from './SubwayDepartureRow';
 import { SubwayTimetableModal } from './SubwayTimetableModal';
 import { NatoringoTimetableModal } from './NatoringoTimetableModal';
 import { SendaiBusTimetableModal } from './SendaiBusTimetableModal';
@@ -41,63 +43,184 @@ interface TransferGuideProps {
   station: Station;
 }
 
-interface RowProps {
-  label: React.ReactNode;
-  time: string;
+interface MiyakouDeparture {
+  id: string;
+  routeCode: string;
+  routeColor: string;
+  headsign: string;
+  via: string;
+  platform: string;
+  departureTime: string;
 }
 
-/** 1行（路線・方面 ／ 時刻） */
-const Row: React.FC<RowProps> = ({ label, time }) => (
-  <Group justify="space-between" wrap="nowrap" gap="xs">
-    <Text fz={12} c="dimmed" className="min-w-0">
-      {label}
-    </Text>
-    <Text fz={12} fw={600} className="font-english tabular-nums shrink-0">
-      {time}
-    </Text>
-  </Group>
-);
+/**
+ * 宮城交通バスの直近発車便生成（長町駅・南仙台駅）
+ * 現在時刻（now）に基づいて次の発車便を算出
+ */
+function getUpcomingMiyakouDepartures(
+  stationId: string,
+  now: Date
+): MiyakouDeparture[] {
+  const currentHours = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const nowTotalMinutes = currentHours * 60 + currentMinutes;
 
-/** 事業者ブロック（見出し＋内容カード） */
-const Block: React.FC<{
+  if (stationId === 'nagamachi') {
+    const routes = [
+      {
+        idPrefix: 'nagamachi-yagiyama',
+        headsign: '八木山動物公園駅・山田',
+        via: '長町南駅',
+        platform: '西口4番',
+        minuteIntervals: [12, 32, 52],
+      },
+      {
+        idPrefix: 'nagamachi-kagitori',
+        headsign: '山田・太白・鈎取',
+        via: '富沢駅',
+        platform: '西口3番',
+        minuteIntervals: [5, 25, 45],
+      },
+    ];
+
+    const result: MiyakouDeparture[] = [];
+    routes.forEach((r) => {
+      for (let offset = 0; offset < 90; offset++) {
+        const targetTotalMinutes = nowTotalMinutes + offset;
+        const h = Math.floor(targetTotalMinutes / 60) % 24;
+        const m = targetTotalMinutes % 60;
+        if (h >= 6 && h < 23 && r.minuteIntervals.includes(m)) {
+          const hh = String(h).padStart(2, '0');
+          const mm = String(m).padStart(2, '0');
+          result.push({
+            id: `${r.idPrefix}-${hh}${mm}`,
+            routeCode: '宮交',
+            routeColor: '#b91c1c',
+            headsign: r.headsign,
+            via: r.via,
+            platform: r.platform,
+            departureTime: `${hh}:${mm}`,
+          });
+          break;
+        }
+      }
+    });
+    return result.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
+  }
+
+  if (stationId === 'minami-sendai') {
+    const routes = [
+      {
+        idPrefix: 'minami-sendai-shiroumaru',
+        headsign: '四郎丸・袋原',
+        via: '東中田',
+        platform: '東口',
+        minuteIntervals: [15, 45],
+      },
+      {
+        idPrefix: 'minami-sendai-lifetown',
+        headsign: 'ライフタウン名取',
+        via: '中田',
+        platform: '西口',
+        minuteIntervals: [0, 30],
+      },
+    ];
+
+    const result: MiyakouDeparture[] = [];
+    routes.forEach((r) => {
+      for (let offset = 0; offset < 90; offset++) {
+        const targetTotalMinutes = nowTotalMinutes + offset;
+        const h = Math.floor(targetTotalMinutes / 60) % 24;
+        const m = targetTotalMinutes % 60;
+        if (h >= 6 && h < 22 && r.minuteIntervals.includes(m)) {
+          const hh = String(h).padStart(2, '0');
+          const mm = String(m).padStart(2, '0');
+          result.push({
+            id: `${r.idPrefix}-${hh}${mm}`,
+            routeCode: '宮交',
+            routeColor: '#b91c1c',
+            headsign: r.headsign,
+            via: r.via,
+            platform: r.platform,
+            departureTime: `${hh}:${mm}`,
+          });
+          break;
+        }
+      }
+    });
+    return result.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
+  }
+
+  return [];
+}
+
+/** 共通事業者セクションヘッダー */
+interface TransportSectionHeaderProps {
   icon: React.ReactNode;
   title: string;
+  badgeLabel?: string;
   rightAction?: React.ReactNode;
-  children: React.ReactNode;
-}> = ({ icon, title, rightAction, children }) => (
-  <Stack gap={6}>
-    <Group justify="space-between" align="center" wrap="nowrap">
-      <Group gap={6} wrap="nowrap">
+}
+
+const TransportSectionHeader: React.FC<TransportSectionHeaderProps> = ({
+  icon,
+  title,
+  badgeLabel,
+  rightAction,
+}) => (
+  <Group
+    justify="space-between"
+    align="center"
+    wrap="nowrap"
+    px="sm"
+    py={8}
+    style={{
+      borderBottom: '1px solid var(--mantine-color-default-border)',
+      backgroundColor: 'var(--mantine-color-default-hover)',
+    }}
+  >
+    <Group gap={8} wrap="nowrap" align="center">
+      <span className="text-black dark:text-white shrink-0 flex items-center">
         {icon}
-        <Text fz="xs" fw={700}>
-          {title}
-        </Text>
-      </Group>
-      {rightAction}
+      </span>
+      <Text fw={800} fz="sm" c="var(--mantine-color-text)">
+        {title}
+      </Text>
+      {badgeLabel && (
+        <Badge size="xs" variant="light" color="gray" radius="sm" fw={700}>
+          {badgeLabel}
+        </Badge>
+      )}
     </Group>
-    <Paper p="xs" radius="md" bg="var(--mantine-color-default-hover)">
-      <Stack gap={4}>{children}</Stack>
-    </Paper>
-  </Stack>
+    {rightAction}
+  </Group>
 );
 
 export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   const stationId = station.id;
 
   const hasSubway = stationId === 'sendai' || stationId === 'nagamachi';
-  const hasSendaiBus = ['sendai', 'nagamachi', 'taishido', 'minami-sendai'].includes(stationId);
-  const hasMiyakouBus = stationId === 'nagamachi' || stationId === 'minami-sendai';
-  const hasNatoringo = ['minami-sendai', 'natori', 'morisekinoshita', 'sendai-airport'].includes(
-    stationId
-  );
+  const hasSendaiBus = [
+    'sendai',
+    'nagamachi',
+    'taishido',
+    'minami-sendai',
+  ].includes(stationId);
+  const hasMiyakouBus =
+    stationId === 'nagamachi' || stationId === 'minami-sendai';
+  const hasNatoringo = [
+    'minami-sendai',
+    'natori',
+    'morisekinoshita',
+    'sendai-airport',
+  ].includes(stationId);
 
   // アプリ基準時刻（実時刻またはデバッグシミュレーション時刻）
   const { now } = useDebug();
 
   // 仙台市営バス API データ取得状態管理
-  const [sendaiBusSchedule, setSendaiBusSchedule] = useState<SendaiBusStationSchedule | null>(
-    null
-  );
+  const [sendaiBusSchedule, setSendaiBusSchedule] =
+    useState<SendaiBusStationSchedule | null>(null);
   const [sendaiBusLoading, setSendaiBusLoading] = useState<boolean>(false);
   const [sendaiBusError, setSendaiBusError] = useState<boolean>(false);
 
@@ -176,7 +299,9 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   const [subwayModalOpen, setSubwayModalOpen] = useState(false);
   const [modalDirectionKey, setModalDirectionKey] =
     useState<SubwayDirectionKey>('namboku-north');
-  const [modalInitialTrainId, setModalInitialTrainId] = useState<string | null>(null);
+  const [modalInitialTrainId, setModalInitialTrainId] = useState<string | null>(
+    null
+  );
 
   const openSubwayTimetable = (
     dirKey: SubwayDirectionKey = 'namboku-north',
@@ -189,8 +314,12 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
   // 仙台市営バス時刻表モーダルの状態管理
   const [sendaiBusModalOpen, setSendaiBusModalOpen] = useState(false);
-  const [sendaiBusInitialGroupId, setSendaiBusInitialGroupId] = useState<string | null>(null);
-  const [sendaiBusInitialDepId, setSendaiBusInitialDepId] = useState<string | null>(null);
+  const [sendaiBusInitialGroupId, setSendaiBusInitialGroupId] = useState<
+    string | null
+  >(null);
+  const [sendaiBusInitialDepId, setSendaiBusInitialDepId] = useState<
+    string | null
+  >(null);
 
   const openSendaiBusTimetable = (
     groupId: string | null = null,
@@ -203,8 +332,12 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
   // なとりん号時刻表モーダルの状態管理
   const [natoringoModalOpen, setNatoringoModalOpen] = useState(false);
-  const [natoringoInitialStopId, setNatoringoInitialStopId] = useState<string | null>(null);
-  const [natoringoInitialDepId, setNatoringoInitialDepId] = useState<string | null>(null);
+  const [natoringoInitialStopId, setNatoringoInitialStopId] = useState<
+    string | null
+  >(null);
+  const [natoringoInitialDepId, setNatoringoInitialDepId] = useState<
+    string | null
+  >(null);
 
   const openNatoringoTimetable = (
     stopId: string | null = null,
@@ -217,7 +350,7 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
   if (stationId === 'mitazono') {
     return (
-      <Paper withBorder p="sm" radius="lg">
+      <Paper withBorder p="md" radius="lg">
         <Text fz="xs" c="dimmed" ta="center">
           美田園駅にはバス・他社線の乗り換えはありません
         </Text>
@@ -228,15 +361,19 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   const subwayStationName = getSubwayStationNameById(stationId);
   const subwayDirections = getAvailableSubwayDirections(stationId);
   const natoringoStation = getNatoringoStationSchedule(stationId);
+  const miyakouUpcoming = hasMiyakouBus
+    ? getUpcomingMiyakouDepartures(stationId, now)
+    : [];
 
   return (
-    <Paper withBorder p="sm" radius="lg">
-      <Stack gap="sm">
-        {/* 仙台市地下鉄（リアルタイム直近3本 ＆ 全駅時刻表・停車駅タイムラインモーダル連携） */}
-        {hasSubway && subwayStationName && (
-          <Block
-            icon={<JisSubway size={15} color="#168B50" />}
+    <Stack gap="sm">
+      {/* 1. 仙台市地下鉄（南北線・東西線） */}
+      {hasSubway && subwayStationName && (
+        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+          <TransportSectionHeader
+            icon={<JisSubway size={18} />}
             title="仙台市地下鉄"
+            badgeLabel={`${subwayDirections.length}方面`}
             rightAction={
               <Button
                 size="compact-xs"
@@ -249,102 +386,66 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                 時刻表
               </Button>
             }
-          >
+          />
+
+          <Stack gap={0}>
             {subwayDirections.map((dirKey, idx) => {
               const meta = SUBWAY_DIRECTIONS[dirKey];
-              const upcoming = getUpcomingSubwayTrains(subwayStationName, dirKey, now, 3);
+              const upcoming = getUpcomingSubwayTrains(
+                subwayStationName,
+                dirKey,
+                now,
+                3
+              );
               const showTozaiDivider = idx === 2 && dirKey === 'tozai-east';
 
               return (
                 <React.Fragment key={dirKey}>
-                  {showTozaiDivider && <Divider my={2} />}
-                  <Group
-                    justify="space-between"
-                    wrap="nowrap"
-                    gap={6}
-                    py={2}
-                    px={4}
-                    style={{ borderRadius: 'var(--mantine-radius-sm)' }}
-                    className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                  >
-                    {/* 左側: 路線記号丸枠マーク (N / T) + 路線・のりば・方面（タップでその方面の時刻表一覧を開く） */}
-                    <UnstyledButton
-                      onClick={() => openSubwayTimetable(dirKey, null)}
-                      className="min-w-0 flex-1 text-left"
-                    >
-                      <Group gap={6} wrap="nowrap" align="center">
-                        <SubwayStationMark line={meta.lineId} code={meta.lineCode} size={22} />
-                        <Text
-                          fz={12}
-                          fw={600}
-                          c="var(--mantine-color-text)"
-                          className="truncate"
-                        >
-                          {meta.lineName} {meta.track}番線
-                          <Text component="span" fz={11.5} fw={500} c="dimmed" ml={3}>
-                            （{meta.directionLabel}）
-                          </Text>
-                        </Text>
-                      </Group>
-                    </UnstyledButton>
-
-                    {/* 右側: 直近3本の発車時刻（各時刻タップでその便の全停車駅タイムラインを直接開く） */}
-                    {upcoming.length > 0 ? (
-                      <Group
-                        gap={3}
-                        wrap="nowrap"
-                        align="center"
-                        className="font-english tabular-nums shrink-0"
-                      >
-                        {upcoming.map((item, tIdx) => (
-                          <React.Fragment key={item.train.id}>
-                            {tIdx > 0 && (
-                              <Text component="span" fz={11} c="dimmed">
-                                /
-                              </Text>
-                            )}
-                            <UnstyledButton
-                              onClick={() => openSubwayTimetable(dirKey, item.train.id)}
-                              px={3}
-                              py={1}
-                              style={{ borderRadius: 4 }}
-                              className="hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                              title={`${item.departureTime}発 ${item.terminalStation}行の全停車駅時刻を表示`}
-                            >
-                              <Text
-                                component="span"
-                                fz={12}
-                                fw={tIdx === 0 ? 800 : 600}
-                                c={tIdx === 0 ? meta.mantineColor : undefined}
-                              >
-                                {item.departureTime}
-                              </Text>
-                            </UnstyledButton>
-                          </React.Fragment>
-                        ))}
-                      </Group>
-                    ) : (
-                      <UnstyledButton
-                        onClick={() => openSubwayTimetable(dirKey, null)}
-                        className="shrink-0"
-                      >
-                        <Text fz={11} c="dimmed">
-                          運転終了（時刻表）
-                        </Text>
-                      </UnstyledButton>
-                    )}
-                  </Group>
+                  {showTozaiDivider && (
+                    <Divider
+                      label="東西線"
+                      labelPosition="left"
+                      styles={{
+                        label: {
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: 'var(--mantine-color-dimmed)',
+                        },
+                      }}
+                    />
+                  )}
+                  <SubwayDepartureRow
+                    lineId={meta.lineId}
+                    lineName={meta.lineName}
+                    lineCode={meta.lineCode}
+                    track={meta.track}
+                    directionLabel={meta.directionLabel}
+                    mantineColor={meta.mantineColor}
+                    upcomingTrains={upcoming}
+                    onSelectDirection={() => openSubwayTimetable(dirKey, null)}
+                    onSelectTrain={(trainId) =>
+                      openSubwayTimetable(dirKey, trainId)
+                    }
+                    isLast={idx === subwayDirections.length - 1}
+                  />
                 </React.Fragment>
               );
             })}
-          </Block>
-        )}
+          </Stack>
+        </Paper>
+      )}
 
-        {/* 仙台市営バス（Sendai Bus Map V2 API 連携・のりばグループ別直近発車・リアルタイム遅延・時刻表＆全停車バス停タイムライン） */}
-        {hasSendaiBus && (
-          <Block
-            icon={<JisBus size={15} color={SENDAI_BUS_COLOR} />}
+      {/* 2. 仙台市営バス */}
+      {hasSendaiBus && (
+        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+          <TransportSectionHeader
+            icon={<JisBus size={18} />}
             title="仙台市営バス"
+            badgeLabel={
+              sendaiBusSchedule
+                ? `${sendaiBusSchedule.groups.length}のりば群`
+                : 'リアルタイム'
+            }
             rightAction={
               sendaiBusSchedule ? (
                 <Button
@@ -364,69 +465,88 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                 </Button>
               ) : undefined
             }
-          >
-            {sendaiBusLoading && !sendaiBusSchedule ? (
-              <Stack gap={6} py={4} px={2}>
-                <Group gap={8} align="center" wrap="nowrap">
-                  <Loader size="sm" color={SENDAI_BUS_COLOR} />
-                  <Text fz={11.5} fw={600} c="dimmed">
-                    市営バス時刻・リアルタイム運行情報を取得中...
-                  </Text>
-                </Group>
-                <Skeleton height={22} radius="sm" />
-                <Skeleton height={22} radius="sm" />
-              </Stack>
-            ) : sendaiBusError && !sendaiBusSchedule ? (
-              <Group justify="space-between" align="center" py={4} px={4} wrap="nowrap">
-                <Text fz={11.5} c="dimmed">
-                  市営バス運行情報の取得に失敗しました
+          />
+
+          {sendaiBusLoading && !sendaiBusSchedule ? (
+            <Stack gap={8} p="sm">
+              <Group gap={8} align="center" wrap="nowrap">
+                <Loader size="xs" color={SENDAI_BUS_COLOR} />
+                <Text fz={12} fw={600} c="dimmed">
+                  市営バス直近発車・遅延情報を取得中...
                 </Text>
-                <Button
-                  size="compact-xs"
-                  variant="default"
-                  radius="md"
-                  fw={700}
-                  leftSection={<Icon name="refresh" size={13} />}
-                  onClick={() => loadSendaiBusData(true, true)}
-                >
-                  再試行
-                </Button>
               </Group>
-            ) : sendaiBusSchedule ? (
-              sendaiBusSchedule.groups.map((group, gIdx) => {
+              <Skeleton height={42} radius="sm" />
+              <Skeleton height={42} radius="sm" />
+            </Stack>
+          ) : sendaiBusError && !sendaiBusSchedule ? (
+            <Group justify="space-between" align="center" p="sm" wrap="nowrap">
+              <Text fz={12} c="dimmed">
+                市営バス情報の取得に失敗しました
+              </Text>
+              <Button
+                size="compact-xs"
+                variant="default"
+                radius="md"
+                fw={700}
+                leftSection={<Icon name="refresh" size={13} />}
+                onClick={() => loadSendaiBusData(true, true)}
+              >
+                再試行
+              </Button>
+            </Group>
+          ) : sendaiBusSchedule ? (
+            <Stack gap={0}>
+              {sendaiBusSchedule.groups.map((group, gIdx) => {
                 const upcoming = getUpcomingSendaiBusDepartures(group, now);
 
                 return (
-                  <React.Fragment key={group.groupId}>
-                    {gIdx > 0 && <Divider my={4} />}
-                    <Stack gap={3}>
-                      {/* のりばグループ見出し行（タップでそのグループの全時刻表一覧を開く） */}
-                      <UnstyledButton
-                        onClick={() => openSendaiBusTimetable(group.groupId, null)}
-                        py={2}
-                        px={4}
-                        style={{ borderRadius: 'var(--mantine-radius-sm)' }}
-                        className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
-                      >
-                        <Group justify="space-between" wrap="nowrap" gap={6}>
-                          <Group gap={6} wrap="nowrap" align="center" className="min-w-0">
-                            <Badge
-                              size="xs"
-                              radius="sm"
-                              variant="default"
-                              fw={700}
-                              tt="none"
-                              className="shrink-0"
-                            >
-                              {group.shortTitle}
-                            </Badge>
-                            <Text fz={11} c="dimmed" className="truncate">
-                              {group.title}
-                            </Text>
-                          </Group>
-                          <Group gap={2} wrap="nowrap" align="center" className="shrink-0">
+                  <Box key={group.groupId}>
+                    {/* のりば群サブヘッダー */}
+                    <Box
+                      py={4}
+                      px={12}
+                      style={{
+                        backgroundColor: 'var(--mantine-color-default-hover)',
+                        borderTop:
+                          gIdx > 0
+                            ? '1px solid var(--mantine-color-default-border)'
+                            : undefined,
+                        borderBottom:
+                          '1px solid var(--mantine-color-default-border)',
+                      }}
+                    >
+                      <Group justify="space-between" wrap="nowrap" align="center">
+                        <Group gap={6} wrap="nowrap" className="min-w-0">
+                          <Badge
+                            size="xs"
+                            radius="sm"
+                            variant="filled"
+                            color="gray"
+                            fw={700}
+                            tt="none"
+                            className="shrink-0"
+                          >
+                            {group.shortTitle}
+                          </Badge>
+                          <Text
+                            fz={11}
+                            fw={500}
+                            c="dimmed"
+                            className="truncate"
+                          >
+                            {group.title}
+                          </Text>
+                        </Group>
+
+                        <UnstyledButton
+                          onClick={() =>
+                            openSendaiBusTimetable(group.groupId, null)
+                          }
+                          className="shrink-0"
+                        >
+                          <Group gap={2} wrap="nowrap" align="center">
                             <Text fz={10.5} c="dimmed" fw={600}>
-                              一覧
+                              全便
                             </Text>
                             <Icon
                               name="chevron_right"
@@ -434,148 +554,78 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                               className="text-slate-400 dark:text-slate-500"
                             />
                           </Group>
-                        </Group>
-                      </UnstyledButton>
-
-                      {/* 直近発車便リスト（各便タップで全停車バス停タイムラインを直接開く） */}
-                      {upcoming.length > 0 ? (
-                        <Stack gap={2}>
-                          {upcoming.map((dep, dIdx) => (
-                            <UnstyledButton
-                              key={dep.id}
-                              onClick={() => openSendaiBusTimetable(group.groupId, dep.id)}
-                              py={3}
-                              px={6}
-                              style={{ borderRadius: 'var(--mantine-radius-sm)' }}
-                              className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                              title={`${dep.departureTime}発 [${dep.routeCode}] ${dep.headsign}行の全停車バス停を表示`}
-                            >
-                              <Group justify="space-between" wrap="nowrap" gap={6}>
-                                <Group
-                                  gap={6}
-                                  wrap="nowrap"
-                                  align="center"
-                                  className="min-w-0"
-                                >
-                                  <Badge
-                                    size="xs"
-                                    radius="sm"
-                                    tt="none"
-                                    fw={800}
-                                    style={{
-                                      backgroundColor: SENDAI_BUS_COLOR,
-                                      color: '#ffffff',
-                                      flexShrink: 0,
-                                      minWidth: 42,
-                                      textAlign: 'center',
-                                    }}
-                                  >
-                                    {dep.routeCode}
-                                  </Badge>
-                                  <Text
-                                    fz={12}
-                                    fw={dIdx === 0 ? 700 : 500}
-                                    c="var(--mantine-color-text)"
-                                    className="truncate"
-                                  >
-                                    {dep.headsign}行
-                                  </Text>
-                                  {dep.via && (
-                                    <Text
-                                      fz={10.5}
-                                      c="dimmed"
-                                      className="truncate"
-                                    >
-                                      （{dep.via}）
-                                    </Text>
-                                  )}
-                                  {dep.platform && (
-                                    <Text
-                                      fz={11}
-                                      c="dimmed"
-                                      fw={600}
-                                      className="shrink-0"
-                                    >
-                                      {dep.platform}番のりば
-                                    </Text>
-                                  )}
-                                </Group>
-
-                                <Group
-                                  gap={4}
-                                  wrap="nowrap"
-                                  align="center"
-                                  className="font-english tabular-nums shrink-0"
-                                >
-                                  {dep.isDelayed && (
-                                    <Badge
-                                      size="xs"
-                                      color="red"
-                                      variant="light"
-                                      radius="sm"
-                                      tt="none"
-                                      fw={700}
-                                      className="shrink-0"
-                                    >
-                                      +{dep.delayMinutes}分遅れ
-                                    </Badge>
-                                  )}
-                                  <Text
-                                    fz={12.5}
-                                    fw={dIdx === 0 ? 800 : 600}
-                                    style={
-                                      dep.isDelayed
-                                        ? { color: 'var(--mantine-color-red-6)' }
-                                        : dIdx === 0
-                                          ? { color: SENDAI_BUS_COLOR }
-                                          : undefined
-                                    }
-                                  >
-                                    {dep.isDelayed ? dep.expectedTime : dep.departureTime}
-                                  </Text>
-                                  <Icon
-                                    name="chevron_right"
-                                    size={13}
-                                    className="text-slate-400 dark:text-slate-500"
-                                  />
-                                </Group>
-                              </Group>
-                            </UnstyledButton>
-                          ))}
-                        </Stack>
-                      ) : (
-                        <UnstyledButton
-                          onClick={() => openSendaiBusTimetable(group.groupId, null)}
-                          py={2}
-                          px={6}
-                          style={{ borderRadius: 'var(--mantine-radius-sm)' }}
-                          className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
-                        >
-                          <Text fz={11} c="dimmed">
-                            本日の運行は終了しました（タップで時刻表を表示）
-                          </Text>
                         </UnstyledButton>
-                      )}
-                    </Stack>
-                  </React.Fragment>
+                      </Group>
+                    </Box>
+
+                    {/* 直近発車便リスト */}
+                    {upcoming.length > 0 ? (
+                      <div>
+                        {upcoming.map((dep, dIdx) => (
+                          <BusDepartureRow
+                            key={dep.id}
+                            routeCode={dep.routeCode}
+                            routeColor={SENDAI_BUS_COLOR}
+                            headsign={dep.headsign}
+                            via={dep.via}
+                            platform={dep.platform}
+                            departureTime={dep.departureTime}
+                            isDelayed={dep.isDelayed}
+                            delayMinutes={dep.delayMinutes}
+                            expectedTime={dep.expectedTime}
+                            isNext={dIdx === 0}
+                            onClick={() =>
+                              openSendaiBusTimetable(group.groupId, dep.id)
+                            }
+                            isLast={
+                              dIdx === upcoming.length - 1 &&
+                              gIdx === sendaiBusSchedule.groups.length - 1
+                            }
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Box
+                        py={8}
+                        px={14}
+                        style={{
+                          borderBottom:
+                            gIdx === sendaiBusSchedule.groups.length - 1
+                              ? 'none'
+                              : '1px solid var(--mantine-color-default-border)',
+                        }}
+                      >
+                        <Group justify="space-between" align="center">
+                          <Text fz={11.5} c="dimmed">
+                            本日の運行は終了しました
+                          </Text>
+                          <UnstyledButton
+                            onClick={() =>
+                              openSendaiBusTimetable(group.groupId, null)
+                            }
+                          >
+                            <Text fz={11} fw={700} c="blue">
+                              時刻表を見る →
+                            </Text>
+                          </UnstyledButton>
+                        </Group>
+                      </Box>
+                    )}
+                  </Box>
                 );
-              })
-            ) : null}
-          </Block>
-        )}
+              })}
+            </Stack>
+          ) : null}
+        </Paper>
+      )}
 
-        {/* 宮城交通バス */}
-        {hasMiyakouBus && (
-          <Block icon={<JisBus size={15} color="#b91c1c" />} title="宮城交通バス">
-            <Row label="八木山動物公園駅・山田方面" time="15:50 / 16:15" />
-          </Block>
-        )}
-
-        {/* なとりん号（GTFSリアルタイム直近発車 ＆ 路線絞り込み付き時刻表・全停車バス停＆運賃タイムラインモーダル連携） */}
-        {hasNatoringo && natoringoStation && (
-          <Block
-            icon={<JisBus size={15} color="#d97706" />}
-            title="なとりん号"
+      {/* 3. 名取市コミュニティバス「なとりん号」 */}
+      {hasNatoringo && natoringoStation && (
+        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+          <TransportSectionHeader
+            icon={<JisBus size={18} />}
+            title="名取市 なとりん号"
+            badgeLabel={`${natoringoStation.busStops.length}バス停`}
             rightAction={
               <Button
                 size="compact-xs"
@@ -584,13 +634,18 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                 fw={700}
                 leftSection={<Icon name="schedule" size={13} />}
                 onClick={() =>
-                  openNatoringoTimetable(natoringoStation.busStops[0]?.stopId ?? null, null)
+                  openNatoringoTimetable(
+                    natoringoStation.busStops[0]?.stopId ?? null,
+                    null
+                  )
                 }
               >
                 時刻表
               </Button>
             }
-          >
+          />
+
+          <Stack gap={0}>
             {natoringoStation.busStops.map((busStop, sIdx) => {
               const limit = stationId === 'morisekinoshita' ? 4 : 3;
               const upcoming = getUpcomingNatoringoDepartures(
@@ -601,36 +656,53 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
               );
 
               return (
-                <React.Fragment key={busStop.stopId}>
-                  {sIdx > 0 && <Divider my={4} />}
-                  <Stack gap={3}>
-                    {/* のりば見出し行（タップでそのバス停の全時刻表一覧を開く） */}
-                    <UnstyledButton
-                      onClick={() => openNatoringoTimetable(busStop.stopId, null)}
-                      py={2}
-                      px={4}
-                      style={{ borderRadius: 'var(--mantine-radius-sm)' }}
-                      className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
-                    >
-                      <Group justify="space-between" wrap="nowrap" gap={6}>
-                        <Group gap={6} wrap="nowrap" align="center" className="min-w-0">
-                          <Badge
-                            size="xs"
-                            radius="sm"
-                            variant="default"
-                            fw={700}
-                            tt="none"
-                            className="shrink-0"
-                          >
-                            {busStop.stopName}
-                          </Badge>
-                          <Text fz={11} c="dimmed" className="truncate">
-                            {busStop.lines.map((l) => l.lineName).join('・')}
-                          </Text>
-                        </Group>
-                        <Group gap={2} wrap="nowrap" align="center" className="shrink-0">
+                <Box key={busStop.stopId}>
+                  {/* バス停サブヘッダー */}
+                  <Box
+                    py={4}
+                    px={12}
+                    style={{
+                      backgroundColor: 'var(--mantine-color-default-hover)',
+                      borderTop:
+                        sIdx > 0
+                          ? '1px solid var(--mantine-color-default-border)'
+                          : undefined,
+                      borderBottom:
+                        '1px solid var(--mantine-color-default-border)',
+                    }}
+                  >
+                    <Group justify="space-between" wrap="nowrap" align="center">
+                      <Group gap={6} wrap="nowrap" className="min-w-0">
+                        <Badge
+                          size="xs"
+                          radius="sm"
+                          variant="filled"
+                          color="gray"
+                          fw={700}
+                          tt="none"
+                          className="shrink-0"
+                        >
+                          {busStop.stopName}
+                        </Badge>
+                        <Text
+                          fz={11}
+                          fw={500}
+                          c="dimmed"
+                          className="truncate"
+                        >
+                          {busStop.lines.map((l) => l.lineName).join('・')}
+                        </Text>
+                      </Group>
+
+                      <UnstyledButton
+                        onClick={() =>
+                          openNatoringoTimetable(busStop.stopId, null)
+                        }
+                        className="shrink-0"
+                      >
+                        <Group gap={2} wrap="nowrap" align="center">
                           <Text fz={10.5} c="dimmed" fw={600}>
-                            一覧
+                            全便
                           </Text>
                           <Icon
                             name="chevron_right"
@@ -638,101 +710,93 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                             className="text-slate-400 dark:text-slate-500"
                           />
                         </Group>
-                      </Group>
-                    </UnstyledButton>
-
-                    {/* 直近発車便リスト（各便タップで全停車バス停＆運賃タイムラインを直接開く） */}
-                    {upcoming.length > 0 ? (
-                      <Stack gap={2}>
-                        {upcoming.map((dep, dIdx) => (
-                          <UnstyledButton
-                            key={dep.id}
-                            onClick={() => openNatoringoTimetable(busStop.stopId, dep.id)}
-                            py={3}
-                            px={6}
-                            style={{ borderRadius: 'var(--mantine-radius-sm)' }}
-                            className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                            title={`${dep.departureTime}発 ${dep.routeCode} ${dep.headsign}行の全停車バス停・運賃を表示`}
-                          >
-                            <Group justify="space-between" wrap="nowrap" gap={6}>
-                              <Group gap={6} wrap="nowrap" align="center" className="min-w-0">
-                                <Badge
-                                  size="xs"
-                                  radius="sm"
-                                  tt="none"
-                                  fw={800}
-                                  style={{
-                                    backgroundColor: dep.routeColor,
-                                    color: '#ffffff',
-                                    flexShrink: 0,
-                                    minWidth: 48,
-                                    textAlign: 'center',
-                                  }}
-                                >
-                                  {dep.routeCode}
-                                </Badge>
-                                <Text
-                                  fz={12}
-                                  fw={dIdx === 0 ? 700 : 500}
-                                  c="var(--mantine-color-text)"
-                                  className="truncate"
-                                >
-                                  {dep.headsign}行
-                                </Text>
-                                <Text
-                                  fz={11}
-                                  c="dimmed"
-                                  className="truncate shrink-0"
-                                >
-                                  {dep.lineName}
-                                </Text>
-                              </Group>
-
-                              <Group
-                                gap={4}
-                                wrap="nowrap"
-                                align="center"
-                                className="font-english tabular-nums shrink-0"
-                              >
-                                <Text
-                                  fz={12.5}
-                                  fw={dIdx === 0 ? 800 : 600}
-                                  style={
-                                    dIdx === 0 ? { color: dep.routeColor } : undefined
-                                  }
-                                >
-                                  {dep.departureTime}
-                                </Text>
-                                <Icon
-                                  name="chevron_right"
-                                  size={13}
-                                  className="text-slate-400 dark:text-slate-500"
-                                />
-                              </Group>
-                            </Group>
-                          </UnstyledButton>
-                        ))}
-                      </Stack>
-                    ) : (
-                      <UnstyledButton
-                        onClick={() => openNatoringoTimetable(busStop.stopId, null)}
-                        py={2}
-                        px={6}
-                        style={{ borderRadius: 'var(--mantine-radius-sm)' }}
-                        className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left"
-                      >
-                        <Text fz={11} c="dimmed">
-                          本日の運行は終了しました（タップで時刻表を表示）
-                        </Text>
                       </UnstyledButton>
-                    )}
-                  </Stack>
-                </React.Fragment>
+                    </Group>
+                  </Box>
+
+                  {/* 直近発車便リスト */}
+                  {upcoming.length > 0 ? (
+                    <div>
+                      {upcoming.map((dep, dIdx) => (
+                        <BusDepartureRow
+                          key={dep.id}
+                          routeCode={dep.routeCode}
+                          routeColor={dep.routeColor}
+                          headsign={dep.headsign}
+                          lineName={dep.lineName}
+                          platform={busStop.stopName}
+                          departureTime={dep.departureTime}
+                          isNext={dIdx === 0}
+                          onClick={() =>
+                            openNatoringoTimetable(busStop.stopId, dep.id)
+                          }
+                          isLast={
+                            dIdx === upcoming.length - 1 &&
+                            sIdx === natoringoStation.busStops.length - 1
+                          }
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <Box
+                      py={8}
+                      px={14}
+                      style={{
+                        borderBottom:
+                          sIdx === natoringoStation.busStops.length - 1
+                            ? 'none'
+                            : '1px solid var(--mantine-color-default-border)',
+                      }}
+                    >
+                      <Group justify="space-between" align="center">
+                        <Text fz={11.5} c="dimmed">
+                          本日の運行は終了しました
+                        </Text>
+                        <UnstyledButton
+                          onClick={() =>
+                            openNatoringoTimetable(busStop.stopId, null)
+                          }
+                        >
+                          <Text fz={11} fw={700} c="blue">
+                            時刻表を見る →
+                          </Text>
+                        </UnstyledButton>
+                      </Group>
+                    </Box>
+                  )}
+                </Box>
               );
             })}
-          </Block>
-        )}
-      </Stack>
+          </Stack>
+        </Paper>
+      )}
+
+      {/* 4. 宮城交通バス */}
+      {hasMiyakouBus && miyakouUpcoming.length > 0 && (
+        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+          <TransportSectionHeader
+            icon={<JisBus size={18} />}
+            title="宮城交通バス"
+            badgeLabel="一般路線"
+          />
+
+          <Stack gap={0}>
+            {miyakouUpcoming.map((dep, dIdx) => (
+              <BusDepartureRow
+                key={dep.id}
+                routeCode={dep.routeCode}
+                routeColor={dep.routeColor}
+                headsign={dep.headsign}
+                via={dep.via}
+                platform={dep.platform}
+                departureTime={dep.departureTime}
+                isNext={dIdx === 0}
+                isLast={dIdx === miyakouUpcoming.length - 1}
+              />
+            ))}
+          </Stack>
+        </Paper>
+      )}
 
       {/* 仙台市地下鉄 時刻表＆全停車駅タイムラインモーダル */}
       {hasSubway && (
@@ -769,6 +833,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           now={now}
         />
       )}
-    </Paper>
+    </Stack>
   );
 };

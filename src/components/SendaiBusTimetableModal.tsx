@@ -23,6 +23,7 @@ import {
 } from '../utils/sendaiBusApi';
 import { JisBus } from './icons';
 import { Icon } from './Icon';
+import { BusRouteBadge } from './BusRouteBadge';
 
 interface SendaiBusTimetableModalProps {
   isOpen: boolean;
@@ -362,19 +363,11 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                 />
                 <Stack gap={2} className="min-w-0">
                   <Group gap={6} align="center" wrap="nowrap">
-                    <Badge
-                      size="xs"
-                      radius="sm"
-                      tt="none"
-                      fw={800}
-                      style={{
-                        backgroundColor: SENDAI_BUS_COLOR,
-                        color: '#ffffff',
-                        flexShrink: 0,
-                      }}
-                    >
-                      [{selectedDeparture.routeCode}]
-                    </Badge>
+                    <BusRouteBadge
+                      routeCode={selectedDeparture.routeCode}
+                      color={SENDAI_BUS_COLOR}
+                      size="sm"
+                    />
                     {selectedDeparture.via && (
                       <Text fz="xs" fw={700} c="dimmed" className="truncate">
                         {selectedDeparture.via}経由
@@ -836,21 +829,11 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                             )}
                           </Stack>
 
-                          <Badge
-                            size="xs"
-                            radius="sm"
-                            tt="none"
-                            fw={800}
-                            style={{
-                              backgroundColor: SENDAI_BUS_COLOR,
-                              color: '#ffffff',
-                              flexShrink: 0,
-                              minWidth: 44,
-                              textAlign: 'center',
-                            }}
-                          >
-                            {dep.routeCode}
-                          </Badge>
+                          <BusRouteBadge
+                            routeCode={dep.routeCode}
+                            color={SENDAI_BUS_COLOR}
+                            size="sm"
+                          />
 
                           <Stack gap={1} className="min-w-0">
                             <Group gap={5} wrap="nowrap" align="center">
