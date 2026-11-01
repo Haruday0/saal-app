@@ -240,334 +240,310 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     const sheet = sheetRef.current;
     if (!sheet || !activeStation) return;
 
-    let isDragging = false;
-    let isAnimatingBack = false;
-    let finishResetFn: (() => void) | null = null;
+    let isHeaderDragging = false;
+    let isContentTouching = false;
+    let isTouchOnScrollableChild = false;
+    let hasPreventedDefaultInGesture = false;
 
+    let startX = 0;
     let startY = 0;
-    let lastY = 0;
-    let lastTime = 0;
+    let prevY = 0;
+    let lastVelY = 0;
+    let lastVelTime = 0;
     let currentDeltaY = 0;
+    let maxDeltaY = 0;
     let velocity = 0;
+    let gestureLockedHorizontal = false;
 
-    // コンテンツ領域ジェスチャーの状態: idle / pending（方向判定待ち） / pull（シート連動） / scroll（ネイティブ委譲）
-    let contentMode: 'idle' | 'pending' | 'pull' | 'scroll' = 'idle';
-    let contentStartX = 0;
-    let contentStartY = 0;
-
-    // 可視領域のシート高さを取得（画面外の180px延長部を除く）
     const getVisibleSheetHeight = () => {
       const totalH = sheet.offsetHeight || window.innerHeight * 0.75;
       return Math.max(300, totalH - 180);
     };
 
     // 閉じる判定ヘルパー
-    // ・ゆっくりドラッグ時：シート高さの約11%（約55〜85px）以上引き下げたら閉じる
-    // ・素早いフリック時：20px以上引いて velocity > 0.25、または高速フリック（velocity > 0.55 かつ 10px以上）
-    const checkShouldDismiss = (delta: number, vel: number) => {
+    const checkShouldDismiss = (delta: number, maxDelta: number, vel: number) => {
+      // 指を上向きに戻している最中（vel < -0.05）、または最高引き下げ位置から12px以上上へ戻した場合は閉じない
+      if (vel < -0.05 || delta < maxDelta - 12) {
+        return false;
+      }
       const visibleH = getVisibleSheetHeight();
-      const distanceThreshold = Math.min(85, Math.max(55, visibleH * 0.11));
-      const isFlick = (delta > 20 && vel > 0.25) || (delta > 10 && vel > 0.55);
+      const distanceThreshold = Math.min(90, Math.max(60, visibleH * 0.12));
+      const isFlick = (delta > 22 && vel > 0.28) || (delta > 12 && vel > 0.55);
       return delta > distanceThreshold || isFlick;
     };
 
-    // 元の位置へスムーズに戻す処理（インラインスタイルを確実に完全消去）
-    const resetPosition = () => {
-      if (!sheet || isClosingRef.current) return;
-      if (finishResetFn) {
-        finishResetFn();
+    // シートのインライン変位を即座にドラッグ状態にセット
+    const prepareSheetForDrag = () => {
+      sheet.style.animation = 'none';
+      sheet.classList.remove('m3-sheet-enter');
+      sheet.style.setProperty('transition', 'none', 'important');
+      if (scrimRef.current) {
+        scrimRef.current.style.animation = 'none';
+        scrimRef.current.classList.remove('m3-scrim-enter');
+        scrimRef.current.style.setProperty('transition', 'none', 'important');
       }
+    };
 
-      isAnimatingBack = true;
-      sheet.style.setProperty('transition', 'transform 240ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
+    // シート位置の描画更新
+    const applySheetDelta = (delta: number) => {
+      currentDeltaY = delta;
+      if (delta > maxDeltaY) maxDeltaY = delta;
+      sheet.style.setProperty('transform', `translate3d(0, ${delta}px, 0)`, 'important');
+      if (scrimRef.current) {
+        if (delta > 0) {
+          const visibleH = getVisibleSheetHeight();
+          const fade = Math.max(0, 1 - delta / (visibleH * 0.55));
+          scrimRef.current.style.setProperty('opacity', String(fade), 'important');
+        } else {
+          scrimRef.current.style.removeProperty('opacity');
+        }
+      }
+    };
+
+    // 元の位置（0px）へスムーズに戻す処理（余計な removeProperty タイマーは使わず translate3d(0,0,0) に収束させる）
+    const snapBackToZero = () => {
+      if (isClosingRef.current) return;
+      currentDeltaY = 0;
+      maxDeltaY = 0;
+      velocity = 0;
+      sheet.style.setProperty('transition', 'transform 250ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
       sheet.style.setProperty('transform', 'translate3d(0, 0, 0)', 'important');
       if (scrimRef.current) {
-        scrimRef.current.style.setProperty('transition', 'opacity 240ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
+        scrimRef.current.style.setProperty('transition', 'opacity 250ms cubic-bezier(0.16, 1, 0.3, 1)', 'important');
         scrimRef.current.style.removeProperty('opacity');
       }
-
-      let resetTimer: ReturnType<typeof setTimeout> | null = null;
-      const finish = () => {
-        if (resetTimer) {
-          clearTimeout(resetTimer);
-          resetTimer = null;
-        }
-        sheet.removeEventListener('transitionend', onResetTransitionEnd);
-        finishResetFn = null;
-        isAnimatingBack = false;
-        currentDeltaY = 0;
-        if (!isClosingRef.current) {
-          sheet.style.removeProperty('transform');
-          sheet.style.removeProperty('transition');
-          if (scrimRef.current) {
-            scrimRef.current.style.removeProperty('opacity');
-            scrimRef.current.style.removeProperty('transition');
-          }
-        }
-      };
-
-      const onResetTransitionEnd = (e: TransitionEvent) => {
-        if (e.target === sheet && e.propertyName === 'transform') {
-          finish();
-        }
-      };
-
-      finishResetFn = finish;
-      sheet.addEventListener('transitionend', onResetTransitionEnd);
-      resetTimer = setTimeout(finish, 260);
     };
 
-    // リセットアニメーションの即時中断（アニメーション中に新規ドラッグが入った場合）
-    const cancelResetAnimation = () => {
-      if (finishResetFn) {
-        finishResetFn();
+    const updateVelocity = (clientY: number) => {
+      const now = performance.now();
+      const dt = now - lastVelTime;
+      if (dt > 8) {
+        const instVel = (clientY - lastVelY) / dt;
+        // 急激なノイズを抑えつつ直近の指の向きを正確に反映
+        velocity = velocity * 0.3 + instVel * 0.7;
+        lastVelY = clientY;
+        lastVelTime = now;
       }
-      isAnimatingBack = false;
     };
 
-    // ----------------------------------------------------
-    // 1. ヘッダーでの操作（Pointer Events 単一化）
-    // ----------------------------------------------------
+    // ====================================================
+    // 1. ヘッダーでのドラッグ操作（Pointer Events）
+    // ====================================================
     const onPointerDown = (e: PointerEvent) => {
       if (isClosingRef.current) return;
       if ((e.target as HTMLElement).closest('button')) return;
       if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-      cancelResetAnimation();
-
       try {
         header?.setPointerCapture(e.pointerId);
       } catch (_) {}
 
-      isDragging = true;
+      isHeaderDragging = true;
       startY = e.clientY;
-      lastY = startY;
-      lastTime = Date.now();
+      prevY = startY;
+      lastVelY = startY;
+      lastVelTime = performance.now();
       currentDeltaY = 0;
+      maxDeltaY = 0;
       velocity = 0;
 
-      sheet.style.animation = 'none';
-      sheet.classList.remove('m3-sheet-enter');
-      sheet.style.setProperty('transition', 'none', 'important');
-      if (scrimRef.current) {
-        scrimRef.current.style.animation = 'none';
-        scrimRef.current.classList.remove('m3-scrim-enter');
-        scrimRef.current.style.setProperty('transition', 'none', 'important');
-      }
+      prepareSheetForDrag();
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!isDragging || isClosingRef.current) return;
+      if (!isHeaderDragging || isClosingRef.current) return;
       const clientY = e.clientY;
       const delta = clientY - startY;
 
-      if (delta > 0) {
-        currentDeltaY = delta;
-        sheet.style.setProperty('transform', `translate3d(0, ${delta}px, 0)`, 'important');
-        if (scrimRef.current) {
-          const visibleH = getVisibleSheetHeight();
-          const fade = Math.max(0, 1 - delta / (visibleH * 0.55));
-          scrimRef.current.style.setProperty('opacity', String(fade), 'important');
-        }
+      if (delta >= 0) {
+        applySheetDelta(delta);
       } else {
-        const damp = Math.max(-40, delta * 0.15);
-        currentDeltaY = damp;
-        sheet.style.setProperty('transform', `translate3d(0, ${damp}px, 0)`, 'important');
+        // 上に引っ張ったときは弾性抵抗で引き上げ
+        const damp = Math.max(-50, delta * 0.15);
+        applySheetDelta(damp);
       }
-
-      const now = Date.now();
-      const dt = now - lastTime;
-      if (dt > 10) {
-        velocity = (clientY - lastY) / dt;
-        lastY = clientY;
-        lastTime = now;
-      }
+      updateVelocity(clientY);
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      if (!isDragging) return;
-      isDragging = false;
+      if (!isHeaderDragging) return;
+      isHeaderDragging = false;
       try {
         header?.releasePointerCapture(e.pointerId);
       } catch (_) {}
 
-      // 最後の移動から60ms以上経過して指を離した場合は静止とみなす
-      if (Date.now() - lastTime > 60) {
+      if (performance.now() - lastVelTime > 80) {
         velocity = 0;
       }
 
-      const delta = currentDeltaY;
-      if (checkShouldDismiss(delta, velocity)) {
+      if (checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
         dismissWithSwipe();
       } else {
-        resetPosition();
+        snapBackToZero();
       }
     };
 
-    // レガシーブラウザ向け TouchEvent フォールバック（PointerEvent 非対応環境のみ）
+    // レガシー環境向け TouchEvent フォールバック（PointerEvent 非対応環境のみ）
     const onHeaderTouchStart = (e: TouchEvent) => {
       if (isClosingRef.current || e.touches.length !== 1) return;
       if ((e.target as HTMLElement).closest('button')) return;
 
-      cancelResetAnimation();
-
-      isDragging = true;
+      isHeaderDragging = true;
       startY = e.touches[0].clientY;
-      lastY = startY;
-      lastTime = Date.now();
+      prevY = startY;
+      lastVelY = startY;
+      lastVelTime = performance.now();
       currentDeltaY = 0;
+      maxDeltaY = 0;
       velocity = 0;
 
-      sheet.style.animation = 'none';
-      sheet.classList.remove('m3-sheet-enter');
-      sheet.style.setProperty('transition', 'none', 'important');
-      if (scrimRef.current) {
-        scrimRef.current.style.animation = 'none';
-        scrimRef.current.classList.remove('m3-scrim-enter');
-        scrimRef.current.style.setProperty('transition', 'none', 'important');
-      }
+      prepareSheetForDrag();
     };
 
     const onHeaderTouchMove = (e: TouchEvent) => {
-      if (!isDragging || isClosingRef.current || e.touches.length !== 1) return;
+      if (!isHeaderDragging || isClosingRef.current || e.touches.length !== 1) return;
       const clientY = e.touches[0].clientY;
       const delta = clientY - startY;
 
-      if (delta > 0) {
+      if (delta >= 0) {
         if (e.cancelable) e.preventDefault();
-        currentDeltaY = delta;
-        sheet.style.setProperty('transform', `translate3d(0, ${delta}px, 0)`, 'important');
-        if (scrimRef.current) {
-          const visibleH = getVisibleSheetHeight();
-          const fade = Math.max(0, 1 - delta / (visibleH * 0.55));
-          scrimRef.current.style.setProperty('opacity', String(fade), 'important');
-        }
+        applySheetDelta(delta);
       } else {
-        const damp = Math.max(-40, delta * 0.15);
-        currentDeltaY = damp;
-        sheet.style.setProperty('transform', `translate3d(0, ${damp}px, 0)`, 'important');
+        const damp = Math.max(-50, delta * 0.15);
+        applySheetDelta(damp);
       }
-
-      const now = Date.now();
-      const dt = now - lastTime;
-      if (dt > 10) {
-        velocity = (clientY - lastY) / dt;
-        lastY = clientY;
-        lastTime = now;
-      }
+      updateVelocity(clientY);
     };
 
     const onHeaderTouchEnd = () => {
-      if (!isDragging) return;
-      isDragging = false;
+      if (!isHeaderDragging) return;
+      isHeaderDragging = false;
 
-      if (Date.now() - lastTime > 60) {
+      if (performance.now() - lastVelTime > 80) {
         velocity = 0;
       }
 
-      const delta = currentDeltaY;
-      if (checkShouldDismiss(delta, velocity)) {
+      if (checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
         dismissWithSwipe();
       } else {
-        resetPosition();
+        snapBackToZero();
       }
     };
 
-    // ----------------------------------------------------
-    // 2. コンテンツ領域での操作（内部スクロール最優先＆プルダウン連動）
-    // ----------------------------------------------------
+    // ====================================================
+    // 2. コンテンツ領域での連続シームレス操作（スクロール ⇔ シート引き下げ）
+    // ====================================================
     const onContentTouchStart = (e: TouchEvent) => {
       if (isClosingRef.current || e.touches.length !== 1) {
-        contentMode = 'idle';
+        isContentTouching = false;
         return;
       }
       const target = e.target as HTMLElement | null;
-      // 時刻表リスト等の内部スクロール領域（data-scrollable="true"）はネイティブスクロールに完全委譲
       if (target?.closest('[data-scrollable="true"]')) {
-        contentMode = 'scroll';
+        isTouchOnScrollableChild = true;
+        isContentTouching = false;
         return;
       }
-      if (isAnimatingBack) cancelResetAnimation();
 
-      // 最上部にいるときだけ、最初の move の方向でプルダウンかスクロールかを決める
-      contentMode = (content?.scrollTop ?? 0) <= 0 ? 'pending' : 'scroll';
-      contentStartX = e.touches[0].clientX;
-      contentStartY = e.touches[0].clientY;
-      lastY = contentStartY;
-      lastTime = Date.now();
+      isTouchOnScrollableChild = false;
+      isContentTouching = true;
+      hasPreventedDefaultInGesture = false;
+      gestureLockedHorizontal = false;
+
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      prevY = t.clientY;
+      lastVelY = t.clientY;
+      lastVelTime = performance.now();
       currentDeltaY = 0;
+      maxDeltaY = 0;
       velocity = 0;
     };
 
     const onContentTouchMove = (e: TouchEvent) => {
-      if (isClosingRef.current || e.touches.length !== 1) return;
-      if (contentMode === 'idle' || contentMode === 'scroll') return;
+      if (!isContentTouching || isClosingRef.current || isTouchOnScrollableChild || e.touches.length !== 1) return;
 
       const t = e.touches[0];
-      const dx = t.clientX - contentStartX;
-      const dy = t.clientY - contentStartY;
+      const clientX = t.clientX;
+      const clientY = t.clientY;
+      const stepY = clientY - prevY;
+      prevY = clientY;
 
-      if (contentMode === 'pending') {
-        // 微小な揺れでは判定しない（ブラウザがスクロールを開始する前に判定を確定させる）
-        if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
-        // 横方向・上方向・既にスクロール済みならこのジェスチャー中はネイティブスクロールに委譲
-        if (Math.abs(dx) > Math.abs(dy) || dy < 0 || (content?.scrollTop ?? 0) > 0) {
-          contentMode = 'scroll';
-          return;
-        }
-        // 下方向: このジェスチャーはシートのプルダウンとして最後まで扱う
-        contentMode = 'pull';
-        lastY = contentStartY;
-        lastTime = Date.now();
-        sheet.style.animation = 'none';
-        sheet.classList.remove('m3-sheet-enter');
-        sheet.style.setProperty('transition', 'none', 'important');
-        if (scrimRef.current) {
-          scrimRef.current.style.animation = 'none';
-          scrimRef.current.classList.remove('m3-scrim-enter');
-          scrimRef.current.style.setProperty('transition', 'none', 'important');
+      // 最初の移動で横スワイプ（ピルやタブの横スクロール等）と判定したら何もしない
+      if (!hasPreventedDefaultInGesture && currentDeltaY === 0) {
+        const totalDx = Math.abs(clientX - startX);
+        const totalDy = Math.abs(clientY - startY);
+        if (totalDx > 6 && totalDx > totalDy) {
+          gestureLockedHorizontal = true;
         }
       }
+      if (gestureLockedHorizontal) return;
 
-      // pull モード: ネイティブスクロールを止め、指に追従させる
-      if (e.cancelable) e.preventDefault();
-      const pullDelta = Math.max(0, t.clientY - contentStartY);
-      currentDeltaY = pullDelta;
-      sheet.style.setProperty('transform', `translate3d(0, ${pullDelta}px, 0)`, 'important');
-      if (scrimRef.current) {
-        const visibleH = getVisibleSheetHeight();
-        const fade = Math.max(0, 1 - pullDelta / (visibleH * 0.55));
-        scrimRef.current.style.setProperty('opacity', String(fade), 'important');
-      }
+      const scrollTop = content?.scrollTop ?? 0;
 
-      const now = Date.now();
-      const dt = now - lastTime;
-      if (dt > 10) {
-        velocity = (t.clientY - lastY) / dt;
-        lastY = t.clientY;
-        lastTime = now;
+      // シートを引き下げ中（currentDeltaY > 0）、または最上部（scrollTop <= 0）で下向き（stepY > 0）に動かした場合
+      if (currentDeltaY > 0 || (scrollTop <= 0 && stepY > 0)) {
+        if (!hasPreventedDefaultInGesture) {
+          prepareSheetForDrag();
+          hasPreventedDefaultInGesture = true;
+        }
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+
+        const nextDelta = currentDeltaY + stepY;
+        if (nextDelta > 0) {
+          applySheetDelta(nextDelta);
+        } else {
+          // 下に下げていたシートが 0px まで戻った（さらに上へ動かしている場合はそのままスクロールへ引き継ぐ）
+          const overflowUp = -nextDelta;
+          applySheetDelta(0);
+          if (overflowUp > 0 && content) {
+            content.scrollTop += overflowUp;
+          }
+        }
+        updateVelocity(clientY);
+      } else if (hasPreventedDefaultInGesture && content) {
+        // 一度シートを引き下げて preventDefault した同じタッチのまま、0px より上へ連続して押し上げた場合：
+        // ブラウザのネイティブスクロールが停止しているため手動で scrollTop を進める
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+        content.scrollTop = Math.max(0, content.scrollTop - stepY);
+        updateVelocity(clientY);
+      } else {
+        // 最初から通常のスクロール中：100%ブラウザのネイティブ慣性スクロールに任せる
+        lastVelY = clientY;
+        lastVelTime = performance.now();
       }
     };
 
     const onContentTouchEnd = () => {
-      const mode = contentMode;
-      contentMode = 'idle';
-      if (mode !== 'pull') return;
+      if (!isContentTouching) {
+        if (currentDeltaY !== 0 && !isClosingRef.current) {
+          snapBackToZero();
+        }
+        return;
+      }
+      isContentTouching = false;
+      isTouchOnScrollableChild = false;
 
-      // 最後の移動から時間が経って離した場合は静止とみなす
-      if (Date.now() - lastTime > 80) {
+      if (performance.now() - lastVelTime > 80) {
         velocity = 0;
       }
 
-      if (checkShouldDismiss(currentDeltaY, velocity)) {
-        dismissWithSwipe();
-      } else {
-        resetPosition();
+      if (currentDeltaY > 0) {
+        if (checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
+          dismissWithSwipe();
+        } else {
+          snapBackToZero();
+        }
+      } else if (hasPreventedDefaultInGesture) {
+        snapBackToZero();
       }
     };
 
-    // window.PointerEvent をサポートしている環境では PointerEvent のみを使用し、
-    // TouchEvent との重複登録・二重スタイル計算・メインスレッド過負荷を完全に防止
     const supportsPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
 
     if (header) {
@@ -592,8 +568,6 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     }
 
     return () => {
-      cancelResetAnimation();
-
       if (header) {
         if (supportsPointerEvents) {
           header.removeEventListener('pointerdown', onPointerDown);
@@ -614,7 +588,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         content.removeEventListener('touchcancel', onContentTouchEnd);
       }
     };
-  }, [activeStation, handleClose]);
+  }, [activeStation, dismissWithSwipe]);
 
   if (!activeStation) return null;
 
