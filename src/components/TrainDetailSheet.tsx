@@ -198,7 +198,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     if (!sheet || !activeTrain) return;
 
     let isDragging = false;
-    let isContentPulling = false;
     let isAnimatingBack = false;
     let finishResetFn: (() => void) | null = null;
 
@@ -208,10 +207,10 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     let currentDeltaY = 0;
     let velocity = 0;
 
+    // コンテンツ領域ジェスチャーの状態: idle / pending（方向判定待ち） / pull（シート連動） / scroll（ネイティブ委譲）
+    let contentMode: 'idle' | 'pending' | 'pull' | 'scroll' = 'idle';
+    let contentStartX = 0;
     let contentStartY = 0;
-    let pullStartY = 0;
-    let startScrollTop = 0;
-    let isTouchOnScrollableChild = false;
 
     // 可視領域のシート高さを取得（画面外の180px延長部を除く）
     const getVisibleSheetHeight = () => {
@@ -435,101 +434,89 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     // 2. コンテンツ領域での操作（内部スクロール最優先＆プルダウン連動）
     // ----------------------------------------------------
     const onContentTouchStart = (e: TouchEvent) => {
-      if (isClosingRef.current || e.touches.length !== 1) return;
-
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-scrollable="true"]')) {
-        isTouchOnScrollableChild = true;
-        isContentPulling = false;
+      if (isClosingRef.current || e.touches.length !== 1) {
+        contentMode = 'idle';
         return;
       }
-      isTouchOnScrollableChild = false;
+      const target = e.target as HTMLElement | null;
+      // 時刻表リスト等の内部スクロール領域（data-scrollable="true"）はネイティブスクロールに完全委譲
+      if (target?.closest('[data-scrollable="true"]')) {
+        contentMode = 'scroll';
+        return;
+      }
+      if (isAnimatingBack) cancelResetAnimation();
 
-      cancelResetAnimation();
-
+      // 最上部にいるときだけ、最初の move の方向でプルダウンかスクロールかを決める
+      contentMode = (content?.scrollTop ?? 0) <= 0 ? 'pending' : 'scroll';
+      contentStartX = e.touches[0].clientX;
       contentStartY = e.touches[0].clientY;
-      pullStartY = contentStartY;
-      startScrollTop = content?.scrollTop ?? 0;
       lastY = contentStartY;
       lastTime = Date.now();
-      isContentPulling = false;
       currentDeltaY = 0;
       velocity = 0;
     };
 
     const onContentTouchMove = (e: TouchEvent) => {
-      if (isClosingRef.current || isTouchOnScrollableChild || e.touches.length !== 1) return;
-      const clientY = e.touches[0].clientY;
-      const scrollTop = content?.scrollTop ?? 0;
+      if (isClosingRef.current || e.touches.length !== 1) return;
+      if (contentMode === 'idle' || contentMode === 'scroll') return;
 
-      if (isContentPulling) {
-        const pullDelta = clientY - pullStartY;
-        if (pullDelta > 0) {
-          if (e.cancelable) e.preventDefault();
-          currentDeltaY = pullDelta;
-          sheet.style.setProperty('transform', `translate3d(0, ${pullDelta}px, 0)`, 'important');
-          if (scrimRef.current) {
-            const visibleH = getVisibleSheetHeight();
-            const fade = Math.max(0, 1 - pullDelta / (visibleH * 0.55));
-            scrimRef.current.style.setProperty('opacity', String(fade), 'important');
-          }
-        } else {
-          currentDeltaY = 0;
-          sheet.style.setProperty('transform', 'translate3d(0, 0, 0)', 'important');
-          if (scrimRef.current) scrimRef.current.style.removeProperty('opacity');
-          if (pullDelta < -10) {
-            isContentPulling = false;
-          }
-        }
-      } else {
-        // プルダウン開始の判定:
-        // タッチ開始時・現在の両方で最上部（scrollTop <= 0）にあり、かつ下に12px以上ドラッグされた場合
-        if (startScrollTop <= 0 && scrollTop <= 0 && clientY > contentStartY + 12) {
-          isContentPulling = true;
-          pullStartY = clientY;
-          currentDeltaY = 0;
+      const t = e.touches[0];
+      const dx = t.clientX - contentStartX;
+      const dy = t.clientY - contentStartY;
 
-          sheet.style.animation = 'none';
-          sheet.classList.remove('m3-sheet-enter');
-          sheet.style.setProperty('transition', 'none', 'important');
-          if (scrimRef.current) {
-            scrimRef.current.style.animation = 'none';
-            scrimRef.current.classList.remove('m3-scrim-enter');
-            scrimRef.current.style.setProperty('transition', 'none', 'important');
-          }
-          if (e.cancelable) e.preventDefault();
-        } else if (scrollTop > 0) {
-          contentStartY = clientY;
-          startScrollTop = scrollTop;
+      if (contentMode === 'pending') {
+        // 微小な揺れでは判定しない（ブラウザがスクロールを開始する前に判定を確定させる）
+        if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+        // 横方向・上方向・既にスクロール済みならこのジェスチャー中はネイティブスクロールに委譲
+        if (Math.abs(dx) > Math.abs(dy) || dy < 0 || (content?.scrollTop ?? 0) > 0) {
+          contentMode = 'scroll';
+          return;
         }
+        // 下方向: このジェスチャーはシートのプルダウンとして最後まで扱う
+        contentMode = 'pull';
+        lastY = contentStartY;
+        lastTime = Date.now();
+        sheet.style.animation = 'none';
+        sheet.classList.remove('m3-sheet-enter');
+        sheet.style.setProperty('transition', 'none', 'important');
+        if (scrimRef.current) {
+          scrimRef.current.style.animation = 'none';
+          scrimRef.current.classList.remove('m3-scrim-enter');
+          scrimRef.current.style.setProperty('transition', 'none', 'important');
+        }
+      }
+
+      // pull モード: ネイティブスクロールを止め、指に追従させる
+      if (e.cancelable) e.preventDefault();
+      const pullDelta = Math.max(0, t.clientY - contentStartY);
+      currentDeltaY = pullDelta;
+      sheet.style.setProperty('transform', `translate3d(0, ${pullDelta}px, 0)`, 'important');
+      if (scrimRef.current) {
+        const visibleH = getVisibleSheetHeight();
+        const fade = Math.max(0, 1 - pullDelta / (visibleH * 0.55));
+        scrimRef.current.style.setProperty('opacity', String(fade), 'important');
       }
 
       const now = Date.now();
       const dt = now - lastTime;
       if (dt > 10) {
-        velocity = (clientY - lastY) / dt;
-        lastY = clientY;
+        velocity = (t.clientY - lastY) / dt;
+        lastY = t.clientY;
         lastTime = now;
       }
     };
 
     const onContentTouchEnd = () => {
-      isTouchOnScrollableChild = false;
-      if (!isContentPulling) {
-        if (currentDeltaY !== 0 || isAnimatingBack) {
-          resetPosition();
-        }
-        return;
-      }
+      const mode = contentMode;
+      contentMode = 'idle';
+      if (mode !== 'pull') return;
 
-      isContentPulling = false;
-
-      if (Date.now() - lastTime > 60) {
+      // 最後の移動から時間が経って離した場合は静止とみなす
+      if (Date.now() - lastTime > 80) {
         velocity = 0;
       }
 
-      const delta = currentDeltaY;
-      if (checkShouldDismiss(delta, velocity)) {
+      if (checkShouldDismiss(currentDeltaY, velocity)) {
         dismissWithSwipe();
       } else {
         resetPosition();
