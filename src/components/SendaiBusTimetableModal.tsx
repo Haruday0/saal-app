@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   Modal,
   SegmentedControl,
@@ -12,6 +12,8 @@ import {
   Box,
   Title,
   Skeleton,
+  Loader,
+  Center,
 } from '@mantine/core';
 import { getCurrentRailwaySeconds } from '../utils/trainPosition';
 import {
@@ -255,8 +257,18 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
 
   const isScheduleLoaded = Boolean(stationSchedule);
 
+  const listViewportRef = useRef<HTMLDivElement>(null);
+  const timelineViewportRef = useRef<HTMLDivElement>(null);
+
+  // 初期スクロール完了フラグ（初期スクロール前に上端トリガーが暴発するのを防止）
+  const hasInitialScrolledRef = useRef(false);
+  const isEarlierLoadingRef = useRef(false);
+  const isLaterLoadingRef = useRef(false);
+  const prevScrollStateRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
+
   // モーダルが開いた時、またはダイヤ・のりばフィルター切り替え時、データ読み込み完了時に表示ウィンドウを初期化
   useEffect(() => {
+    hasInitialScrolledRef.current = false;
     if (!isOpen || !isScheduleLoaded) return;
 
     const targetId = nextDepartureId || selectedDepartureId;
@@ -283,45 +295,83 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     stationSchedule?.stationId,
   ]);
 
-  // 前の便を読み込む（スクロール位置を調整して位置飛び防止）
+  // 前の便を自動読み込み（スクロール位置を同期的に調整して位置飛び防止）
   const handleLoadEarlier = useCallback(() => {
+    if (isEarlierLoadingRef.current) return;
     const vp = listViewportRef.current;
-    const prevScrollHeight = vp ? vp.scrollHeight : 0;
-    const prevScrollTop = vp ? vp.scrollTop : 0;
+    if (!vp) return;
+
+    isEarlierLoadingRef.current = true;
+    prevScrollStateRef.current = {
+      scrollHeight: vp.scrollHeight,
+      scrollTop: vp.scrollTop,
+    };
 
     setStartIndex((prev) => Math.max(0, prev - WINDOW_STEP));
-
-    requestAnimationFrame(() => {
-      if (vp) {
-        const heightDiff = vp.scrollHeight - prevScrollHeight;
-        if (heightDiff > 0) {
-          vp.scrollTop = prevScrollTop + heightDiff;
-        }
-      }
-    });
   }, []);
 
-  // スクロール時に下端に近づいたら次の便を自動読み込み
+  // startIndex 更新後に DOM の高さの差分分だけ scrollTop を同期補正
+  useLayoutEffect(() => {
+    if (!prevScrollStateRef.current) return;
+    const vp = listViewportRef.current;
+    if (vp) {
+      const { scrollHeight: prevHeight, scrollTop: prevTop } = prevScrollStateRef.current;
+      const heightDiff = vp.scrollHeight - prevHeight;
+      if (heightDiff > 0) {
+        vp.scrollTop = prevTop + heightDiff;
+      }
+    }
+    prevScrollStateRef.current = null;
+    const timer = setTimeout(() => {
+      isEarlierLoadingRef.current = false;
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [startIndex]);
+
+  // 後の便を自動読み込み
+  const handleLoadLater = useCallback(() => {
+    if (isLaterLoadingRef.current) return;
+    isLaterLoadingRef.current = true;
+    setEndIndex((prev) => Math.min(filteredDepartures.length, prev + WINDOW_STEP));
+    const timer = setTimeout(() => {
+      isLaterLoadingRef.current = false;
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [filteredDepartures.length]);
+
+  // スクロール監視：上端・下端に近づいたら自動読み込み（インフィニットスクロール）
   const handleScrollPositionChange = useCallback(
     ({ y }: { x: number; y: number }) => {
       const vp = listViewportRef.current;
       if (!vp) return;
-      if (vp.scrollHeight - y - vp.clientHeight < 300) {
-        setEndIndex((prev) => {
-          if (prev >= filteredDepartures.length) return prev;
-          return Math.min(filteredDepartures.length, prev + WINDOW_STEP);
-        });
+
+      // 初期スクロール完了前は上端トリガーを抑制
+      if (!hasInitialScrolledRef.current) return;
+
+      const scrollTop = y;
+      const clientHeight = vp.clientHeight;
+      const scrollHeight = vp.scrollHeight;
+
+      // 下端に近づいた（残り150px以内）
+      if (scrollTop + clientHeight >= scrollHeight - 150) {
+        if (endIndex < filteredDepartures.length) {
+          handleLoadLater();
+        }
+      }
+
+      // 上端に近づいた（scrollTop <= 60）
+      if (scrollTop <= 60) {
+        if (startIndex > 0) {
+          handleLoadEarlier();
+        }
       }
     },
-    [filteredDepartures.length]
+    [endIndex, filteredDepartures.length, startIndex, handleLoadLater, handleLoadEarlier]
   );
 
   const visibleDepartures = useMemo(() => {
     return filteredDepartures.slice(startIndex, endIndex);
   }, [filteredDepartures, startIndex, endIndex]);
-
-  const listViewportRef = useRef<HTMLDivElement>(null);
-  const timelineViewportRef = useRef<HTMLDivElement>(null);
 
   // 1. 時刻表一覧ビューの自動初期スクロール（targetTop - 85）
   useEffect(() => {
@@ -333,6 +383,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
 
       if (!nextDepartureId) {
         viewport.scrollTop = 0;
+        hasInitialScrolledRef.current = true;
         return;
       }
 
@@ -344,12 +395,16 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
         const targetRect = targetEl.getBoundingClientRect();
         const targetTop = targetRect.top - viewportRect.top + viewport.scrollTop;
         viewport.scrollTop = Math.max(0, targetTop - 85);
+        hasInitialScrolledRef.current = true;
       }
     };
 
     const rafId = requestAnimationFrame(scrollToCurrentDeparture);
     const t1 = setTimeout(scrollToCurrentDeparture, 30);
-    const t2 = setTimeout(scrollToCurrentDeparture, 120);
+    const t2 = setTimeout(() => {
+      scrollToCurrentDeparture();
+      hasInitialScrolledRef.current = true;
+    }, 120);
 
     return () => {
       cancelAnimationFrame(rafId);
@@ -363,7 +418,6 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     dayType,
     selectedFilterKey,
     isSkeletonVisible,
-    startIndex,
   ]);
 
   // 2. 全停車バス停タイムラインビューの自動初期スクロール（乗車バス停の位置へスクロール）
@@ -944,9 +998,9 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
             }}
             onScrollPositionChange={handleScrollPositionChange}
             onBottomReached={() => {
-              setEndIndex((prev) =>
-                Math.min(filteredDepartures.length, prev + WINDOW_STEP)
-              );
+              if (endIndex < filteredDepartures.length) {
+                handleLoadLater();
+              }
             }}
           >
             {filteredDepartures.length === 0 ? (
@@ -956,18 +1010,9 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
             ) : (
               <Stack gap={0} pb="xl">
                 {startIndex > 0 && (
-                  <Box p="xs" ta="center">
-                    <Button
-                      variant="light"
-                      color="gray"
-                      size="xs"
-                      radius="xl"
-                      leftSection={<Icon name="expand_less" size={14} />}
-                      onClick={handleLoadEarlier}
-                    >
-                      これより前の便を表示（残り{startIndex}件）
-                    </Button>
-                  </Box>
+                  <Center py="sm">
+                    <Loader size="xs" color="gray" type="dots" />
+                  </Center>
                 )}
 
                 {visibleDepartures.map((dep, vIdx) => {
@@ -1003,22 +1048,9 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                 })}
 
                 {endIndex < filteredDepartures.length && (
-                  <Box p="md" ta="center">
-                    <Button
-                      variant="light"
-                      color="gray"
-                      size="xs"
-                      radius="xl"
-                      leftSection={<Icon name="expand_more" size={14} />}
-                      onClick={() =>
-                        setEndIndex((prev) =>
-                          Math.min(filteredDepartures.length, prev + WINDOW_STEP)
-                        )
-                      }
-                    >
-                      さらに後の便を表示（残り{filteredDepartures.length - endIndex}件）
-                    </Button>
-                  </Box>
+                  <Center py="sm">
+                    <Loader size="xs" color="gray" type="dots" />
+                  </Center>
                 )}
               </Stack>
             )}
