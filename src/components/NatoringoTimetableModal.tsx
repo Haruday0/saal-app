@@ -704,7 +704,7 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                         px={8}
                         py={8}
                       >
-                        {/* 左側: 発車時刻 | 系統カラーバッジ | 路線名・行先 | 次発バッジ */}
+                        {/* 左側: 発車時刻 | 系統カラーバッジ | 路線名・行先 */}
                         <Group gap={7} wrap="nowrap" className="min-w-0">
                           <Text
                             fz="sm"
@@ -732,21 +732,6 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                               >
                                 {dep.headsign}行
                               </Text>
-                              {isNext && (
-                                <Badge
-                                  size="xs"
-                                  variant="filled"
-                                  radius="sm"
-                                  tt="none"
-                                  style={{
-                                    backgroundColor: dep.routeColor,
-                                    color: '#ffffff',
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  次発
-                                </Badge>
-                              )}
                             </Group>
                             <Text fz={10.5} c="dimmed" className="truncate">
                               {dep.lineName}

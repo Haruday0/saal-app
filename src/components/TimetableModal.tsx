@@ -745,7 +745,6 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
                       }}
                       style={{
                         borderRadius: 'var(--mantine-radius-md)',
-                        backgroundColor: isNext ? 'var(--mantine-color-saal-light)' : undefined,
                         opacity: isSuspendedToday ? 0.45 : dimmed ? 0.5 : 1,
                         width: '100%',
                       }}
@@ -765,12 +764,11 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
                             fw={800}
                             w="3.2em"
                             ta="right"
-                            c={isNext ? 'saal' : undefined}
                             className="font-english tabular-nums shrink-0"
                           >
                             {train.departureTime}
                           </Text>
-                          <Text fz="sm" fw={isNext ? 800 : 500} c={isNext ? 'saal' : undefined} className="shrink-0">
+                          <Text fz="sm" fw={isNext ? 800 : 500} className="shrink-0">
                             {train.destination}
                           </Text>
                           {train.trainType !== '普通' && (

@@ -705,7 +705,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                       px={8}
                       py={8}
                     >
-                      {/* 左側: 発車時刻 | 終着駅ナンバリング＋行先 | 次発バッジ */}
+                      {/* 左側: 発車時刻 | 終着駅ナンバリング＋行先 */}
                       <Group gap={8} wrap="nowrap" className="min-w-0">
                         <Text
                           fz="sm"
@@ -732,19 +732,6 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                             {item.terminalStation}行
                           </Text>
                         </Group>
-
-                        {isNext && (
-                          <Badge
-                            size="xs"
-                            color={meta.mantineColor}
-                            variant="filled"
-                            radius="sm"
-                            tt="none"
-                            className="shrink-0"
-                          >
-                            次発
-                          </Badge>
-                        )}
                       </Group>
 
                       {/* 右側: のりば | 終着到着時刻 | 詳細シェブロン */}
