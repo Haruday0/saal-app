@@ -19,6 +19,8 @@ import {
   SendaiBusDeparture,
   SendaiBusStationSchedule,
   getSendaiBusDayType,
+  fetchSendaiBusTripDetail,
+  calcExpectedTime,
 } from '../utils/sendaiBusApi';
 import { JisBus } from './icons';
 import { Icon } from './Icon';
@@ -98,12 +100,24 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     initialDepartureId
   );
 
+  // TransferGuide から直接開いたか、時刻表一覧から選択したかの判別フラグ
+  const [openedFromList, setOpenedFromList] = useState(false);
+
+  // バス停ごとのリアルタイム遅延秒数マップ (stopId -> delaySec)
+  const [stopDelays, setStopDelays] = useState<Record<string, number>>({});
+
   // モーダルが開いたときに初期状態を同期
   useEffect(() => {
     if (isOpen) {
       setDayType(getSendaiBusDayType(now));
       setSelectedFilterKey(initialFilterKey || null);
-      setSelectedDepartureId(initialDepartureId || null);
+      if (initialDepartureId) {
+        setSelectedDepartureId(initialDepartureId);
+        setOpenedFromList(false);
+      } else {
+        setSelectedDepartureId(null);
+        setOpenedFromList(false);
+      }
     }
   }, [isOpen, stationSchedule?.stationId, initialFilterKey, initialDepartureId]);
 
@@ -129,13 +143,11 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     return allDepartures.filter((d) => d.filterKey === selectedFilterKey);
   }, [allDepartures, selectedFilterKey]);
 
-  // 次発便（現在時刻以降の最初の便。本日ダイヤの場合は遅延込みの予想発車時刻で判定）
+  // 次発便（現在時刻以降の最初の便。時刻表一覧は定時ダイヤ準拠）
   const nextDepartureId = useMemo(() => {
+    if (!isTodayCal) return null;
     for (const dep of filteredDepartures) {
-      const effectiveSec = isTodayCal
-        ? dep.scheduledSec + dep.delaySec
-        : dep.scheduledSec;
-      if (effectiveSec >= currentMinuteFloorSec) {
+      if (dep.scheduledSec >= currentMinuteFloorSec) {
         return dep.id;
       }
     }
@@ -147,6 +159,28 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     if (!selectedDepartureId) return null;
     return allDepartures.find((d) => d.id === selectedDepartureId) || null;
   }, [selectedDepartureId, allDepartures]);
+
+  // 便詳細表示時に、バス停ごとのリアルタイム遅延秒数をAPIから取得
+  useEffect(() => {
+    if (!selectedDeparture || !isTodayCal) {
+      setStopDelays({});
+      return;
+    }
+    let cancelled = false;
+    fetchSendaiBusTripDetail(selectedDeparture.routeId, selectedDeparture.tripId)
+      .then((detail) => {
+        if (!cancelled && detail?.delays) {
+          setStopDelays(detail.delays);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to fetch Sendai Bus trip detail:', err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDeparture?.routeId, selectedDeparture?.tripId, isTodayCal]);
 
   const listViewportRef = useRef<HTMLDivElement>(null);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
@@ -241,7 +275,10 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
         <Group gap={8} wrap="nowrap" align="center">
           <JisBus size={18} color={SENDAI_BUS_COLOR} />
           <Text fw={900} fz={15}>
-            {stationSchedule.stationName}駅 仙台市営バス時刻表
+            {stationSchedule.stationName}駅{' '}
+            {selectedDeparture && !openedFromList
+              ? '仙台市営バス運行詳細'
+              : '仙台市営バス時刻表'}
           </Text>
         </Group>
       }
@@ -285,23 +322,27 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
               backgroundColor: 'var(--mantine-color-default-hover)',
             }}
           >
-            <Group justify="space-between" align="center" wrap="nowrap">
-              <Button
-                size="compact-xs"
-                variant="default"
-                radius="md"
-                leftSection={<Icon name="arrow_back" size={14} />}
-                onClick={() => setSelectedDepartureId(null)}
-                fw={700}
-              >
-                時刻表に戻る
-              </Button>
+            <Group justify="space-between" align="center" wrap="wrap" gap={8}>
+              {openedFromList ? (
+                <Button
+                  size="compact-xs"
+                  variant="default"
+                  radius="md"
+                  leftSection={<Icon name="arrow_back" size={14} />}
+                  onClick={() => {
+                    setSelectedDepartureId(null);
+                    setOpenedFromList(false);
+                  }}
+                  fw={700}
+                >
+                  時刻表に戻る
+                </Button>
+              ) : (
+                <Text fz={12} fw={700} c="dimmed">
+                  運行状況・全停車バス停
+                </Text>
+              )}
               <Group gap={6} wrap="nowrap">
-                {isTodayCal && selectedDeparture.isDelayed && (
-                  <Badge size="xs" radius="sm" color="red" variant="filled" tt="none">
-                    +{selectedDeparture.delayMinutes}分遅れ
-                  </Badge>
-                )}
                 <Badge
                   size="xs"
                   radius="sm"
@@ -357,32 +398,34 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                 </Stack>
               </Group>
 
-              <Stack gap={1} align="flex-end" style={{ flexShrink: 0 }}>
-                <Text
-                  fz={11}
-                  c="dimmed"
-                  fw={600}
-                  className="font-english tabular-nums"
-                >
-                  {selectedDeparture.platform
-                    ? `${selectedDeparture.platform} `
-                    : ''}
-                  {selectedDeparture.departureTime}発
-                </Text>
-                {isTodayCal && selectedDeparture.isDelayed ? (
-                  <Text
-                    fz="xs"
-                    fw={800}
-                    c="red"
-                    className="font-english tabular-nums"
-                  >
-                    予想 {selectedDeparture.expectedTime}発
-                  </Text>
+              <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
+                {isTodayCal && selectedDeparture.isDelayed && selectedDeparture.expectedTime ? (
+                  <Group gap={6} align="baseline" wrap="nowrap" justify="flex-end">
+                    <del
+                      style={{
+                        color: 'var(--mantine-color-dimmed)',
+                        fontWeight: 500,
+                        fontSize: 12,
+                      }}
+                      className="font-english tabular-nums"
+                    >
+                      {selectedDeparture.departureTime}
+                    </del>
+                    <span
+                      style={{ color: '#2563eb', fontWeight: 800, fontSize: 16 }}
+                      className="font-english tabular-nums dark:text-[#60a5fa]"
+                    >
+                      {selectedDeparture.expectedTime}発
+                    </span>
+                  </Group>
                 ) : (
-                  <Text fz="xs" fw={800} className="font-english tabular-nums">
-                    終着 {selectedDeparture.terminalArrivalTime}着
+                  <Text fz={16} fw={800} className="font-english tabular-nums">
+                    {selectedDeparture.departureTime}発
                   </Text>
                 )}
+                <Text fz={11} c="dimmed" fw={600} className="font-english tabular-nums">
+                  終着 {selectedDeparture.terminalArrivalTime}着
+                </Text>
               </Stack>
             </Group>
           </Stack>
@@ -476,163 +519,216 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                               : undefined
                           }
                         >
-                          <Box
-                            data-sendai-bus-stop-index={i}
-                            py={4}
-                            px={6}
-                            style={{
-                              borderRadius: 'var(--mantine-radius-sm)',
-                              backgroundColor: isBoarding
-                                ? `${selectedDeparture.routeColor}1F`
-                                : undefined,
-                            }}
-                          >
-                            <Group justify="space-between" wrap="nowrap" gap="xs">
-                              {/* 左側: バス停名 ＋ のりば番号 ＋ バッジ */}
-                              <Group
-                                gap={6}
-                                wrap="nowrap"
-                                align="center"
-                                className="min-w-0"
+                          {(() => {
+                            // バス停ごとのリアルタイム遅延秒数（APIの遅延秒数マップ、なければ便全体の遅延）
+                            const stopDelaySec = isTodayCal
+                              ? (stopDelays[st.stopId] ?? selectedDeparture.delaySec ?? 0)
+                              : 0;
+                            const hasStopDelay = !passed && stopDelaySec >= 60;
+                            const stopExpectedTime = hasStopDelay
+                              ? calcExpectedTime(st.time, stopDelaySec)
+                              : null;
+
+                            const hasBadges =
+                              Boolean(st.platform) ||
+                              isBoarding ||
+                              isCurrentPos ||
+                              (isFirst && !isBoarding) ||
+                              (isLast && !isBoarding);
+
+                            const timeSuffix = i <= boardingIdx && !isLast ? '発' : '着';
+
+                            return (
+                              <Box
+                                data-sendai-bus-stop-index={i}
+                                py={4}
+                                px={6}
+                                style={{
+                                  borderRadius: 'var(--mantine-radius-sm)',
+                                  backgroundColor: isBoarding
+                                    ? `${selectedDeparture.routeColor}1F`
+                                    : undefined,
+                                }}
                               >
-                                <Text
-                                  fz="sm"
-                                  fw={
-                                    isBoarding || isLast
-                                      ? 800
-                                      : passed
-                                        ? 500
-                                        : 700
-                                  }
-                                  c={passed && !isBoarding ? 'dimmed' : undefined}
-                                  className="truncate"
-                                >
-                                  {st.stopName}
-                                </Text>
-
-                                {st.platform && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    variant="default"
-                                    fw={600}
-                                    tt="none"
-                                    className="shrink-0"
-                                  >
-                                    {st.platform}番のりば
-                                  </Badge>
-                                )}
-
-                                {isBoarding && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    variant="filled"
-                                    tt="none"
-                                    style={{
-                                      backgroundColor: selectedDeparture.routeColor,
-                                      color: selectedDeparture.routeTextColor,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    乗車
-                                  </Badge>
-                                )}
-                                {isCurrentPos && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    variant="outline"
-                                    tt="none"
-                                    style={{
-                                      borderColor: selectedDeparture.routeColor,
-                                      color: selectedDeparture.routeColor,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    現在位置
-                                  </Badge>
-                                )}
-                                {isFirst && !isBoarding && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    color="gray"
-                                    variant="light"
-                                    tt="none"
-                                    className="shrink-0"
-                                  >
-                                    始発
-                                  </Badge>
-                                )}
-                                {isLast && !isBoarding && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    color="gray"
-                                    variant="light"
-                                    tt="none"
-                                    className="shrink-0"
-                                  >
-                                    終着
-                                  </Badge>
-                                )}
-                              </Group>
-
-                              {/* 右側: 遅延表示 ＋ 所要時間（乗車バス停以降）＋ 発着時刻 */}
-                              <Group
-                                gap={6}
-                                wrap="nowrap"
-                                align="center"
-                                justify="flex-end"
-                                style={{ flexShrink: 0 }}
-                              >
-                                {isBoarding &&
-                                  isTodayCal &&
-                                  selectedDeparture.isDelayed && (
-                                    <Badge
-                                      size="xs"
-                                      radius="sm"
-                                      color="red"
-                                      variant="light"
-                                      fw={700}
-                                      tt="none"
-                                      className="font-english tabular-nums shrink-0"
+                                <Group justify="space-between" wrap="nowrap" align="center" gap="sm">
+                                  {/* 左側: バス停名（1段目・絶対に縦1文字に潰れない） ＋ 各種バッジ群（2段目） */}
+                                  <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+                                    <Text
+                                      fz="sm"
+                                      fw={
+                                        isBoarding || isLast
+                                          ? 800
+                                          : passed
+                                            ? 500
+                                            : 700
+                                      }
+                                      c={passed && !isBoarding ? 'dimmed' : undefined}
+                                      style={{
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        lineHeight: 1.3,
+                                      }}
                                     >
-                                      +{selectedDeparture.delayMinutes}分遅れ
-                                    </Badge>
-                                  )}
-                                {i > boardingIdx && diffFromBoarding >= 0 && (
-                                  <Text
-                                    fz={11}
-                                    fw={600}
-                                    c="dimmed"
-                                    className="font-english tabular-nums"
-                                    style={{
-                                      whiteSpace: 'nowrap',
-                                      minWidth: 34,
-                                      textAlign: 'right',
-                                    }}
+                                      {st.stopName}
+                                    </Text>
+
+                                    {hasBadges && (
+                                      <Group gap={4} wrap="wrap" align="center">
+                                        {st.platform && (
+                                          <Badge
+                                            size="xs"
+                                            radius="xs"
+                                            variant="default"
+                                            fw={600}
+                                            tt="none"
+                                            className="shrink-0"
+                                          >
+                                            {st.platform}番のりば
+                                          </Badge>
+                                        )}
+
+                                        {isBoarding && (
+                                          <Badge
+                                            size="xs"
+                                            radius="xs"
+                                            variant="filled"
+                                            tt="none"
+                                            style={{
+                                              backgroundColor: selectedDeparture.routeColor,
+                                              color: selectedDeparture.routeTextColor,
+                                              flexShrink: 0,
+                                            }}
+                                          >
+                                            乗車
+                                          </Badge>
+                                        )}
+                                        {isCurrentPos && (
+                                          <Badge
+                                            size="xs"
+                                            radius="xs"
+                                            variant="outline"
+                                            tt="none"
+                                            className="shrink-0"
+                                            style={{
+                                              borderColor: selectedDeparture.routeColor,
+                                              color: selectedDeparture.routeColor,
+                                              flexShrink: 0,
+                                            }}
+                                          >
+                                            現在位置
+                                          </Badge>
+                                        )}
+                                        {isFirst && !isBoarding && (
+                                          <Badge
+                                            size="xs"
+                                            radius="xs"
+                                            color="gray"
+                                            variant="light"
+                                            tt="none"
+                                            className="shrink-0"
+                                          >
+                                            始発
+                                          </Badge>
+                                        )}
+                                        {isLast && !isBoarding && (
+                                          <Badge
+                                            size="xs"
+                                            radius="xs"
+                                            color="gray"
+                                            variant="light"
+                                            tt="none"
+                                            className="shrink-0"
+                                          >
+                                            終着
+                                          </Badge>
+                                        )}
+                                      </Group>
+                                    )}
+                                  </Stack>
+
+                                  {/* 右側: 所要時間（乗車バス停以降） ＋ 発着時刻（定時取消線＋予想時刻） */}
+                                  <Group
+                                    gap={6}
+                                    wrap="nowrap"
+                                    align="center"
+                                    justify="flex-end"
+                                    style={{ flexShrink: 0 }}
                                   >
-                                    +{diffFromBoarding}分
-                                  </Text>
-                                )}
-                                <Text
-                                  fz="xs"
-                                  fw={isBoarding || isLast ? 800 : 700}
-                                  c={passed && !isBoarding ? 'dimmed' : undefined}
-                                  className="font-english tabular-nums"
-                                  style={{
-                                    whiteSpace: 'nowrap',
-                                    minWidth: 52,
-                                    textAlign: 'right',
-                                  }}
-                                >
-                                  {st.time} {i <= boardingIdx && !isLast ? '発' : '着'}
-                                </Text>
-                              </Group>
-                            </Group>
-                          </Box>
+                                    {i > boardingIdx && diffFromBoarding >= 0 && (
+                                      <Text
+                                        fz={11}
+                                        fw={600}
+                                        c="dimmed"
+                                        className="font-english tabular-nums"
+                                        style={{
+                                          whiteSpace: 'nowrap',
+                                          minWidth: 32,
+                                          textAlign: 'right',
+                                        }}
+                                      >
+                                        +{diffFromBoarding}分
+                                      </Text>
+                                    )}
+
+                                    {hasStopDelay ? (
+                                      <Group
+                                        gap={4}
+                                        align="baseline"
+                                        wrap="nowrap"
+                                        justify="flex-end"
+                                        style={{ whiteSpace: 'nowrap' }}
+                                      >
+                                        <del
+                                          style={{
+                                            color: 'var(--mantine-color-dimmed)',
+                                            fontWeight: 500,
+                                            fontSize: 12,
+                                          }}
+                                          className="font-english tabular-nums"
+                                        >
+                                          {st.time}
+                                        </del>
+                                        <span
+                                          style={{
+                                            color: '#3b82f6',
+                                            fontWeight: 800,
+                                            fontSize: 14,
+                                          }}
+                                          className="font-english tabular-nums dark:text-[#60a5fa]"
+                                        >
+                                          {stopExpectedTime}
+                                        </span>
+                                        <span
+                                          style={{
+                                            fontSize: 12,
+                                            fontWeight: isBoarding || isLast ? 800 : 700,
+                                            color: 'var(--mantine-color-text)',
+                                          }}
+                                        >
+                                          {timeSuffix}
+                                        </span>
+                                      </Group>
+                                    ) : (
+                                      <Text
+                                        fz="xs"
+                                        fw={isBoarding || isLast ? 800 : 700}
+                                        c={passed && !isBoarding ? 'dimmed' : undefined}
+                                        className="font-english tabular-nums"
+                                        style={{
+                                          whiteSpace: 'nowrap',
+                                          minWidth: 52,
+                                          textAlign: 'right',
+                                        }}
+                                      >
+                                        {st.time} {timeSuffix}
+                                      </Text>
+                                    )}
+                                  </Group>
+                                </Group>
+                              </Box>
+                            );
+                          })()}
                         </Timeline.Item>
                       );
                     })}
@@ -754,10 +850,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
             ) : (
               <Stack gap={0} pb="xl">
                 {filteredDepartures.map((dep, dIdx) => {
-                  const effectiveSec = isTodayCal
-                    ? dep.scheduledSec + dep.delaySec
-                    : dep.scheduledSec;
-                  const isPast = effectiveSec < currentMinuteFloorSec;
+                  const effectiveSec = dep.scheduledSec;
+                  const isPast = isTodayCal ? effectiveSec < currentMinuteFloorSec : false;
                   const isNext = dep.id === nextDepartureId;
 
                   return (
@@ -770,12 +864,16 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                         via={dep.via}
                         platform={dep.platform}
                         departureTime={dep.departureTime}
-                        isDelayed={isTodayCal && dep.isDelayed}
-                        delayMinutes={dep.delayMinutes}
-                        expectedTime={dep.expectedTime}
+                        isDelayed={false}
+                        delayMinutes={0}
+                        expectedTime={undefined}
+                        showDelay={false}
                         isNext={isNext}
                         isPast={isPast && !isNext}
-                        onClick={() => setSelectedDepartureId(dep.id)}
+                        onClick={() => {
+                          setSelectedDepartureId(dep.id);
+                          setOpenedFromList(true);
+                        }}
                         isLast={dIdx === filteredDepartures.length - 1}
                       />
                     </div>

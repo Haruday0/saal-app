@@ -587,6 +587,7 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                       isDelayed={dep.isDelayed}
                       delayMinutes={dep.delayMinutes}
                       expectedTime={dep.expectedTime}
+                      showDelay={true}
                       isNext={dIdx === 0}
                       onClick={() =>
                         openSendaiBusTimetable(dep.id, selectedSendaiBusFilterKey)

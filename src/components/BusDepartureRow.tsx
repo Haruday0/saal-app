@@ -26,6 +26,8 @@ export interface BusDepartureRowProps {
   delayMinutes?: number;
   /** 遅延予想発車時刻（HH:mm） */
   expectedTime?: string;
+  /** 遅延表示（取消線＋予想時刻）を行うか（デフォルト: true。時刻表一覧等では false にして定時時刻のみ表示） */
+  showDelay?: boolean;
   /** 直近の次便かどうか */
   isNext?: boolean;
   /** 過去の便かどうか */
@@ -64,15 +66,16 @@ export function formatHeadsign(headsign: string): string {
 export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
   routeCode,
   routeColor = '#a3d742',
-  routeTextColor,
+  routeTextColor = '#1b4406',
   headsign,
   via,
   platform,
   lineName,
   departureTime,
   isDelayed = false,
-  delayMinutes = 0,
+  delayMinutes: _delayMinutes = 0,
   expectedTime,
+  showDelay = true,
   isNext = false,
   isPast = false,
   onClick,
@@ -80,7 +83,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
   isLast = false,
 }) => {
   const displayHeadsign = formatHeadsign(headsign);
-  const showDelay = isDelayed && Boolean(expectedTime);
+  const shouldShowDelay = showDelay && isDelayed && Boolean(expectedTime);
 
   return (
     <UnstyledButton
@@ -132,7 +135,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
           minHeight: 46,
         }}
       >
-        {showDelay ? (
+        {shouldShowDelay ? (
           <div
             style={{
               position: 'relative',
@@ -272,21 +275,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
             </span>
           )}
 
-          {showDelay && (
-            <Badge
-              size="xs"
-              color="red"
-              variant="light"
-              radius="sm"
-              tt="none"
-              fw={700}
-              className="shrink-0"
-            >
-              +{delayMinutes}分遅れ
-            </Badge>
-          )}
-
-          {isNext && !showDelay && (
+          {isNext && (
             <Badge
               size="xs"
               variant="light"

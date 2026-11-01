@@ -1,13 +1,24 @@
 import { getHolidaysSet, isWeekendHolidayOrYearEnd } from './calendar';
 import { getCurrentRailwaySeconds } from './trainPosition';
-import { getRouteBadgeTextColor } from '../components/BusRouteBadge';
 
 const API_BASE = 'https://busmap.haruday0.live/api';
 
+export const API_BASE_URL = API_BASE;
 export const SENDAI_BUS_COLOR = '#00703c';
-export const SENDAI_BUS_ROUTE_DEFAULT_COLOR = '#a3d742';
+export const SENDAI_BUS_BADGE_BG = '#a3d742';
+export const SENDAI_BUS_BADGE_TEXT = '#1b4406';
+export const SENDAI_BUS_ROUTE_DEFAULT_COLOR = SENDAI_BUS_BADGE_BG;
 
 export type SendaiBusDayType = 'weekday' | 'saturday' | 'holiday';
+
+export interface SendaiBusTripDetail {
+  route_id: string;
+  trip_id: string;
+  route_name: string;
+  route_color: string;
+  delays?: Record<string, number>; // stop_id -> delay_seconds
+  trip_delay?: number;
+}
 
 export interface SendaiBusRouteMaster {
   short_name: string;
@@ -329,6 +340,73 @@ export async function fetchSendaiBusStopTimetable(
 }
 
 /**
+ * 定時時刻（"HH:MM" または "HH:MM:SS"）と遅延秒数から予想時刻（"HH:MM"）を計算
+ */
+export function calcExpectedTime(timeStr: string, delaySec: number): string {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':').map((v) => parseInt(v, 10) || 0);
+  const sec = parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
+  const totalSec = Math.max(0, sec + delaySec);
+  const totalMinutes = Math.floor(totalSec / 60);
+  const h = Math.floor(totalMinutes / 60) % 24;
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+const TRIP_DETAIL_CACHE_TTL_MS = 15 * 1000; // 15秒TTL
+const tripDetailCache = new Map<string, { data: SendaiBusTripDetail; fetchedAt: number }>();
+const tripDetailPromises = new Map<string, Promise<SendaiBusTripDetail | null>>();
+
+/**
+ * 便詳細（全停車バス停およびバス停ごとのリアルタイム遅延秒数）を取得
+ * 失敗時はエラーを投げずに null を返す
+ */
+export async function fetchSendaiBusTripDetail(
+  routeId: string,
+  tripId: string,
+  forceRefresh = false
+): Promise<SendaiBusTripDetail | null> {
+  const cacheKey = `${routeId}__${tripId}`;
+  const nowMs = Date.now();
+  const cached = tripDetailCache.get(cacheKey);
+  if (!forceRefresh && cached && nowMs - cached.fetchedAt < TRIP_DETAIL_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const inflight = tripDetailPromises.get(cacheKey);
+  if (inflight) return inflight;
+
+  const url = `${API_BASE_URL}/trips/${encodeURIComponent(routeId)}/${encodeURIComponent(tripId)}`;
+
+  const promise = (async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
+
+      if (!res.ok) {
+        return null;
+      }
+      const data = (await res.json()) as SendaiBusTripDetail;
+      tripDetailCache.set(cacheKey, { data, fetchedAt: Date.now() });
+      return data;
+    } catch {
+      return null;
+    } finally {
+      tripDetailPromises.delete(cacheKey);
+    }
+  })();
+
+  tripDetailPromises.set(cacheKey, promise);
+  return promise;
+}
+
+
+/**
  * アプリ起動時のバックグラウンド・ウォームアップ
  * Azure App Service のコールドスタートをモジュール読み込み時に先行起動する
  */
@@ -444,10 +522,9 @@ export async function fetchSendaiBusStationSchedule(
     for (const [routeId, tripsMap] of Object.entries(rawTt.timetables)) {
       const routeInfo = routesMaster[routeId];
       const routeCode = routeInfo?.short_name || routeId;
-      // GTFS / API から渡される正式な路線カラーを採用（#付与、フォールバックは #a3d742）
-      const rawColor = routeInfo?.color ? `#${routeInfo.color.replace(/^#/, '')}` : SENDAI_BUS_ROUTE_DEFAULT_COLOR;
-      const routeColor = rawColor;
-      const routeTextColor = getRouteBadgeTextColor(routeColor);
+      // 仙台市営バスの系統バッジ色は #a3d742（文字色 #1b4406）に完全固定
+      const routeColor = SENDAI_BUS_BADGE_BG;
+      const routeTextColor = SENDAI_BUS_BADGE_TEXT;
 
       for (const [tripId, trip] of Object.entries(tripsMap)) {
         const dayType = parseServiceDayType(trip.service_id || '');

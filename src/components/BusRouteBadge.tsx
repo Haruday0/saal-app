@@ -27,7 +27,7 @@ export interface BusRouteBadgeProps {
   routeCode: string;
   /** 路線シンボルカラー（デフォルト: #a3d742） */
   color?: string;
-  /** 文字色（省略時は背景色の明暗に応じた自動決定） */
+  /** 文字色（デフォルト: #1b4406、明示的カラー指定時は自動計算） */
   textColor?: string;
   /** サイズ（sm: 13px / md: 14px） */
   size?: 'sm' | 'md';
@@ -49,11 +49,15 @@ export const BusRouteBadge: React.FC<BusRouteBadgeProps> = ({
   className = '',
 }) => {
   const bg = color.startsWith('#') ? color : `#${color}`;
-  const computedTextColor = textColor
-    ? textColor.startsWith('#')
-      ? textColor
-      : `#${textColor}`
+  // なとりん号など明示的に別カラーが渡された場合はそのカラーに応じた文字色（または指定文字色）を使用
+  const effectiveTextColor = textColor
+    ? textColor
+    : bg.toLowerCase() === '#a3d742'
+    ? '#1b4406'
     : getRouteBadgeTextColor(bg);
+  const computedTextColor = effectiveTextColor.startsWith('#')
+    ? effectiveTextColor
+    : `#${effectiveTextColor}`;
 
   const isMd = size === 'md';
 
