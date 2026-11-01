@@ -475,7 +475,6 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                 return (
                   <Timeline active={-1} bulletSize={18} lineWidth={2.5}>
                     {stops.map((st, i) => {
-                      const isFirst = i === 0;
                       const isLast = i === stops.length - 1;
                       const isBoarding = i === boardingIdx;
                       const isCurrentPos =
@@ -529,13 +528,6 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                               ? calcExpectedTime(st.time, stopDelaySec)
                               : null;
 
-                            const hasBadges =
-                              Boolean(st.platform) ||
-                              isBoarding ||
-                              isCurrentPos ||
-                              (isFirst && !isBoarding) ||
-                              (isLast && !isBoarding);
-
                             const timeSuffix = i <= boardingIdx && !isLast ? '発' : '着';
 
                             return (
@@ -551,8 +543,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                                 }}
                               >
                                 <Group justify="space-between" wrap="nowrap" align="center" gap="sm">
-                                  {/* 左側: バス停名（1段目・絶対に縦1文字に潰れない） ＋ 各種バッジ群（2段目） */}
-                                  <Stack gap={2} style={{ flex: 1, minWidth: 0 }}>
+                                  {/* 左側: バス停名 ＋ のりば番号 */}
+                                  <Group gap={6} wrap="nowrap" align="center" style={{ flex: 1, minWidth: 0 }}>
                                     <Text
                                       fz="sm"
                                       fw={
@@ -573,79 +565,19 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                                       {st.stopName}
                                     </Text>
 
-                                    {hasBadges && (
-                                      <Group gap={4} wrap="wrap" align="center">
-                                        {st.platform && (
-                                          <Badge
-                                            size="xs"
-                                            radius="xs"
-                                            variant="default"
-                                            fw={600}
-                                            tt="none"
-                                            className="shrink-0"
-                                          >
-                                            {st.platform}番のりば
-                                          </Badge>
-                                        )}
-
-                                        {isBoarding && (
-                                          <Badge
-                                            size="xs"
-                                            radius="xs"
-                                            variant="filled"
-                                            tt="none"
-                                            style={{
-                                              backgroundColor: selectedDeparture.routeColor,
-                                              color: selectedDeparture.routeTextColor,
-                                              flexShrink: 0,
-                                            }}
-                                          >
-                                            乗車
-                                          </Badge>
-                                        )}
-                                        {isCurrentPos && (
-                                          <Badge
-                                            size="xs"
-                                            radius="xs"
-                                            variant="outline"
-                                            tt="none"
-                                            className="shrink-0"
-                                            style={{
-                                              borderColor: selectedDeparture.routeColor,
-                                              color: selectedDeparture.routeColor,
-                                              flexShrink: 0,
-                                            }}
-                                          >
-                                            現在位置
-                                          </Badge>
-                                        )}
-                                        {isFirst && !isBoarding && (
-                                          <Badge
-                                            size="xs"
-                                            radius="xs"
-                                            color="gray"
-                                            variant="light"
-                                            tt="none"
-                                            className="shrink-0"
-                                          >
-                                            始発
-                                          </Badge>
-                                        )}
-                                        {isLast && !isBoarding && (
-                                          <Badge
-                                            size="xs"
-                                            radius="xs"
-                                            color="gray"
-                                            variant="light"
-                                            tt="none"
-                                            className="shrink-0"
-                                          >
-                                            終着
-                                          </Badge>
-                                        )}
-                                      </Group>
+                                    {st.platform && (
+                                      <Badge
+                                        size="xs"
+                                        radius="xs"
+                                        variant="default"
+                                        fw={600}
+                                        tt="none"
+                                        className="shrink-0"
+                                      >
+                                        {st.platform}番のりば
+                                      </Badge>
                                     )}
-                                  </Stack>
+                                  </Group>
 
                                   {/* 右側: 所要時間（乗車バス停以降） ＋ 発着時刻（定時取消線＋予想時刻） */}
                                   <Group

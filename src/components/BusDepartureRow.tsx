@@ -4,7 +4,7 @@ import { BusRouteBadge } from './BusRouteBadge';
 import { Icon } from './Icon';
 
 export interface BusDepartureRowProps {
-  /** 系統番号・略号（例: 420, まち01, 宮交） */
+  /** 系統番号・略号（例: 420, まち01） */
   routeCode: string;
   /** 路線シンボルカラー（デフォルト: #a3d742） */
   routeColor?: string;

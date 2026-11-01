@@ -23,7 +23,7 @@ export function getRouteBadgeTextColor(bgColor: string): string {
 }
 
 export interface BusRouteBadgeProps {
-  /** 系統番号・略号（例: 420, まち01, K610, 宮交） */
+  /** 系統番号・略号（例: 420, まち01, K610） */
   routeCode: string;
   /** 路線シンボルカラー（デフォルト: #a3d742） */
   color?: string;

@@ -62,10 +62,10 @@ export const STATIONS: Station[] = [
     nameEn: 'Nagamachi',
     stationNumber: '02',
     hasTohokuJoban: true,
-    transferLines: ['地下鉄南北線', '市営バス', '宮城交通バス'],
+    transferLines: ['地下鉄南北線', '市営バス'],
     transfers: [
       { id: 't-ng-1', type: 'subway_n', symbol: 'N', name: '南北線', nameEn: 'Namboku Line' },
-      { id: 't-ng-2', type: 'bus', name: '市営バス・宮交バス', nameEn: 'City Bus' }
+      { id: 't-ng-2', type: 'bus', name: '市営バス', nameEn: 'City Bus' }
     ],
     platforms: {
       up: {
@@ -145,9 +145,9 @@ export const STATIONS: Station[] = [
     nameEn: 'Minami-Sendai',
     stationNumber: '04',
     hasTohokuJoban: true,
-    transferLines: ['市営バス', '宮城交通バス', 'なとりん号'],
+    transferLines: ['市営バス', 'なとりん号'],
     transfers: [
-      { id: 't-ms-1', type: 'bus', name: '市営・宮交バス', nameEn: 'City Bus' },
+      { id: 't-ms-1', type: 'bus', name: '市営バス', nameEn: 'City Bus' },
       { id: 't-ms-2', type: 'bus', name: 'なとりん号（西口）', nameEn: 'Natoringo Bus' }
     ],
     platforms: {

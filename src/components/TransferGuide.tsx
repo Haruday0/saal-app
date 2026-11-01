@@ -43,117 +43,6 @@ interface TransferGuideProps {
   station: Station;
 }
 
-interface MiyakouDeparture {
-  id: string;
-  routeCode: string;
-  routeColor: string;
-  headsign: string;
-  via: string;
-  platform: string;
-  departureTime: string;
-}
-
-/**
- * 宮城交通バスの直近発車便生成（長町駅・南仙台駅）
- * 現在時刻（now）に基づいて次の発車便を算出
- */
-function getUpcomingMiyakouDepartures(
-  stationId: string,
-  now: Date
-): MiyakouDeparture[] {
-  const currentHours = now.getHours();
-  const currentMinutes = now.getMinutes();
-  const nowTotalMinutes = currentHours * 60 + currentMinutes;
-
-  if (stationId === 'nagamachi') {
-    const routes = [
-      {
-        idPrefix: 'nagamachi-yagiyama',
-        headsign: '八木山動物公園駅・山田',
-        via: '長町南駅',
-        platform: '西口4番',
-        minuteIntervals: [12, 32, 52],
-      },
-      {
-        idPrefix: 'nagamachi-kagitori',
-        headsign: '山田・太白・鈎取',
-        via: '富沢駅',
-        platform: '西口3番',
-        minuteIntervals: [5, 25, 45],
-      },
-    ];
-
-    const result: MiyakouDeparture[] = [];
-    routes.forEach((r) => {
-      for (let offset = 0; offset < 90; offset++) {
-        const targetTotalMinutes = nowTotalMinutes + offset;
-        const h = Math.floor(targetTotalMinutes / 60) % 24;
-        const m = targetTotalMinutes % 60;
-        if (h >= 6 && h < 23 && r.minuteIntervals.includes(m)) {
-          const hh = String(h).padStart(2, '0');
-          const mm = String(m).padStart(2, '0');
-          result.push({
-            id: `${r.idPrefix}-${hh}${mm}`,
-            routeCode: '宮交',
-            routeColor: '#b91c1c',
-            headsign: r.headsign,
-            via: r.via,
-            platform: r.platform,
-            departureTime: `${hh}:${mm}`,
-          });
-          break;
-        }
-      }
-    });
-    return result.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
-  }
-
-  if (stationId === 'minami-sendai') {
-    const routes = [
-      {
-        idPrefix: 'minami-sendai-shiroumaru',
-        headsign: '四郎丸・袋原',
-        via: '東中田',
-        platform: '東口',
-        minuteIntervals: [15, 45],
-      },
-      {
-        idPrefix: 'minami-sendai-lifetown',
-        headsign: 'ライフタウン名取',
-        via: '中田',
-        platform: '西口',
-        minuteIntervals: [0, 30],
-      },
-    ];
-
-    const result: MiyakouDeparture[] = [];
-    routes.forEach((r) => {
-      for (let offset = 0; offset < 90; offset++) {
-        const targetTotalMinutes = nowTotalMinutes + offset;
-        const h = Math.floor(targetTotalMinutes / 60) % 24;
-        const m = targetTotalMinutes % 60;
-        if (h >= 6 && h < 22 && r.minuteIntervals.includes(m)) {
-          const hh = String(h).padStart(2, '0');
-          const mm = String(m).padStart(2, '0');
-          result.push({
-            id: `${r.idPrefix}-${hh}${mm}`,
-            routeCode: '宮交',
-            routeColor: '#b91c1c',
-            headsign: r.headsign,
-            via: r.via,
-            platform: r.platform,
-            departureTime: `${hh}:${mm}`,
-          });
-          break;
-        }
-      }
-    });
-    return result.sort((a, b) => a.departureTime.localeCompare(b.departureTime));
-  }
-
-  return [];
-}
-
 /** 共通事業者セクションヘッダー */
 interface TransportSectionHeaderProps {
   icon: React.ReactNode;
@@ -206,8 +95,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
     'taishido',
     'minami-sendai',
   ].includes(stationId);
-  const hasMiyakouBus =
-    stationId === 'nagamachi' || stationId === 'minami-sendai';
   const hasNatoringo = [
     'minami-sendai',
     'natori',
@@ -364,9 +251,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   const subwayStationName = getSubwayStationNameById(stationId);
   const subwayDirections = getAvailableSubwayDirections(stationId);
   const natoringoStation = getNatoringoStationSchedule(stationId);
-  const miyakouUpcoming = hasMiyakouBus
-    ? getUpcomingMiyakouDepartures(stationId, now)
-    : [];
 
   return (
     <Stack gap="sm">
@@ -750,33 +634,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                 </Box>
               );
             })}
-          </Stack>
-        </Paper>
-      )}
-
-      {/* 4. 宮城交通バス */}
-      {hasMiyakouBus && miyakouUpcoming.length > 0 && (
-        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
-          <TransportSectionHeader
-            icon={<JisBus size={18} />}
-            title="宮城交通バス"
-            badgeLabel="一般路線"
-          />
-
-          <Stack gap={0}>
-            {miyakouUpcoming.map((dep, dIdx) => (
-              <BusDepartureRow
-                key={dep.id}
-                routeCode={dep.routeCode}
-                routeColor={dep.routeColor}
-                headsign={dep.headsign}
-                via={dep.via}
-                platform={dep.platform}
-                departureTime={dep.departureTime}
-                isNext={dIdx === 0}
-                isLast={dIdx === miyakouUpcoming.length - 1}
-              />
-            ))}
           </Stack>
         </Paper>
       )}
