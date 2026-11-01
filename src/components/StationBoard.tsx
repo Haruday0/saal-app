@@ -893,13 +893,12 @@ export const StationBoard: React.FC<StationBoardProps> = ({
 
           {/* ================= 下部：LED発車標筐体（印字ラベル帯＋2段白色LED：360×24 dot 実機確定レイアウト） ================= */}
           <div className="bg-[#0a0c0e] px-2.5 pt-1.5 pb-2 select-none">
-            {/* 印字ラベル帯（360dot LEDグリッドの各スロット位置に完全一致） */}
-            <div className="grid grid-cols-[48fr_7fr_82fr_19fr_96fr_17fr_86fr_5fr] items-center text-center px-1 pb-1 text-[8.5px] text-neutral-300 font-sans whitespace-nowrap leading-none tracking-tight">
+            {/* 印字ラベル帯（360dot LEDグリッドの各スロット位置に完全一致: 48 + 96 + 12 + 96 + 12 + 96 = 360 dots） */}
+            <div className="grid grid-cols-[48fr_96fr_12fr_96fr_12fr_96fr] items-center text-center px-1 pb-1 text-[8.5px] text-neutral-300 font-sans whitespace-nowrap leading-none tracking-tight">
               <div className="flex items-center justify-center gap-1">
                 <span className="font-bold">種別</span>
                 <span className="text-[6.5px] font-english text-neutral-400">Type</span>
               </div>
-              <span />
               <div className="flex items-center justify-center gap-1">
                 <span className="font-bold">時刻</span>
                 <span className="text-[6.5px] font-english text-neutral-400">Time</span>
@@ -911,10 +910,9 @@ export const StationBoard: React.FC<StationBoardProps> = ({
               </div>
               <span />
               <span />
-              <span />
             </div>
 
-            {/* LED表示窓（内枠ガラス面・360×24 dot：48 + 7 + 82 + 19 + 96 + 17 + 86 + 5 = 360 dots） */}
+            {/* LED表示窓（内枠ガラス面・360×24 dot：48 + 96 + 12 + 96 + 12 + 96 = 360 dots） */}
             <div
               className="rounded-none px-1 py-0 font-led shadow-[inset_0_1px_3px_rgba(0,0,0,0.9)] border border-neutral-950"
               style={bgStyle}
@@ -929,9 +927,9 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   return (
                     <div
                       key={train.id}
-                      className="w-full h-[24px] text-[20px] font-bold leading-none grid grid-cols-[48fr_7fr_82fr_19fr_96fr_17fr_86fr_5fr] items-center text-center whitespace-nowrap rounded-none cursor-default min-w-0"
+                      className="w-full h-[24px] text-[20px] font-bold leading-none grid grid-cols-[48fr_96fr_12fr_96fr_12fr_96fr] items-center text-center whitespace-nowrap rounded-none cursor-default min-w-0"
                     >
-                      {/* 1. 種別（48 dots） */}
+                      {/* 1. 種別（48fr: 48 dots） */}
                       <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const typeDots = getDestinationDots(stationId, train.trainType);
@@ -955,16 +953,13 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         })()}
                       </div>
 
-                      {/* 2. 空白（7 dots） */}
-                      <span className="h-full w-full" />
-
-                      {/* 3. 時刻（82 dots = 16 + 2 + 16 + 2 + 10 + 2 + 16 + 2 + 16） */}
+                      {/* 2. 時刻（96fr: 82dot実機数字を左右7dot余白で中央配置） */}
                       <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES.white}`}>
                         {hasDotFont(stationId, train.departureTime) ? (
                           <DotLedText
                             text={train.departureTime}
                             stationId={stationId}
-                            targetWidth={82}
+                            targetWidth={96}
                             className="h-full w-full block"
                           />
                         ) : (
@@ -974,10 +969,10 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         )}
                       </div>
 
-                      {/* 4. 空白（19 dots） */}
+                      {/* 3. 空白（12fr） */}
                       <span className="h-full w-full" />
 
-                      {/* 5. 行先（96 dots） */}
+                      {/* 4. 行先（96fr: 96 dots） */}
                       <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const satDots = getDestinationDots(stationId, cleanDest);
@@ -1029,10 +1024,10 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         })()}
                       </div>
 
-                      {/* 6. 空白（17 dots） */}
+                      {/* 5. 空白（12fr） */}
                       <span className="h-full w-full" />
 
-                      {/* 7. 両数（86 dots: 「4両編成」「2両編成」枠） */}
+                      {/* 6. 両数（96fr: 86dot実機文字を左右5dot余白で中央配置） */}
                       <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES.white}`}>
                         {(() => {
                           const carsTextFull = `${train.cars}両編成`;
@@ -1041,7 +1036,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                             return (
                               <DotLedBitmap
                                 dots={carsDotsFull}
-                                targetWidth={86}
+                                targetWidth={96}
                                 className="h-full w-full block"
                                 preserveAspectRatio="xMidYMid meet"
                                 ariaLabel={carsTextFull}
@@ -1054,7 +1049,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                             return (
                               <DotLedBitmap
                                 dots={carsDotsShort}
-                                targetWidth={86}
+                                targetWidth={96}
                                 className="h-full w-full block"
                                 preserveAspectRatio="xMidYMid meet"
                                 ariaLabel={carsTextShort}
@@ -1071,9 +1066,6 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           );
                         })()}
                       </div>
-
-                      {/* 8. 右端空白（5 dots） */}
-                      <span className="h-full w-full" />
                     </div>
                   );
                 })}

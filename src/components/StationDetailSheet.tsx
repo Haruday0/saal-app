@@ -130,6 +130,13 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 親（App.tsx）の再レンダリング（1秒ごとの時計更新等）で onClose の参照が変わっても
+  // handleClose や drag 用 useEffect が不必要に再生成されないよう ref で最新参照を保持
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   const handleSelectTrain = useCallback((train: DepartureTrain) => {
     setSelectedTrain(train);
   }, []);
@@ -215,7 +222,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       if (sheet) {
         sheet.removeEventListener('transitionend', onTransitionEnd);
       }
-      onClose();
+      onCloseRef.current();
       setActiveStation(null);
       isClosingRef.current = false;
     };
@@ -235,12 +242,17 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     closeTimeoutRef.current = setTimeout(() => {
       cleanup();
     }, timeoutMs);
-  }, [onClose]);
+  }, []);
 
   // スワイプ終了時の専用減速クローズ処理
   const dismissWithSwipe = useCallback(() => {
     handleClose(true);
   }, [handleClose]);
+
+  const dismissWithSwipeRef = useRef(dismissWithSwipe);
+  useEffect(() => {
+    dismissWithSwipeRef.current = dismissWithSwipe;
+  });
 
   // ポインター・タッチ連動による「指に吸い付く」自由ドラッグ・スワイプ連動処理
   useEffect(() => {
@@ -267,14 +279,36 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
     // 閉じる判定ヘルパー
     const checkShouldDismiss = (delta: number, maxDelta: number, vel: number) => {
-      // 指を上向きに戻している最中（vel < -0.04）、または最高引き下げ位置から10px以上上へ戻した場合は閉じない
-      if (vel < -0.04 || delta < maxDelta - 10) {
-        return false;
-      }
       const visibleH = getVisibleSheetHeight();
       const distanceThreshold = Math.min(90, Math.max(60, visibleH * 0.12));
-      const isFlick = (delta > 22 && vel > 0.28) || (delta > 12 && vel > 0.55);
-      return delta > distanceThreshold || isFlick;
+      const deepThreshold = Math.min(180, Math.max(120, visibleH * 0.25));
+
+      // 1. 深く引き下げられている場合（deepThreshold 以上）:
+      // 明確な上向きフリック（vel < -0.35 かつ 35px 以上戻した）でない限り確実に閉じる
+      if (delta >= deepThreshold) {
+        if (vel < -0.35 && delta < maxDelta - 35) {
+          return false;
+        }
+        return true;
+      }
+
+      // 2. 下向きフリック判定（移動量が小さくても下方向への勢いがあれば閉じる）
+      const isFlickDown = (delta > 20 && vel > 0.28) || (delta > 12 && vel > 0.55);
+      if (isFlickDown) {
+        return true;
+      }
+
+      // 3. 通常の引き下げ閾値（distanceThreshold 以上）:
+      // 指の離れ際の上向き微小反動（微小な負の速度 vel > -0.2）を許容し、
+      // 意図的な上戻し（vel < -0.2 または 25px 以上戻した）でなければ閉じる
+      if (delta > distanceThreshold) {
+        if (vel < -0.2 || delta < maxDelta - 25) {
+          return false;
+        }
+        return true;
+      }
+
+      return false;
     };
 
     // シートのインライン変位を即座にドラッグ状態にセット
@@ -379,7 +413,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
 
       if (currentDeltaY > 0 && checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
-        dismissWithSwipe();
+        dismissWithSwipeRef.current();
       } else {
         snapBackToZero();
       }
@@ -425,7 +459,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
 
       if (currentDeltaY > 0 && checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
-        dismissWithSwipe();
+        dismissWithSwipeRef.current();
       } else {
         snapBackToZero();
       }
@@ -517,7 +551,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
 
       if (currentDeltaY > 0 && checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
-        dismissWithSwipe();
+        dismissWithSwipeRef.current();
       } else {
         snapBackToZero();
       }
@@ -567,7 +601,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         content.removeEventListener('touchcancel', onContentTouchEnd);
       }
     };
-  }, [activeStation, dismissWithSwipe]);
+  }, [activeStation?.id]);
 
   if (!activeStation) return null;
 
@@ -606,8 +640,8 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
             style={{ backgroundColor: 'var(--mantine-color-default-border)' }}
           />
 
-          <Group justify="space-between" wrap="nowrap">
-            <div className="pointer-events-none">
+          <Group justify="space-between" align="center" wrap="nowrap">
+            <div className="pointer-events-none" style={{ minWidth: 0, flex: 1 }}>
               <Group gap={8} align="baseline" wrap="nowrap">
                 <Title order={2} fz={20} fw={800} className="tracking-tight">
                   {activeStation.name}駅
