@@ -108,7 +108,7 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
       </section>
 
       {/* 最下部スクロール時の余白（最下部までスクロールして上に引っ張ったときは同色背景が自然に追従） */}
-      <div className="h-48 pb-safe bg-transparent" />
+      <div className="h-4 pb-safe" />
     </>
   );
 });
@@ -173,27 +173,34 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     }
   }, [station]);
 
-  // Material 3 準拠のスムーズな閉じる処理（ボタンタップ・背景タップ・スワイプ共通）
-  // React state を更新せず DOM の transform/opacity のみを直接起動することで、
-  // 閉じる 260ms の間、メインスレッド JS 実行を完全 0ms にし GPU コンポジター単独で 60fps/120fps 化
-  const handleClose = useCallback(() => {
+  // Material 3 準拠のスムーズな閉じる処理
+  // ボタン等（fromSwipe = false）: 260ms M3 Emphasized Accelerate
+  // スワイプ終了時（fromSwipe = true）: 200ms 減速カーブ cubic-bezier(0.16, 1, 0.3, 1) で指の初速を活かして即時クローズ
+  const handleClose = useCallback((fromSwipe = false) => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
 
     const sheet = sheetRef.current;
     const scrim = scrimRef.current;
 
-    // M3 Emphasized Accelerate（cubic-bezier(0.3, 0.0, 0.8, 0.15)・260ms / scrim 240ms）で画面外へスライド
+    const isSwipe = fromSwipe === true;
+    const duration = isSwipe ? 200 : 260;
+    const scrimDuration = isSwipe ? 180 : 240;
+    const timeoutMs = isSwipe ? 220 : 280;
+    const easing = isSwipe
+      ? 'cubic-bezier(0.16, 1, 0.3, 1)'
+      : 'cubic-bezier(0.3, 0.0, 0.8, 0.15)';
+
     if (sheet) {
       sheet.style.animation = 'none';
       sheet.classList.remove('m3-sheet-enter');
-      sheet.style.setProperty('transition', 'transform 260ms cubic-bezier(0.3, 0.0, 0.8, 0.15)', 'important');
+      sheet.style.setProperty('transition', `transform ${duration}ms ${easing}`, 'important');
       sheet.style.setProperty('transform', 'translate3d(0, 100%, 0)', 'important');
     }
     if (scrim) {
       scrim.style.animation = 'none';
       scrim.classList.remove('m3-scrim-enter');
-      scrim.style.setProperty('transition', 'opacity 240ms cubic-bezier(0.3, 0.0, 0.8, 0.15)', 'important');
+      scrim.style.setProperty('transition', `opacity ${scrimDuration}ms ${easing}`, 'important');
       scrim.style.setProperty('opacity', '0', 'important');
     }
 
@@ -224,14 +231,16 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       sheet.addEventListener('transitionend', onTransitionEnd);
     }
 
-    // transitionend が万一発火しない場合の完全同期フォールバック（260ms完了後20msバッファの280ms）
+    // transitionend が万一発火しない場合の完全同期フォールバック
     closeTimeoutRef.current = setTimeout(() => {
       cleanup();
-    }, 280);
+    }, timeoutMs);
   }, [onClose]);
 
-  // スワイプ終了時も同一の滑らかな handleClose に統合
-  const dismissWithSwipe = handleClose;
+  // スワイプ終了時の専用減速クローズ処理
+  const dismissWithSwipe = useCallback(() => {
+    handleClose(true);
+  }, [handleClose]);
 
   // ポインター・タッチ連動による「指に吸い付く」自由ドラッグ・スワイプ連動処理
   useEffect(() => {
@@ -241,29 +250,25 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     if (!sheet || !activeStation) return;
 
     let isHeaderDragging = false;
-    let isContentTouching = false;
-    let isTouchOnScrollableChild = false;
-    let hasPreventedDefaultInGesture = false;
+    let mode: 'idle' | 'pending' | 'pull' | 'scroll' = 'idle';
 
     let startX = 0;
     let startY = 0;
-    let prevY = 0;
+    let pullStartY = 0;
     let lastVelY = 0;
     let lastVelTime = 0;
     let currentDeltaY = 0;
     let maxDeltaY = 0;
     let velocity = 0;
-    let gestureLockedHorizontal = false;
 
     const getVisibleSheetHeight = () => {
-      const totalH = sheet.offsetHeight || window.innerHeight * 0.75;
-      return Math.max(300, totalH - 180);
+      return sheet.offsetHeight || window.innerHeight * 0.75;
     };
 
     // 閉じる判定ヘルパー
     const checkShouldDismiss = (delta: number, maxDelta: number, vel: number) => {
-      // 指を上向きに戻している最中（vel < -0.05）、または最高引き下げ位置から12px以上上へ戻した場合は閉じない
-      if (vel < -0.05 || delta < maxDelta - 12) {
+      // 指を上向きに戻している最中（vel < -0.04）、または最高引き下げ位置から10px以上上へ戻した場合は閉じない
+      if (vel < -0.04 || delta < maxDelta - 10) {
         return false;
       }
       const visibleH = getVisibleSheetHeight();
@@ -300,7 +305,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
     };
 
-    // 元の位置（0px）へスムーズに戻す処理（余計な removeProperty タイマーは使わず translate3d(0,0,0) に収束させる）
+    // 元の位置（0px）へスムーズに戻す処理
     const snapBackToZero = () => {
       if (isClosingRef.current) return;
       currentDeltaY = 0;
@@ -319,7 +324,6 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       const dt = now - lastVelTime;
       if (dt > 8) {
         const instVel = (clientY - lastVelY) / dt;
-        // 急激なノイズを抑えつつ直近の指の向きを正確に反映
         velocity = velocity * 0.3 + instVel * 0.7;
         lastVelY = clientY;
         lastVelTime = now;
@@ -340,7 +344,6 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
       isHeaderDragging = true;
       startY = e.clientY;
-      prevY = startY;
       lastVelY = startY;
       lastVelTime = performance.now();
       currentDeltaY = 0;
@@ -358,7 +361,6 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       if (delta >= 0) {
         applySheetDelta(delta);
       } else {
-        // 上に引っ張ったときは弾性抵抗で引き上げ
         const damp = Math.max(-50, delta * 0.15);
         applySheetDelta(damp);
       }
@@ -376,7 +378,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         velocity = 0;
       }
 
-      if (checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
+      if (currentDeltaY > 0 && checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
         dismissWithSwipe();
       } else {
         snapBackToZero();
@@ -390,7 +392,6 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
       isHeaderDragging = true;
       startY = e.touches[0].clientY;
-      prevY = startY;
       lastVelY = startY;
       lastVelTime = performance.now();
       currentDeltaY = 0;
@@ -423,7 +424,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         velocity = 0;
       }
 
-      if (checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
+      if (currentDeltaY > 0 && checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
         dismissWithSwipe();
       } else {
         snapBackToZero();
@@ -431,29 +432,24 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     // ====================================================
-    // 2. コンテンツ領域での連続シームレス操作（スクロール ⇔ シート引き下げ）
+    // 2. コンテンツ領域でのジェスチャー制御（スクロール ⇔ 引き下げ）
     // ====================================================
     const onContentTouchStart = (e: TouchEvent) => {
       if (isClosingRef.current || e.touches.length !== 1) {
-        isContentTouching = false;
+        mode = 'idle';
         return;
       }
       const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-scrollable="true"]')) {
-        isTouchOnScrollableChild = true;
-        isContentTouching = false;
+      if (target?.closest('[data-scrollable="true"]') || (content?.scrollTop ?? 0) > 1) {
+        mode = 'scroll';
         return;
       }
 
-      isTouchOnScrollableChild = false;
-      isContentTouching = true;
-      hasPreventedDefaultInGesture = false;
-      gestureLockedHorizontal = false;
-
+      mode = 'pending';
       const t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
-      prevY = t.clientY;
+      pullStartY = t.clientY;
       lastVelY = t.clientY;
       lastVelTime = performance.now();
       currentDeltaY = 0;
@@ -462,84 +458,67 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onContentTouchMove = (e: TouchEvent) => {
-      if (!isContentTouching || isClosingRef.current || isTouchOnScrollableChild || e.touches.length !== 1) return;
+      if (mode === 'idle' || mode === 'scroll' || isClosingRef.current || e.touches.length !== 1) {
+        return;
+      }
 
       const t = e.touches[0];
       const clientX = t.clientX;
       const clientY = t.clientY;
-      const stepY = clientY - prevY;
-      prevY = clientY;
 
-      // 最初の移動で横スワイプ（ピルやタブの横スクロール等）と判定したら何もしない
-      if (!hasPreventedDefaultInGesture && currentDeltaY === 0) {
-        const totalDx = Math.abs(clientX - startX);
-        const totalDy = Math.abs(clientY - startY);
-        if (totalDx > 6 && totalDx > totalDy) {
-          gestureLockedHorizontal = true;
-        }
-      }
-      if (gestureLockedHorizontal) return;
+      if (mode === 'pending') {
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
 
-      const scrollTop = content?.scrollTop ?? 0;
-
-      // シートを引き下げ中（currentDeltaY > 0）、または最上部（scrollTop <= 0）で下向き（stepY > 0）に動かした場合
-      if (currentDeltaY > 0 || (scrollTop <= 0 && stepY > 0)) {
-        if (!hasPreventedDefaultInGesture) {
-          prepareSheetForDrag();
-          hasPreventedDefaultInGesture = true;
-        }
-        if (e.cancelable) {
-          e.preventDefault();
+        if (dy < 0 || Math.abs(dx) > Math.abs(dy) || (content?.scrollTop ?? 0) > 1 || !e.cancelable) {
+          mode = 'scroll';
+          return;
         }
 
-        const nextDelta = currentDeltaY + stepY;
-        if (nextDelta > 0) {
-          applySheetDelta(nextDelta);
-        } else {
-          // 下に下げていたシートが 0px まで戻った（さらに上へ動かしている場合はそのままスクロールへ引き継ぐ）
-          const overflowUp = -nextDelta;
-          applySheetDelta(0);
-          if (overflowUp > 0 && content) {
-            content.scrollTop += overflowUp;
-          }
-        }
-        updateVelocity(clientY);
-      } else if (hasPreventedDefaultInGesture && content) {
-        // 一度シートを引き下げて preventDefault した同じタッチのまま、0px より上へ連続して押し上げた場合：
-        // ブラウザのネイティブスクロールが停止しているため手動で scrollTop を進める
-        if (e.cancelable) {
-          e.preventDefault();
-        }
-        content.scrollTop = Math.max(0, content.scrollTop - stepY);
-        updateVelocity(clientY);
-      } else {
-        // 最初から通常のスクロール中：100%ブラウザのネイティブ慣性スクロールに任せる
+        mode = 'pull';
+        pullStartY = clientY;
         lastVelY = clientY;
         lastVelTime = performance.now();
+        prepareSheetForDrag();
+      }
+
+      if (mode === 'pull') {
+        if (!e.cancelable) {
+          snapBackToZero();
+          mode = 'scroll';
+          return;
+        }
+        e.preventDefault();
+        const rawDelta = clientY - pullStartY;
+        if (rawDelta >= 0) {
+          applySheetDelta(rawDelta);
+        } else {
+          const damp = Math.max(-30, rawDelta * 0.12);
+          applySheetDelta(damp);
+        }
+        updateVelocity(clientY);
       }
     };
 
     const onContentTouchEnd = () => {
-      if (!isContentTouching) {
+      const endedMode = mode;
+      mode = 'idle';
+
+      if (endedMode !== 'pull') {
         if (currentDeltaY !== 0 && !isClosingRef.current) {
           snapBackToZero();
         }
         return;
       }
-      isContentTouching = false;
-      isTouchOnScrollableChild = false;
 
       if (performance.now() - lastVelTime > 80) {
         velocity = 0;
       }
 
-      if (currentDeltaY > 0) {
-        if (checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
-          dismissWithSwipe();
-        } else {
-          snapBackToZero();
-        }
-      } else if (hasPreventedDefaultInGesture) {
+      if (currentDeltaY > 0 && checkShouldDismiss(currentDeltaY, maxDeltaY, velocity)) {
+        dismissWithSwipe();
+      } else {
         snapBackToZero();
       }
     };
@@ -603,11 +582,10 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
           }
         }}
         className="fixed inset-0 bg-slate-900/15 dark:bg-black/40 m3-scrim m3-scrim-enter"
-        onClick={handleClose}
+        onClick={() => handleClose(false)}
       />
 
-      {/* ボトムシート（sendai-bus-map-v2 #bottom-panel 準拠のガラスサーフェス仕様）
-          ※底面に画面外180px分の実コンテンツ延長枠を持たせ、上に引っ張ったときに下のコンテンツが自然に現れる設計 */}
+      {/* ボトムシート（sendai-bus-map-v2 #bottom-panel 準拠のガラスサーフェス仕様） */}
       <div
         ref={sheetRef}
         onAnimationEnd={(e) => {
@@ -615,7 +593,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
             sheetRef.current.classList.remove('m3-sheet-enter');
           }
         }}
-        className="relative z-50 w-full max-w-md mx-auto glass-surface-strong rounded-t-3xl shadow-glass-lg flex flex-col h-[calc(78vh+180px)] h-[calc(100dvh-5.5rem+180px)] -mb-[180px] border-t border-white/80 dark:border-slate-700/80 m3-bottom-sheet m3-sheet-enter"
+        className="relative z-50 w-full max-w-md mx-auto glass-surface-strong rounded-t-3xl shadow-glass-lg flex flex-col h-[78vh] h-[calc(100dvh-5.5rem)] border-t border-white/80 dark:border-slate-700/80 m3-bottom-sheet m3-sheet-enter"
       >
         {/* シートヘッダー（ドラッグ／下スワイプで閉じられる領域） */}
         <div
@@ -650,7 +628,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
               variant="default"
               onClick={(e) => {
                 e.stopPropagation();
-                handleClose();
+                handleClose(false);
               }}
               aria-label="閉じる"
               className="pointer-events-auto"
@@ -659,13 +637,16 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         </div>
 
         {/* コンテンツ領域 */}
-        <div ref={contentRef} className="p-3.5 overflow-y-auto space-y-4 overscroll-contain">
+        <div ref={contentRef} className="flex-1 min-h-0 p-3.5 pb-8 overflow-y-auto space-y-4 overscroll-contain">
           <StationSheetContent
             station={activeStation}
             selectedTrain={selectedTrain}
             onSelectTrain={handleSelectTrain}
           />
         </div>
+
+        {/* シート引き上げ時の下端隙間防止エクステンション */}
+        <div className="absolute top-full inset-x-0 h-[120px] pointer-events-none glass-surface-strong" aria-hidden="true" />
       </div>
     </div>
   );
