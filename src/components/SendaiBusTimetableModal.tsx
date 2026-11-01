@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import {
   Modal,
   SegmentedControl,
@@ -22,6 +22,7 @@ import {
   getSendaiBusDayType,
   fetchSendaiBusTripDetail,
   calcExpectedTime,
+  MIN_SKELETON_TIME,
 } from '../utils/sendaiBusApi';
 import { JisBus } from './icons';
 import { Icon } from './Icon';
@@ -191,12 +192,140 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     };
   }, [selectedDeparture?.routeId, selectedDeparture?.tripId, isTodayCal]);
 
+  // スケルトンローダーのチラつき・フラッシュ防止用の最低表示時間管理
+  const rawLoading = Boolean(isLoading || !stationSchedule);
+  const [isSkeletonVisible, setIsSkeletonVisible] = useState(rawLoading);
+  const skeletonStartTimeRef = useRef<number | null>(null);
+  const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      if (skeletonTimerRef.current) {
+        clearTimeout(skeletonTimerRef.current);
+        skeletonTimerRef.current = null;
+      }
+      skeletonStartTimeRef.current = null;
+      setIsSkeletonVisible(rawLoading);
+      return;
+    }
+
+    if (rawLoading) {
+      if (skeletonTimerRef.current) {
+        clearTimeout(skeletonTimerRef.current);
+        skeletonTimerRef.current = null;
+      }
+      if (skeletonStartTimeRef.current === null) {
+        skeletonStartTimeRef.current = Date.now();
+      }
+      setIsSkeletonVisible(true);
+    } else {
+      if (skeletonStartTimeRef.current !== null) {
+        const elapsed = Date.now() - skeletonStartTimeRef.current;
+        const remaining = MIN_SKELETON_TIME - elapsed;
+        if (remaining > 0) {
+          skeletonTimerRef.current = setTimeout(() => {
+            setIsSkeletonVisible(false);
+            skeletonStartTimeRef.current = null;
+            skeletonTimerRef.current = null;
+          }, remaining);
+        } else {
+          setIsSkeletonVisible(false);
+          skeletonStartTimeRef.current = null;
+        }
+      } else {
+        setIsSkeletonVisible(false);
+      }
+    }
+
+    return () => {
+      if (skeletonTimerRef.current) {
+        clearTimeout(skeletonTimerRef.current);
+        skeletonTimerRef.current = null;
+      }
+    };
+  }, [isOpen, rawLoading]);
+
+  // 初期レンダリング件数の段階的展開（パフォーマンス最適化）
+  const INITIAL_WINDOW_SIZE = 60;
+  const WINDOW_BUFFER_BEFORE = 10;
+  const WINDOW_STEP = 60;
+
+  const [startIndex, setStartIndex] = useState<number>(0);
+  const [endIndex, setEndIndex] = useState<number>(INITIAL_WINDOW_SIZE);
+
+  const isScheduleLoaded = Boolean(stationSchedule);
+
+  // モーダルが開いた時、またはダイヤ・のりばフィルター切り替え時、データ読み込み完了時に表示ウィンドウを初期化
+  useEffect(() => {
+    if (!isOpen || !isScheduleLoaded) return;
+
+    const targetId = nextDepartureId || selectedDepartureId;
+    let targetIdx = -1;
+    if (targetId) {
+      targetIdx = filteredDepartures.findIndex((d) => d.id === targetId);
+    }
+
+    if (targetIdx >= 0) {
+      const start = Math.max(0, targetIdx - WINDOW_BUFFER_BEFORE);
+      const end = Math.min(filteredDepartures.length, start + INITIAL_WINDOW_SIZE);
+      const adjustedStart = Math.max(0, end - INITIAL_WINDOW_SIZE);
+      setStartIndex(adjustedStart);
+      setEndIndex(end);
+    } else {
+      setStartIndex(0);
+      setEndIndex(Math.min(filteredDepartures.length, INITIAL_WINDOW_SIZE));
+    }
+  }, [
+    isOpen,
+    isScheduleLoaded,
+    dayType,
+    selectedFilterKey,
+    stationSchedule?.stationId,
+  ]);
+
+  // 前の便を読み込む（スクロール位置を調整して位置飛び防止）
+  const handleLoadEarlier = useCallback(() => {
+    const vp = listViewportRef.current;
+    const prevScrollHeight = vp ? vp.scrollHeight : 0;
+    const prevScrollTop = vp ? vp.scrollTop : 0;
+
+    setStartIndex((prev) => Math.max(0, prev - WINDOW_STEP));
+
+    requestAnimationFrame(() => {
+      if (vp) {
+        const heightDiff = vp.scrollHeight - prevScrollHeight;
+        if (heightDiff > 0) {
+          vp.scrollTop = prevScrollTop + heightDiff;
+        }
+      }
+    });
+  }, []);
+
+  // スクロール時に下端に近づいたら次の便を自動読み込み
+  const handleScrollPositionChange = useCallback(
+    ({ y }: { x: number; y: number }) => {
+      const vp = listViewportRef.current;
+      if (!vp) return;
+      if (vp.scrollHeight - y - vp.clientHeight < 300) {
+        setEndIndex((prev) => {
+          if (prev >= filteredDepartures.length) return prev;
+          return Math.min(filteredDepartures.length, prev + WINDOW_STEP);
+        });
+      }
+    },
+    [filteredDepartures.length]
+  );
+
+  const visibleDepartures = useMemo(() => {
+    return filteredDepartures.slice(startIndex, endIndex);
+  }, [filteredDepartures, startIndex, endIndex]);
+
   const listViewportRef = useRef<HTMLDivElement>(null);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
 
   // 1. 時刻表一覧ビューの自動初期スクロール（targetTop - 85）
   useEffect(() => {
-    if (!isOpen || selectedDeparture) return;
+    if (!isOpen || selectedDeparture || isSkeletonVisible) return;
 
     const scrollToCurrentDeparture = () => {
       const viewport = listViewportRef.current;
@@ -233,6 +362,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     nextDepartureId,
     dayType,
     selectedFilterKey,
+    isSkeletonVisible,
+    startIndex,
   ]);
 
   // 2. 全停車バス停タイムラインビューの自動初期スクロール（乗車バス停の位置へスクロール）
@@ -271,7 +402,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     };
   }, [isOpen, selectedDeparture]);
 
-  const isModalLoading = isLoading || !stationSchedule;
+  const isModalLoading = isSkeletonVisible;
   const availableFilterOptions = stationSchedule?.filterOptions || [];
   const showSubFilter = availableFilterOptions.length > 1;
   const titleStationName = stationSchedule?.stationName || stationName || '';
@@ -811,6 +942,12 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
             viewportProps={{
               style: { overscrollBehavior: 'contain' },
             }}
+            onScrollPositionChange={handleScrollPositionChange}
+            onBottomReached={() => {
+              setEndIndex((prev) =>
+                Math.min(filteredDepartures.length, prev + WINDOW_STEP)
+              );
+            }}
           >
             {filteredDepartures.length === 0 ? (
               <Text py="xl" ta="center" fz="xs" c="dimmed">
@@ -818,10 +955,26 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
               </Text>
             ) : (
               <Stack gap={0} pb="xl">
-                {filteredDepartures.map((dep, dIdx) => {
+                {startIndex > 0 && (
+                  <Box p="xs" ta="center">
+                    <Button
+                      variant="light"
+                      color="gray"
+                      size="xs"
+                      radius="xl"
+                      leftSection={<Icon name="expand_less" size={14} />}
+                      onClick={handleLoadEarlier}
+                    >
+                      これより前の便を表示（残り{startIndex}件）
+                    </Button>
+                  </Box>
+                )}
+
+                {visibleDepartures.map((dep, vIdx) => {
                   const effectiveSec = dep.scheduledSec;
                   const isPast = isTodayCal ? effectiveSec < currentMinuteFloorSec : false;
                   const isNext = dep.id === nextDepartureId;
+                  const globalIdx = startIndex + vIdx;
 
                   return (
                     <div key={dep.id} data-sendai-bus-dep-id={dep.id}>
@@ -843,11 +996,30 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                           setSelectedDepartureId(dep.id);
                           setOpenedFromList(true);
                         }}
-                        isLast={dIdx === filteredDepartures.length - 1}
+                        isLast={globalIdx === filteredDepartures.length - 1}
                       />
                     </div>
                   );
                 })}
+
+                {endIndex < filteredDepartures.length && (
+                  <Box p="md" ta="center">
+                    <Button
+                      variant="light"
+                      color="gray"
+                      size="xs"
+                      radius="xl"
+                      leftSection={<Icon name="expand_more" size={14} />}
+                      onClick={() =>
+                        setEndIndex((prev) =>
+                          Math.min(filteredDepartures.length, prev + WINDOW_STEP)
+                        )
+                      }
+                    >
+                      さらに後の便を表示（残り{filteredDepartures.length - endIndex}件）
+                    </Button>
+                  </Box>
+                )}
               </Stack>
             )}
           </ScrollArea>

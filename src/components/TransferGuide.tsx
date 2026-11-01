@@ -35,7 +35,9 @@ import {
   SendaiBusStationSchedule,
   fetchSendaiBusStationSchedule,
   getUpcomingSendaiBusDepartures,
+  MIN_SKELETON_TIME,
 } from '../utils/sendaiBusApi';
+export { MIN_SKELETON_TIME };
 import { useDebug } from '../context/DebugContext';
 
 interface TransferGuideProps {
@@ -117,12 +119,27 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
         setSendaiBusLoading(true);
         setSendaiBusError(false);
       }
+      const startTime = Date.now();
       try {
         const data = await fetchSendaiBusStationSchedule(stationId, forceRefresh);
+        if (isInitial) {
+          const elapsed = Date.now() - startTime;
+          if (elapsed < MIN_SKELETON_TIME) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, MIN_SKELETON_TIME - elapsed)
+            );
+          }
+        }
         setSendaiBusSchedule(data);
         setSendaiBusError(false);
       } catch {
         if (isInitial) {
+          const elapsed = Date.now() - startTime;
+          if (elapsed < MIN_SKELETON_TIME) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, MIN_SKELETON_TIME - elapsed)
+            );
+          }
           setSendaiBusError(true);
         }
       } finally {
@@ -148,20 +165,35 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
     setSendaiBusLoading(true);
     setSendaiBusError(false);
 
-    fetchSendaiBusStationSchedule(stationId, false)
-      .then((data) => {
+    const startTime = Date.now();
+
+    (async () => {
+      try {
+        const data = await fetchSendaiBusStationSchedule(stationId, false);
+        const elapsed = Date.now() - startTime;
+        if (elapsed < MIN_SKELETON_TIME) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, MIN_SKELETON_TIME - elapsed)
+          );
+        }
         if (cancelled) return;
         setSendaiBusSchedule(data);
         setSendaiBusError(false);
-      })
-      .catch(() => {
+      } catch {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < MIN_SKELETON_TIME) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, MIN_SKELETON_TIME - elapsed)
+          );
+        }
         if (cancelled) return;
         setSendaiBusError(true);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setSendaiBusLoading(false);
-      });
+      } finally {
+        if (!cancelled) {
+          setSendaiBusLoading(false);
+        }
+      }
+    })();
 
     // 30秒ごとにリアルタイム遅延情報をバックグラウンド更新
     const refreshTimer = setInterval(() => {

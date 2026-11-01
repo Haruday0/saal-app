@@ -9,6 +9,9 @@ export const SENDAI_BUS_BADGE_BG = '#a3d742';
 export const SENDAI_BUS_BADGE_TEXT = '#1b4406';
 export const SENDAI_BUS_ROUTE_DEFAULT_COLOR = SENDAI_BUS_BADGE_BG;
 
+/** スケルトンローダーのチラつき・フラッシュ防止用の最低表示時間（ミリ秒） */
+export const MIN_SKELETON_TIME = 350;
+
 export type SendaiBusDayType = 'weekday' | 'saturday' | 'holiday';
 
 export interface SendaiBusTripDetail {
