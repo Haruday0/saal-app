@@ -11,6 +11,7 @@ import {
   Button,
   Box,
   Title,
+  Skeleton,
 } from '@mantine/core';
 import { getCurrentRailwaySeconds } from '../utils/trainPosition';
 import {
@@ -25,12 +26,18 @@ import {
 import { JisBus } from './icons';
 import { Icon } from './Icon';
 import { BusRouteBadge } from './BusRouteBadge';
-import { BusDepartureRow, formatHeadsign } from './BusDepartureRow';
+import {
+  BusDepartureRow,
+  BusDepartureRowSkeleton,
+  formatHeadsign,
+} from './BusDepartureRow';
 
 interface SendaiBusTimetableModalProps {
   isOpen: boolean;
   onClose: () => void;
   stationSchedule: SendaiBusStationSchedule | null;
+  stationName?: string;
+  isLoading?: boolean;
   initialDepartureId?: string | null;
   initialFilterKey?: string | null;
   now: Date;
@@ -85,6 +92,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
   isOpen,
   onClose,
   stationSchedule,
+  stationName = '',
+  isLoading = false,
   initialDepartureId = null,
   initialFilterKey = null,
   now,
@@ -262,10 +271,11 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     };
   }, [isOpen, selectedDeparture]);
 
-  if (!stationSchedule) return null;
-
-  const availableFilterOptions = stationSchedule.filterOptions || [];
+  const isModalLoading = isLoading || !stationSchedule;
+  const availableFilterOptions = stationSchedule?.filterOptions || [];
   const showSubFilter = availableFilterOptions.length > 1;
+  const titleStationName = stationSchedule?.stationName || stationName || '';
+  const isTripDetail = Boolean(selectedDeparture && !openedFromList);
 
   return (
     <Modal
@@ -275,8 +285,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
         <Group gap={8} wrap="nowrap" align="center">
           <JisBus size={18} color={SENDAI_BUS_COLOR} />
           <Text fw={900} fz={15}>
-            {stationSchedule.stationName}駅{' '}
-            {selectedDeparture && !openedFromList
+            {titleStationName ? `${titleStationName}駅 ` : ''}
+            {isTripDetail
               ? '仙台市営バス運行詳細'
               : '仙台市営バス時刻表'}
           </Text>
@@ -310,7 +320,52 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
         },
       }}
     >
-      {selectedDeparture ? (
+      {isModalLoading ? (
+        /* ========== 読み込み中スケルトンローダー（最低高さ360px・CLS防止） ========== */
+        <>
+          <Stack
+            gap={6}
+            p="sm"
+            style={{
+              flexShrink: 0,
+              borderBottom: '1px solid var(--mantine-color-default-border)',
+              backgroundColor: 'var(--mantine-color-default-hover)',
+            }}
+          >
+            {/* 平日 / 土曜 / 日祝 ダイヤ切り替えスケルトン */}
+            <Skeleton height={28} radius="sm" />
+
+            {/* のりば選択ピルスケルトン */}
+            <Box pt={4} pb={2}>
+              <Group gap={6} wrap="nowrap">
+                <Skeleton width={80} height={24} radius="xl" />
+                <Skeleton width={64} height={24} radius="xl" />
+                <Skeleton width={64} height={24} radius="xl" />
+                <Skeleton width={64} height={24} radius="xl" />
+              </Group>
+            </Box>
+          </Stack>
+
+          {/* 時刻表一覧スクロール領域（最低高さ360px確保、実寸行と完全一致） */}
+          <ScrollArea
+            type="auto"
+            data-scrollable="true"
+            style={{ flex: 1, minHeight: 360 }}
+            viewportProps={{
+              style: { overscrollBehavior: 'contain' },
+            }}
+          >
+            <Stack gap={0} pb="xl">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <BusDepartureRowSkeleton
+                  key={idx}
+                  isLast={idx === 7}
+                />
+              ))}
+            </Stack>
+          </ScrollArea>
+        </>
+      ) : selectedDeparture ? (
         /* ========== 機能2：全停車バス停タイムライン表示 ========== */
         <>
           <Stack

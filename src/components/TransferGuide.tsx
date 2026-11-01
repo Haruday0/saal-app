@@ -10,12 +10,11 @@ import {
   Box,
   Divider,
   Loader,
-  Skeleton,
 } from '@mantine/core';
 import { Station } from '../types';
 import { JisSubway, JisBus } from './icons';
 import { Icon } from './Icon';
-import { BusDepartureRow } from './BusDepartureRow';
+import { BusDepartureRow, BusDepartureRowSkeleton } from './BusDepartureRow';
 import { SubwayDepartureRow } from './SubwayDepartureRow';
 import { SubwayTimetableModal } from './SubwayTimetableModal';
 import { NatoringoTimetableModal } from './NatoringoTimetableModal';
@@ -334,18 +333,21 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                 : 'リアルタイム'
             }
             rightAction={
-              sendaiBusSchedule ? (
-                <Button
-                  size="compact-xs"
-                  variant="default"
-                  radius="xl"
-                  fw={700}
-                  leftSection={<Icon name="schedule" size={13} />}
-                  onClick={() => openSendaiBusTimetable(null, selectedSendaiBusFilterKey)}
-                >
-                  時刻表
-                </Button>
-              ) : undefined
+              <Button
+                size="compact-xs"
+                variant="default"
+                radius="xl"
+                fw={700}
+                leftSection={<Icon name="schedule" size={13} />}
+                onClick={() => {
+                  if (!sendaiBusSchedule && !sendaiBusLoading) {
+                    loadSendaiBusData(true, false);
+                  }
+                  openSendaiBusTimetable(null, selectedSendaiBusFilterKey);
+                }}
+              >
+                時刻表
+              </Button>
             }
           />
 
@@ -411,15 +413,25 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           )}
 
           {sendaiBusLoading && !sendaiBusSchedule ? (
-            <Stack gap={8} p="sm">
-              <Group gap={8} align="center" wrap="nowrap">
-                <Loader size="xs" color={SENDAI_BUS_COLOR} />
-                <Text fz={12} fw={600} c="dimmed">
-                  市営バス直近発車・遅延情報を取得中...
-                </Text>
-              </Group>
-              <Skeleton height={42} radius="sm" />
-              <Skeleton height={42} radius="sm" />
+            <Stack gap={0} style={{ minHeight: 220 }}>
+              <Box
+                px="sm"
+                py={6}
+                style={{
+                  borderBottom: '1px solid var(--mantine-color-default-border)',
+                  backgroundColor: 'var(--mantine-color-default-hover)',
+                }}
+              >
+                <Group gap={8} align="center" wrap="nowrap">
+                  <Loader size="xs" color={SENDAI_BUS_COLOR} />
+                  <Text fz={12} fw={600} c="dimmed">
+                    市営バス直近発車・遅延情報を取得中...
+                  </Text>
+                </Group>
+              </Box>
+              <BusDepartureRowSkeleton />
+              <BusDepartureRowSkeleton />
+              <BusDepartureRowSkeleton isLast />
             </Stack>
           ) : sendaiBusError && !sendaiBusSchedule ? (
             <Group justify="space-between" align="center" p="sm" wrap="nowrap">
@@ -656,6 +668,8 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           isOpen={sendaiBusModalOpen}
           onClose={() => setSendaiBusModalOpen(false)}
           stationSchedule={sendaiBusSchedule}
+          stationName={station.name}
+          isLoading={sendaiBusLoading}
           initialDepartureId={sendaiBusInitialDepId}
           initialFilterKey={selectedSendaiBusFilterKey}
           now={now}

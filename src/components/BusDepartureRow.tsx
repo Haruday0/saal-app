@@ -1,5 +1,5 @@
 import React from 'react';
-import { UnstyledButton } from '@mantine/core';
+import { UnstyledButton, Skeleton } from '@mantine/core';
 import { BusRouteBadge } from './BusRouteBadge';
 import { Icon } from './Icon';
 
@@ -273,5 +273,100 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
         />
       </div>
     </UnstyledButton>
+  );
+};
+
+export interface BusDepartureRowSkeletonProps {
+  /** 最後の行かどうか（下線非表示用） */
+  isLast?: boolean;
+}
+
+/**
+ * BusDepartureRow と同一のレイアウト・パディング・カラム幅を持つスケルトンローダー
+ * レイアウトシフト（CLS）を徹底防止し、実データ読み込み完了時もガタつきなく遷移する
+ */
+export const BusDepartureRowSkeleton: React.FC<BusDepartureRowSkeletonProps> = ({
+  isLast = false,
+}) => {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'stretch',
+        padding: '11px 14px',
+        gap: 10,
+        minHeight: 58,
+        borderBottom: isLast
+          ? 'none'
+          : '1px solid var(--mantine-color-default-border)',
+      }}
+    >
+      {/* 左カラム: 発車時刻スケルトン（固定幅58px・中央揃え） */}
+      <div
+        className="shrink-0"
+        style={{
+          width: 58,
+          minWidth: 58,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 46,
+        }}
+      >
+        <Skeleton width={50} height={24} radius="sm" />
+      </div>
+
+      {/* 中央カラム: 経由・系統バッジ・行先・のりば情報 */}
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 4,
+        }}
+      >
+        {/* 行先行: 系統番号バッジ ＋ 行先名称 */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            width: '100%',
+            minWidth: 0,
+          }}
+        >
+          <Skeleton width={44} height={20} radius="xl" style={{ flexShrink: 0 }} />
+          <Skeleton width="45%" style={{ minWidth: 120 }} height={18} radius="xs" />
+        </div>
+
+        {/* 補足行: 経由・のりば番号 */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            marginTop: 2,
+          }}
+        >
+          <Skeleton width={60} height={12} radius="xs" />
+        </div>
+      </div>
+
+      {/* 右端: 詳細遷移アフォーダンスアイコン枠 */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingLeft: 4,
+          flexShrink: 0,
+        }}
+      >
+        <Skeleton width={12} height={12} radius="xs" />
+      </div>
+    </div>
   );
 };
