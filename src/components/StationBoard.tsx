@@ -85,7 +85,7 @@ export const STATION_TRACK_THEMES: Record<string, Record<string, TrackLedTheme>>
 export const STATION_BOARD_WIDTH_CLASSES: Record<string, string> = {
   'minami-sendai': 'w-[92%] max-w-[326px]',
   natori: 'w-[92%] max-w-[326px]',
-  sendai: 'w-full max-w-[385px]',
+  sendai: 'w-full max-w-[464px]',
   nagamachi: 'w-full max-w-[385px]',
   taishido: 'w-full max-w-[385px]',
   morisekinoshita: 'w-full max-w-[424px]',
@@ -96,7 +96,7 @@ export const STATION_BOARD_WIDTH_CLASSES: Record<string, string> = {
 export const STATION_BOARD_BASE_WIDTHS: Record<string, number> = {
   'minami-sendai': 326,
   natori: 326,
-  sendai: 408,
+  sendai: 464,
   nagamachi: 385,
   taishido: 385,
   morisekinoshita: 424,
@@ -547,8 +547,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
             )}
           </div>
 
-          {/* ================= 下部：LED発車標筐体（実機新陽社384ドット・16列構成：時刻・行先各96ドット） ================= */}
-          <div className="bg-[#080a0c] px-2.5 sm:px-3 pt-2 pb-1.5 select-none">
+          {/* ================= 下部：LED発車標筐体（実機新陽社384ドット・実測左右ベゼル40px・16列構成：時刻・行先各96ドット） ================= */}
+          <div className="bg-[#080a0c] px-10 pt-3 pb-2.5 select-none">
             <div
               className="w-[384px] mx-auto rounded-none font-led shadow-[inset_0_1px_4px_rgba(0,0,0,0.95)]"
               style={bgStyle}
