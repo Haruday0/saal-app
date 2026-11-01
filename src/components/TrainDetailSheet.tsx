@@ -741,8 +741,8 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                         }}
                       >
                         <Group justify="space-between" wrap="nowrap" gap="xs">
-                          {/* 駅名 ＋ バッジ */}
-                          <Group gap={6} wrap="nowrap" align="center">
+                          {/* 駅名 */}
+                          <Group gap={6} wrap="nowrap" align="center" className="min-w-0" style={{ flex: 1 }}>
                             <Text
                               fz={isSelectable ? 'sm' : 'xs'}
                               fw={isStoppedHere ? 800 : isSelectable ? 700 : 500}
@@ -751,22 +751,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                             >
                               {cleanStationName(s.stationName)}
                             </Text>
-
-                            {isStoppedHere && (
-                              <Badge size="xs" radius="xs" color={mantineColor} variant="filled" tt="none">
-                                停車中
-                              </Badge>
-                            )}
-                            {isFirst && !isStoppedHere && (
-                              <Badge size="xs" radius="xs" color="gray" variant="light" tt="none">
-                                始発
-                              </Badge>
-                            )}
-                            {isLast && !isStoppedHere && (
-                              <Badge size="xs" radius="xs" color="gray" variant="light" tt="none">
-                                終着
-                              </Badge>
-                            )}
                           </Group>
 
                           {/* 到着時刻・発車時刻 ＆ 番線（全駅で縦一直線に揃う固定幅カラム設計） */}

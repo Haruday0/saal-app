@@ -401,7 +401,6 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                 return (
                   <Timeline active={-1} bulletSize={18} lineWidth={2.5}>
                     {stops.map((st, i) => {
-                      const isFirst = i === 0;
                       const isLast = i === stops.length - 1;
                       const isBoarding = i === boardingIdx;
                       const isCurrentPos = isCurrentlyRunning && i === currentStopIdx;
@@ -451,8 +450,8 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                             }}
                           >
                             <Group justify="space-between" wrap="nowrap" gap="xs">
-                              {/* 左側: バス停名 ＋ バッジ */}
-                              <Group gap={6} wrap="nowrap" align="center" className="min-w-0">
+                              {/* 左側: バス停名 */}
+                              <Group gap={6} wrap="nowrap" align="center" className="min-w-0" style={{ flex: 1 }}>
                                 <Text
                                   fz="sm"
                                   fw={isBoarding || isLast ? 800 : passed ? 500 : 700}
@@ -461,61 +460,6 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                                 >
                                   {st.stopName}
                                 </Text>
-
-                                {isBoarding && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    variant="filled"
-                                    tt="none"
-                                    style={{
-                                      backgroundColor: rColor,
-                                      color: '#ffffff',
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    乗車
-                                  </Badge>
-                                )}
-                                {isCurrentPos && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    variant="outline"
-                                    tt="none"
-                                    style={{
-                                      borderColor: rColor,
-                                      color: rColor,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    現在位置
-                                  </Badge>
-                                )}
-                                {isFirst && !isBoarding && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    color="gray"
-                                    variant="light"
-                                    tt="none"
-                                    className="shrink-0"
-                                  >
-                                    始発
-                                  </Badge>
-                                )}
-                                {isLast && !isBoarding && (
-                                  <Badge
-                                    size="xs"
-                                    radius="xs"
-                                    color="gray"
-                                    variant="light"
-                                    tt="none"
-                                    className="shrink-0"
-                                  >
-                                    終着
-                                  </Badge>
-                                )}
                               </Group>
 
                               {/* 右側: 運賃 ＋ 発着時刻 */}

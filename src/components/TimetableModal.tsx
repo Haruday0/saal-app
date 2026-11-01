@@ -543,8 +543,8 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
                             }}
                           >
                             <Group justify="space-between" wrap="nowrap" gap="xs">
-                              {/* 左側: 駅名 ＋ バッジ */}
-                              <Group gap={6} wrap="nowrap" align="center" className="min-w-0">
+                              {/* 左側: 駅名 */}
+                              <Group gap={6} wrap="nowrap" align="center" className="min-w-0" style={{ flex: 1 }}>
                                 <Text
                                   fz="sm"
                                   fw={isBoarding || isStoppedHere ? 800 : passed ? 500 : 700}
@@ -553,27 +553,6 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
                                 >
                                   {cleanStationName(s.stationName)}
                                 </Text>
-
-                                {isBoarding && (
-                                  <Badge size="xs" radius="xs" color={mantineColor} variant="filled" tt="none">
-                                    乗車駅
-                                  </Badge>
-                                )}
-                                {isStoppedHere && (
-                                  <Badge size="xs" radius="xs" color={mantineColor} variant="outline" tt="none">
-                                    現在位置
-                                  </Badge>
-                                )}
-                                {isFirst && !isBoarding && (
-                                  <Badge size="xs" radius="xs" color="gray" variant="light" tt="none">
-                                    始発
-                                  </Badge>
-                                )}
-                                {isLast && !isBoarding && (
-                                  <Badge size="xs" radius="xs" color="gray" variant="light" tt="none">
-                                    終着
-                                  </Badge>
-                                )}
                               </Group>
 
                               {/* 右側: 到着・出発時刻 ＆ 番線 */}
