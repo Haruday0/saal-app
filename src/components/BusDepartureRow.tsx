@@ -6,7 +6,7 @@ import { Icon } from './Icon';
 export interface BusDepartureRowProps {
   /** 系統番号・略号（例: 420, まち01, 宮交） */
   routeCode: string;
-  /** 路線シンボルカラー（デフォルト: #00703c） */
+  /** 路線シンボルカラー（デフォルト: #a3d742） */
   routeColor?: string;
   /** 系統バッジ文字色（省略時は自動計算） */
   routeTextColor?: string;
@@ -39,7 +39,7 @@ export interface BusDepartureRowProps {
 }
 
 /** 行先表示のフォーマット（sendai-bus-map-v2 準拠） */
-function formatHeadsign(headsign: string): string {
+export function formatHeadsign(headsign: string): string {
   if (!headsign || headsign.trim().length === 0) return '';
   if (
     headsign.includes('循環') ||
@@ -63,7 +63,7 @@ function formatHeadsign(headsign: string): string {
  */
 export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
   routeCode,
-  routeColor = '#00703c',
+  routeColor = '#a3d742',
   routeTextColor,
   headsign,
   via,
@@ -87,11 +87,11 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
       onClick={onClick}
       w="100%"
       title={title || `${departureTime}発 [${routeCode}] ${displayHeadsign}`}
-      className="transition-colors text-left select-none relative"
+      className="transition-colors text-left select-none relative hover:bg-black/5 dark:hover:bg-white/5"
       style={{
         display: 'flex',
         alignItems: 'stretch',
-        padding: '10px 12px',
+        padding: '11px 14px',
         gap: 10,
         borderBottom: isLast
           ? 'none'
@@ -112,13 +112,13 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
             bottom: 0,
             width: 4,
             backgroundColor: routeColor,
-            borderTopLeftRadius: 4,
-            borderBottomLeftRadius: 4,
+            borderTopLeftRadius: 'var(--mantine-radius-sm)',
+            borderBottomLeftRadius: 'var(--mantine-radius-sm)',
           }}
         />
       )}
 
-      {/* 左カラム: 発車時刻（固定幅58px・中央揃え・等幅数字） */}
+      {/* 左カラム: 発車時刻（固定幅58px・中央揃え・等幅数字・sendai-bus-map-v2 .item-time 準拠） */}
       <div
         className="font-english tabular-nums shrink-0"
         style={{
@@ -129,33 +129,35 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           textAlign: 'center',
-          minHeight: 44,
+          minHeight: 46,
         }}
       >
         {showDelay ? (
           <div
             style={{
+              position: 'relative',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              width: '100%',
               lineHeight: 1.15,
             }}
           >
             <del
               style={{
-                fontSize: 12,
+                fontSize: 13,
                 color: 'var(--mantine-color-dimmed)',
                 textDecoration: 'line-through',
-                textDecorationThickness: 1.8,
+                textDecorationThickness: 2,
               }}
             >
               {departureTime}
             </del>
             <span
               style={{
-                fontSize: 17,
-                fontWeight: 800,
+                fontSize: 18,
+                fontWeight: 700,
                 color: 'var(--mantine-color-red-6)',
                 letterSpacing: '-0.03em',
               }}
@@ -166,9 +168,9 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
         ) : (
           <span
             style={{
-              fontSize: 17,
-              fontWeight: isNext ? 800 : 700,
-              color: isNext ? routeColor : 'var(--mantine-color-text)',
+              fontSize: 18,
+              fontWeight: 700,
+              color: isNext ? 'var(--mantine-color-blue-filled)' : 'var(--mantine-color-text)',
               letterSpacing: '-0.03em',
             }}
           >
@@ -187,12 +189,12 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
           justifyContent: 'center',
         }}
       >
-        {/* 経由地（上段・11.5px・dimmed） */}
+        {/* 経由地（上段・12px・dimmed・sendai-bus-map-v2 .item-via） */}
         {via && (
           <div
             className="truncate"
             style={{
-              fontSize: 11.5,
+              fontSize: 12,
               color: 'var(--mantine-color-dimmed)',
               marginBottom: 2,
               fontWeight: 400,
@@ -203,7 +205,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
           </div>
         )}
 
-        {/* 行先行: 系統番号バッジ ＋ 行先名称 */}
+        {/* 行先行: 系統番号バッジ ＋ 行先名称 (sendai-bus-map-v2 .item-destination-row) */}
         <div
           style={{
             display: 'flex',
@@ -222,8 +224,8 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
           <span
             className="truncate"
             style={{
-              fontSize: 14.5,
-              fontWeight: isNext ? 800 : 700,
+              fontSize: 15,
+              fontWeight: 700,
               lineHeight: 1.3,
               color: 'var(--mantine-color-text)',
             }}
@@ -232,7 +234,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
           </span>
         </div>
 
-        {/* 補足行: のりば番号・路線名・遅延バッジ・次便バッジ */}
+        {/* 補足行: のりば番号・路線名・遅延バッジ・次便バッジ (sendai-bus-map-v2 .item-platform) */}
         <div
           style={{
             display: 'flex',
@@ -248,11 +250,11 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
               className="shrink-0"
               style={{
                 fontSize: 11,
-                fontWeight: 600,
+                fontWeight: 500,
                 color: 'var(--mantine-color-dimmed)',
               }}
             >
-              {platform.includes('のりば') || platform.includes('口')
+              {platform.includes('のりば') || platform.includes('口') || platform.includes('方面')
                 ? platform
                 : `${platform}番のりば`}
             </span>

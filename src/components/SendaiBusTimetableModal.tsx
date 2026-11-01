@@ -8,7 +8,6 @@ import {
   Text,
   Stack,
   Timeline,
-  UnstyledButton,
   Button,
   Box,
   Title,
@@ -24,13 +23,14 @@ import {
 import { JisBus } from './icons';
 import { Icon } from './Icon';
 import { BusRouteBadge } from './BusRouteBadge';
+import { BusDepartureRow, formatHeadsign } from './BusDepartureRow';
 
 interface SendaiBusTimetableModalProps {
   isOpen: boolean;
   onClose: () => void;
   stationSchedule: SendaiBusStationSchedule | null;
-  initialGroupId?: string | null;
   initialDepartureId?: string | null;
+  initialFilterKey?: string | null;
   now: Date;
 }
 
@@ -83,21 +83,16 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
   isOpen,
   onClose,
   stationSchedule,
-  initialGroupId = null,
   initialDepartureId = null,
+  initialFilterKey = null,
   now,
 }) => {
-  const groups = stationSchedule?.groups ?? [];
-  const defaultGroupId = groups[0]?.groupId ?? '';
-
   const todayDayType = useMemo(() => getSendaiBusDayType(now), [now]);
 
-  const [selectedGroupId, setSelectedGroupId] = useState<string>(
-    initialGroupId || defaultGroupId
-  );
   const [dayType, setDayType] = useState<SendaiBusDayType>(todayDayType);
-  // 個別のりば / 系統絞り込みフィルター（複数選択・初期状態は未選択＝全表示）
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [selectedFilterKey, setSelectedFilterKey] = useState<string | null>(
+    initialFilterKey
+  );
   // 選択中の便ID（全停車バス停タイムライン表示用）
   const [selectedDepartureId, setSelectedDepartureId] = useState<string | null>(
     initialDepartureId
@@ -106,28 +101,11 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
   // モーダルが開いたときに初期状態を同期
   useEffect(() => {
     if (isOpen) {
-      const validGroupId =
-        initialGroupId && groups.some((g) => g.groupId === initialGroupId)
-          ? initialGroupId
-          : defaultGroupId;
-      setSelectedGroupId(validGroupId);
       setDayType(getSendaiBusDayType(now));
-      setSelectedFilters([]);
+      setSelectedFilterKey(initialFilterKey || null);
       setSelectedDepartureId(initialDepartureId || null);
     }
-  }, [isOpen, stationSchedule?.stationId, initialGroupId, initialDepartureId, defaultGroupId]);
-
-  const activeGroup = useMemo(
-    () => groups.find((g) => g.groupId === selectedGroupId) ?? groups[0] ?? null,
-    [groups, selectedGroupId]
-  );
-
-  // のりばグループ変更時はフィルターと便選択をリセット
-  const handleGroupChange = (newGroupId: string) => {
-    setSelectedGroupId(newGroupId);
-    setSelectedFilters([]);
-    setSelectedDepartureId(null);
-  };
+  }, [isOpen, stationSchedule?.stationId, initialFilterKey, initialDepartureId]);
 
   // 現在時刻（4:00基準の鉄道秒・分）
   const currentSec = useMemo(() => getCurrentRailwaySeconds(now), [now]);
@@ -139,17 +117,17 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
 
   const isTodayCal = dayType === todayDayType;
 
-  // 現在ののりばグループ・ダイヤ種別の全便リスト
+  // 現在のダイヤ種別の全便リスト
   const allDepartures = useMemo(() => {
-    if (!activeGroup) return [];
-    return activeGroup[dayType] || [];
-  }, [activeGroup, dayType]);
+    if (!stationSchedule) return [];
+    return stationSchedule[dayType] || [];
+  }, [stationSchedule, dayType]);
 
   // フィルター適用後の発車リスト
   const filteredDepartures = useMemo(() => {
-    if (selectedFilters.length === 0) return allDepartures;
-    return allDepartures.filter((d) => selectedFilters.includes(d.filterKey));
-  }, [allDepartures, selectedFilters]);
+    if (!selectedFilterKey) return allDepartures;
+    return allDepartures.filter((d) => d.filterKey === selectedFilterKey);
+  }, [allDepartures, selectedFilterKey]);
 
   // 次発便（現在時刻以降の最初の便。本日ダイヤの場合は遅延込みの予想発車時刻で判定）
   const nextDepartureId = useMemo(() => {
@@ -210,9 +188,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     isOpen,
     selectedDeparture,
     nextDepartureId,
-    selectedGroupId,
     dayType,
-    selectedFilters,
+    selectedFilterKey,
   ]);
 
   // 2. 全停車バス停タイムラインビューの自動初期スクロール（乗車バス停の位置へスクロール）
@@ -251,10 +228,9 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     };
   }, [isOpen, selectedDeparture]);
 
-  if (!stationSchedule || !activeGroup) return null;
+  if (!stationSchedule) return null;
 
-  const hasMultipleGroups = groups.length > 1;
-  const availableFilterOptions = activeGroup.filterOptions || [];
+  const availableFilterOptions = stationSchedule.filterOptions || [];
   const showSubFilter = availableFilterOptions.length > 1;
 
   return (
@@ -344,7 +320,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                 <Badge size="xs" radius="sm" variant="default" fw={700} tt="none">
                   {selectedDeparture.stopName}
                   {selectedDeparture.platform
-                    ? ` (${selectedDeparture.platform}番のりば)`
+                    ? ` (${selectedDeparture.platform})`
                     : ''}
                 </Badge>
               </Group>
@@ -356,7 +332,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                   w={4}
                   h={36}
                   style={{
-                    backgroundColor: SENDAI_BUS_COLOR,
+                    backgroundColor: selectedDeparture.routeColor,
                     borderRadius: 2,
                     flexShrink: 0,
                   }}
@@ -365,7 +341,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                   <Group gap={6} align="center" wrap="nowrap">
                     <BusRouteBadge
                       routeCode={selectedDeparture.routeCode}
-                      color={SENDAI_BUS_COLOR}
+                      color={selectedDeparture.routeColor}
+                      textColor={selectedDeparture.routeTextColor}
                       size="sm"
                     />
                     {selectedDeparture.via && (
@@ -375,10 +352,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                     )}
                   </Group>
                   <Title order={3} fz={16} fw={800} lh={1.2} className="truncate">
-                    {selectedDeparture.headsign}
-                    <Text component="span" fz="xs" fw={700} ml={2} c="dimmed">
-                      行
-                    </Text>
+                    {formatHeadsign(selectedDeparture.headsign)}
                   </Title>
                 </Stack>
               </Group>
@@ -391,7 +365,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                   className="font-english tabular-nums"
                 >
                   {selectedDeparture.platform
-                    ? `${selectedDeparture.platform}番のりば `
+                    ? `${selectedDeparture.platform} `
                     : ''}
                   {selectedDeparture.departureTime}発
                 </Text>
@@ -474,7 +448,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
 
                       const diffFromBoarding = st.scheduledMinutes - boardingMin;
                       const customBullet = isCurrentPos ? (
-                        <PentagonIcon lineColor={SENDAI_BUS_COLOR} size={14} />
+                        <PentagonIcon lineColor={selectedDeparture.routeColor} size={14} />
                       ) : undefined;
 
                       return (
@@ -485,7 +459,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                           style={
                             !linePassed
                               ? ({
-                                  '--item-border-color': SENDAI_BUS_COLOR,
+                                  '--item-border-color': selectedDeparture.routeColor,
                                 } as React.CSSProperties)
                               : undefined
                           }
@@ -493,9 +467,9 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                             !passed
                               ? {
                                   itemBullet: {
-                                    borderColor: SENDAI_BUS_COLOR,
+                                    borderColor: selectedDeparture.routeColor,
                                     backgroundColor: isBoarding
-                                      ? SENDAI_BUS_COLOR
+                                      ? selectedDeparture.routeColor
                                       : 'var(--mantine-color-body)',
                                   },
                                 }
@@ -509,7 +483,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                             style={{
                               borderRadius: 'var(--mantine-radius-sm)',
                               backgroundColor: isBoarding
-                                ? `${SENDAI_BUS_COLOR}1F`
+                                ? `${selectedDeparture.routeColor}1F`
                                 : undefined,
                             }}
                           >
@@ -556,8 +530,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                                     variant="filled"
                                     tt="none"
                                     style={{
-                                      backgroundColor: SENDAI_BUS_COLOR,
-                                      color: '#ffffff',
+                                      backgroundColor: selectedDeparture.routeColor,
+                                      color: selectedDeparture.routeTextColor,
                                       flexShrink: 0,
                                     }}
                                   >
@@ -571,8 +545,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                                     variant="outline"
                                     tt="none"
                                     style={{
-                                      borderColor: SENDAI_BUS_COLOR,
-                                      color: SENDAI_BUS_COLOR,
+                                      borderColor: selectedDeparture.routeColor,
+                                      color: selectedDeparture.routeColor,
                                       flexShrink: 0,
                                     }}
                                   >
@@ -669,7 +643,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
           </ScrollArea>
         </>
       ) : (
-        /* ========== 機能1：のりばグループ別・ダイヤ別・絞り込み付き1日全時刻表一覧 ========== */
+        /* ========== 機能1：全のりば統合・ダイヤ別・のりば選択付き時刻表一覧 ========== */
         <>
           <Stack
             gap={6}
@@ -680,21 +654,6 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
               backgroundColor: 'var(--mantine-color-default-hover)',
             }}
           >
-            {/* のりばグループ切り替え */}
-            {hasMultipleGroups && (
-              <SegmentedControl
-                size="xs"
-                fullWidth
-                radius="md"
-                value={activeGroup.groupId}
-                onChange={handleGroupChange}
-                data={groups.map((g) => ({
-                  label: g.shortTitle,
-                  value: g.groupId,
-                }))}
-              />
-            )}
-
             {/* 平日 / 土曜 / 日祝 ダイヤ切り替え */}
             <SegmentedControl
               size="xs"
@@ -718,42 +677,63 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
               ]}
             />
 
-            {/* 個別のりば / 系統絞り込みフィルター（JR・なとりん号と完全統一のUI） */}
+            {/* sendai-bus-map-v2 準拠ののりば選択ピル（全のりば / 個別のりば切り替え） */}
             {showSubFilter && (
-              <Group gap={6} align="center" wrap="wrap" pt={2}>
-                <Group gap={4} align="center" c="dimmed" mr={2}>
-                  <Icon name="filter_alt" size={16} />
+              <Box
+                style={{
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+                pt={4}
+                pb={2}
+              >
+                <Group gap={6} wrap="nowrap" align="center">
+                  <Button
+                    size="compact-xs"
+                    radius="xl"
+                    variant={selectedFilterKey === null ? 'filled' : 'default'}
+                    style={
+                      selectedFilterKey === null
+                        ? {
+                            backgroundColor: SENDAI_BUS_COLOR,
+                            color: '#ffffff',
+                          }
+                        : undefined
+                    }
+                    onClick={() => setSelectedFilterKey(null)}
+                    fw={700}
+                    className="shrink-0"
+                  >
+                    すべてのりば
+                  </Button>
+                  {availableFilterOptions.map((opt) => {
+                    const isSelected = selectedFilterKey === opt.key;
+                    return (
+                      <Button
+                        key={opt.key}
+                        size="compact-xs"
+                        radius="xl"
+                        variant={isSelected ? 'filled' : 'default'}
+                        style={
+                          isSelected
+                            ? {
+                                backgroundColor: SENDAI_BUS_COLOR,
+                                color: '#ffffff',
+                              }
+                            : undefined
+                        }
+                        onClick={() =>
+                          setSelectedFilterKey(isSelected ? null : opt.key)
+                        }
+                        fw={700}
+                        className="shrink-0"
+                      >
+                        {opt.label}
+                      </Button>
+                    );
+                  })}
                 </Group>
-                {availableFilterOptions.map((opt) => {
-                  const isSelected = selectedFilters.includes(opt.key);
-                  return (
-                    <Button
-                      key={opt.key}
-                      size="xs"
-                      radius="md"
-                      variant={isSelected ? 'filled' : 'default'}
-                      onClick={() => {
-                        setSelectedFilters((prev) =>
-                          prev.includes(opt.key)
-                            ? prev.filter((k) => k !== opt.key)
-                            : [...prev, opt.key]
-                        );
-                      }}
-                      style={
-                        isSelected
-                          ? {
-                              backgroundColor: SENDAI_BUS_COLOR,
-                              borderColor: SENDAI_BUS_COLOR,
-                              color: '#ffffff',
-                            }
-                          : undefined
-                      }
-                    >
-                      {opt.label}
-                    </Button>
-                  );
-                })}
-              </Group>
+              </Box>
             )}
           </Stack>
 
@@ -772,139 +752,33 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                 該当するバスはありません
               </Text>
             ) : (
-              <Stack gap={0} p={6} pb="xl">
-                {filteredDepartures.map((dep) => {
+              <Stack gap={0} pb="xl">
+                {filteredDepartures.map((dep, dIdx) => {
                   const effectiveSec = isTodayCal
                     ? dep.scheduledSec + dep.delaySec
                     : dep.scheduledSec;
                   const isPast = effectiveSec < currentMinuteFloorSec;
                   const isNext = dep.id === nextDepartureId;
-                  const dimmed = isPast && !isNext;
-                  const showDelay = isTodayCal && dep.isDelayed;
 
                   return (
-                    <UnstyledButton
-                      key={dep.id}
-                      data-sendai-bus-dep-id={dep.id}
-                      onClick={() => setSelectedDepartureId(dep.id)}
-                      style={{
-                        borderRadius: 'var(--mantine-radius-md)',
-                        backgroundColor: isNext
-                          ? `${SENDAI_BUS_COLOR}1F`
-                          : undefined,
-                        opacity: dimmed ? 0.5 : 1,
-                        width: '100%',
-                      }}
-                      className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                    >
-                      <Group
-                        justify="space-between"
-                        wrap="nowrap"
-                        gap={6}
-                        px={8}
-                        py={8}
-                      >
-                        {/* 左側: 発車時刻 | 系統バッジ | 行先・経由・のりば | 次発・遅延バッジ */}
-                        <Group gap={7} wrap="nowrap" className="min-w-0">
-                          <Stack
-                            gap={0}
-                            align="flex-end"
-                            w="3.2em"
-                            className="font-english tabular-nums shrink-0"
-                          >
-                            <Text
-                              fz="sm"
-                              fw={800}
-                              ta="right"
-                              style={
-                                isNext ? { color: SENDAI_BUS_COLOR } : undefined
-                              }
-                            >
-                              {dep.departureTime}
-                            </Text>
-                            {showDelay && (
-                              <Text fz={10} fw={800} c="red" ta="right">
-                                {dep.expectedTime}
-                              </Text>
-                            )}
-                          </Stack>
-
-                          <BusRouteBadge
-                            routeCode={dep.routeCode}
-                            color={SENDAI_BUS_COLOR}
-                            size="sm"
-                          />
-
-                          <Stack gap={1} className="min-w-0">
-                            <Group gap={5} wrap="nowrap" align="center">
-                              <Text
-                                fz="sm"
-                                fw={isNext ? 800 : 600}
-                                className="truncate"
-                              >
-                                {dep.headsign}行
-                              </Text>
-                              {isNext && (
-                                <Badge
-                                  size="xs"
-                                  variant="filled"
-                                  radius="sm"
-                                  tt="none"
-                                  style={{
-                                    backgroundColor: SENDAI_BUS_COLOR,
-                                    color: '#ffffff',
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  次発
-                                </Badge>
-                              )}
-                              {showDelay && (
-                                <Badge
-                                  size="xs"
-                                  color="red"
-                                  variant="light"
-                                  radius="sm"
-                                  tt="none"
-                                  fw={700}
-                                  className="shrink-0"
-                                >
-                                  +{dep.delayMinutes}分遅れ
-                                </Badge>
-                              )}
-                            </Group>
-                            <Group gap={6} wrap="nowrap" align="center">
-                              {dep.platform && (
-                                <Text fz={10.5} fw={700} c="dimmed" className="shrink-0">
-                                  {dep.platform}番のりば
-                                </Text>
-                              )}
-                              {dep.via && (
-                                <Text fz={10.5} c="dimmed" className="truncate">
-                                  {dep.via}経由
-                                </Text>
-                              )}
-                            </Group>
-                          </Stack>
-                        </Group>
-
-                        {/* 右側: 終着到着時刻 | 詳細シェブロン */}
-                        <Group
-                          gap={6}
-                          wrap="nowrap"
-                          className="shrink-0 font-english tabular-nums"
-                        >
-                          <Text fz={11} c="dimmed" ta="right">
-                            終着 {dep.terminalArrivalTime}
-                          </Text>
-                          <Icon
-                            name="chevron_right"
-                            size={15}
-                            className="text-slate-400 dark:text-slate-500"
-                          />
-                        </Group>
-                      </Group>
-                    </UnstyledButton>
+                    <div key={dep.id} data-sendai-bus-dep-id={dep.id}>
+                      <BusDepartureRow
+                        routeCode={dep.routeCode}
+                        routeColor={dep.routeColor}
+                        routeTextColor={dep.routeTextColor}
+                        headsign={dep.headsign}
+                        via={dep.via}
+                        platform={dep.platform}
+                        departureTime={dep.departureTime}
+                        isDelayed={isTodayCal && dep.isDelayed}
+                        delayMinutes={dep.delayMinutes}
+                        expectedTime={dep.expectedTime}
+                        isNext={isNext}
+                        isPast={isPast && !isNext}
+                        onClick={() => setSelectedDepartureId(dep.id)}
+                        isLast={dIdx === filteredDepartures.length - 1}
+                      />
+                    </div>
                   );
                 })}
               </Stack>

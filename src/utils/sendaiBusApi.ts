@@ -1,9 +1,11 @@
 import { getHolidaysSet, isWeekendHolidayOrYearEnd } from './calendar';
 import { getCurrentRailwaySeconds } from './trainPosition';
+import { getRouteBadgeTextColor } from '../components/BusRouteBadge';
 
 const API_BASE = 'https://busmap.haruday0.live/api';
 
-export const SENDAI_BUS_COLOR = '#059669';
+export const SENDAI_BUS_COLOR = '#00703c';
+export const SENDAI_BUS_ROUTE_DEFAULT_COLOR = '#a3d742';
 
 export type SendaiBusDayType = 'weekday' | 'saturday' | 'holiday';
 
@@ -60,6 +62,8 @@ export interface SendaiBusDeparture {
   tripId: string;
   routeId: string;
   routeCode: string;
+  routeColor: string;
+  routeTextColor: string;
   stopId: string;
   stopName: string;
   platform: string;
@@ -85,148 +89,64 @@ export interface SendaiBusDeparture {
   stops: SendaiBusTimelineStop[];
 }
 
-export interface SendaiBusGroupDefinition {
-  groupId: string;
-  title: string;
-  shortTitle: string;
+export interface SendaiBusStationConfig {
+  stationName: string;
   stopIds: string[];
-  filterMode: 'platform' | 'route' | 'routePrefix';
-  upcomingLimit: number;
 }
 
-export interface SendaiBusStationGroupSchedule {
-  groupId: string;
-  title: string;
-  shortTitle: string;
+/** 対象4駅のバス停ID定義 */
+export const SENDAI_BUS_STATION_CONFIGS: Record<string, SendaiBusStationConfig> = {
+  sendai: {
+    stationName: '仙台',
+    stopIds: [
+      '50_850', // 5番
+      '50_851', // 6番
+      '50_52',  // 9番
+      '50_53',  // 10番
+      '50_54',  // 11番
+      '50_56',  // 13番
+      '50_57',  // 14番
+      '50_58',  // 15番
+      '50_150', // 17番
+      '50_151', // 18番
+      '50_152', // 19番
+      '50_154', // 27番
+      '50_153', // 28番
+      '50_550', // 50番 (広瀬通・青木前、西口側)
+      '50_560', // 51番 (広瀬通・青木前、西口側)
+      '50_210', // 60番
+    ],
+  },
+  nagamachi: {
+    stationName: '長町',
+    stopIds: [
+      '7501_10', // 東口 4番
+      '7501_11', // 東口 5番
+      '6008_10', // 西口
+      '6008_50', // 西口
+      '6007_10', // たいはっくる前
+      '6007_50', // たいはっくる前
+    ],
+  },
+  taishido: {
+    stationName: '太子堂',
+    stopIds: ['6020_10', '6020_50'],
+  },
+  'minami-sendai': {
+    stationName: '南仙台',
+    stopIds: ['6163_10', '6163_50'],
+  },
+};
+
+export interface SendaiBusStationSchedule {
+  stationId: string;
+  stationName: string;
   stopIds: string[];
-  filterMode: 'platform' | 'route' | 'routePrefix';
-  upcomingLimit: number;
   filterOptions: SendaiBusFilterOption[];
   weekday: SendaiBusDeparture[];
   saturday: SendaiBusDeparture[];
   holiday: SendaiBusDeparture[];
 }
-
-export interface SendaiBusStationSchedule {
-  stationId: string;
-  stationName: string;
-  groups: SendaiBusStationGroupSchedule[];
-}
-
-/** 対象4駅のバス停・のりばグループ定義 */
-export const SENDAI_BUS_STATION_CONFIGS: Record<
-  string,
-  { stationName: string; groups: SendaiBusGroupDefinition[] }
-> = {
-  sendai: {
-    stationName: '仙台',
-    groups: [
-      {
-        groupId: 'sendai-west-pool',
-        title: '西口バスプール（5〜15番のりば）',
-        shortTitle: '西口(5〜15番)',
-        stopIds: ['50_850', '50_851', '50_52', '50_53', '50_54', '50_56', '50_57', '50_58'],
-        filterMode: 'platform',
-        upcomingLimit: 3,
-      },
-      {
-        groupId: 'sendai-west-aoba',
-        title: '西口 青葉通・さくら野前（17〜28番のりば）',
-        shortTitle: '西口(17〜28番)',
-        stopIds: ['50_150', '50_151', '50_152', '50_154', '50_153'],
-        filterMode: 'platform',
-        upcomingLimit: 2,
-      },
-      {
-        groupId: 'sendai-west-60',
-        title: '西口 60番のりば（県庁市役所・大学病院方面）',
-        shortTitle: '60番のりば',
-        stopIds: ['50_210'],
-        filterMode: 'routePrefix',
-        upcomingLimit: 2,
-      },
-      {
-        groupId: 'sendai-east',
-        title: '東口バスプール（50・51番のりば）',
-        shortTitle: '東口(50・51番)',
-        stopIds: ['50_550', '50_560'],
-        filterMode: 'platform',
-        upcomingLimit: 2,
-      },
-    ],
-  },
-  nagamachi: {
-    stationName: '長町',
-    groups: [
-      {
-        groupId: 'nagamachi-east',
-        title: '長町駅東口（4・5番のりば）',
-        shortTitle: '東口(4・5番)',
-        stopIds: ['7501_10', '7501_11'],
-        filterMode: 'platform',
-        upcomingLimit: 3,
-      },
-      {
-        groupId: 'nagamachi-west',
-        title: '長町駅西口',
-        shortTitle: '西口',
-        stopIds: ['6008_10', '6008_50'],
-        filterMode: 'route',
-        upcomingLimit: 2,
-      },
-      {
-        groupId: 'nagamachi-taihakkuru',
-        title: '長町駅・たいはっくる前',
-        shortTitle: 'たいはっくる前',
-        stopIds: ['6007_10', '6007_50'],
-        filterMode: 'route',
-        upcomingLimit: 2,
-      },
-    ],
-  },
-  taishido: {
-    stationName: '太子堂',
-    groups: [
-      {
-        groupId: 'taishido-north',
-        title: '長町駅・長町南駅・市立病院方面（北行）',
-        shortTitle: '長町・市立病院方面(北行)',
-        stopIds: ['6020_10'],
-        filterMode: 'route',
-        upcomingLimit: 3,
-      },
-      {
-        groupId: 'taishido-south',
-        title: '南仙台駅・四郎丸・袋原方面（南行）',
-        shortTitle: '南仙台・四郎丸方面(南行)',
-        stopIds: ['6020_50'],
-        filterMode: 'route',
-        upcomingLimit: 3,
-      },
-    ],
-  },
-  'minami-sendai': {
-    stationName: '南仙台',
-    groups: [
-      {
-        groupId: 'minami-sendai-north',
-        title: '太子堂・長町駅・長町南駅・市立病院方面（北行）',
-        shortTitle: '太子堂・長町方面(北行)',
-        stopIds: ['6163_10'],
-        filterMode: 'route',
-        upcomingLimit: 3,
-      },
-      {
-        groupId: 'minami-sendai-south',
-        title: '四郎丸・袋原・東中田方面（南行）',
-        shortTitle: '四郎丸・袋原方面(南行)',
-        stopIds: ['6163_50'],
-        filterMode: 'route',
-        upcomingLimit: 3,
-      },
-    ],
-  },
-};
 
 /**
  * 実日時に基づく仙台市営バスの運行日区分判定
@@ -401,7 +321,6 @@ export async function fetchSendaiBusStopTimetable(
     })
     .catch((err) => {
       stopTimetablePromises.delete(stopId);
-      // 再取得失敗時でも前回キャッシュがあればフォールバックではなくキャッシュ継続利用しないようエラー送出（呼び出し側で制御）
       throw err;
     });
 
@@ -426,35 +345,58 @@ export function warmupSendaiBusMaster(): void {
 // モジュール読み込み時に自動でウォームアップ開始
 warmupSendaiBusMaster();
 
-function resolveFilterKeyAndLabel(
-  filterMode: 'platform' | 'route' | 'routePrefix',
-  platform: string,
-  routeCode: string
-): { filterKey: string; filterLabel: string } {
-  if (filterMode === 'platform') {
-    const p = platform || 'のりば';
+/** 駅およびバス停コードに応じたのりば表示名・フィルターキー・フィルターラベルの解決 */
+function resolveStopPlatformAndFilter(
+  stationId: string,
+  stopId: string,
+  stopPlatform: string,
+  stopName: string
+): { platformDisplay: string; filterKey: string; filterLabel: string } {
+  if (stationId === 'sendai') {
+    const p = stopPlatform || '';
     return {
-      filterKey: p,
-      filterLabel: `${p}番のりば`,
+      platformDisplay: p ? `${p}番のりば` : 'のりば',
+      filterKey: p || 'other',
+      filterLabel: p ? `${p}番` : 'のりば',
     };
   }
-  if (filterMode === 'routePrefix') {
-    if (routeCode.startsWith('K')) {
-      return { filterKey: 'K', filterLabel: 'K系統（県庁市役所）' };
+  if (stationId === 'nagamachi') {
+    if (stopId === '7501_10') {
+      return { platformDisplay: '東口 4番のりば', filterKey: '東口4', filterLabel: '東口4番' };
     }
-    if (routeCode.startsWith('J')) {
-      return { filterKey: 'J', filterLabel: 'J系統（定禅寺通）' };
+    if (stopId === '7501_11') {
+      return { platformDisplay: '東口 5番のりば', filterKey: '東口5', filterLabel: '東口5番' };
     }
-    return { filterKey: routeCode, filterLabel: `${routeCode}系統` };
+    if (stopId.startsWith('6008_')) {
+      return { platformDisplay: '西口', filterKey: '西口', filterLabel: '西口' };
+    }
+    if (stopId.startsWith('6007_')) {
+      return { platformDisplay: 'たいはっくる前', filterKey: 'たいはっくる前', filterLabel: 'たいはっくる前' };
+    }
   }
+  if (stationId === 'taishido') {
+    if (stopId === '6020_10') {
+      return { platformDisplay: '長町・市立病院方面', filterKey: '北行', filterLabel: '長町方面' };
+    }
+    return { platformDisplay: '南仙台・四郎丸方面', filterKey: '南行', filterLabel: '四郎丸方面' };
+  }
+  if (stationId === 'minami-sendai') {
+    if (stopId === '6163_10') {
+      return { platformDisplay: '太子堂・長町方面', filterKey: '北行', filterLabel: '長町方面' };
+    }
+    return { platformDisplay: '四郎丸・袋原方面', filterKey: '南行', filterLabel: '四郎丸方面' };
+  }
+  const p = stopPlatform || stopName;
   return {
-    filterKey: routeCode,
-    filterLabel: routeCode,
+    platformDisplay: p,
+    filterKey: p,
+    filterLabel: p,
   };
 }
 
 /**
- * 指定された駅IDの仙台市営バス全グループ時刻表・リアルタイム遅延データを取得・構築
+ * 指定された駅IDの仙台市営バス時刻表・リアルタイム遅延データを取得・構築
+ * 駅内の全のりばを不自然な群に分割せず、1つの統合スケジュールとして提供
  */
 export async function fetchSendaiBusStationSchedule(
   stationId: string,
@@ -463,183 +405,184 @@ export async function fetchSendaiBusStationSchedule(
   const config = SENDAI_BUS_STATION_CONFIGS[stationId];
   if (!config) return null;
 
-  // まずマスタデータ（routes / stops）を取得（コールドスタート時はここで起動完了まで待機）
+  // まずマスタデータ（routes / stops）を取得
   const [routesMaster, stopsMaster] = await Promise.all([
     fetchSendaiBusRoutes(),
     fetchSendaiBusStops(),
   ]);
 
-  // 駅内の全対象 stopId を重複なく取得
-  const uniqueStopIds = Array.from(
-    new Set(config.groups.flatMap((g) => g.stopIds))
-  );
-
   const rawTimetablesMap = new Map<string, SendaiBusRawTimetableResponse>();
   await Promise.all(
-    uniqueStopIds.map(async (stopId) => {
+    config.stopIds.map(async (stopId) => {
       const tt = await fetchSendaiBusStopTimetable(stopId, forceRefresh);
       rawTimetablesMap.set(stopId, tt);
     })
   );
 
-  const groups: SendaiBusStationGroupSchedule[] = config.groups.map((groupDef) => {
-    const byDay: Record<SendaiBusDayType, SendaiBusDeparture[]> = {
-      weekday: [],
-      saturday: [],
-      holiday: [],
-    };
-    const filterMap = new Map<string, string>();
+  const byDay: Record<SendaiBusDayType, SendaiBusDeparture[]> = {
+    weekday: [],
+    saturday: [],
+    holiday: [],
+  };
+  const filterMap = new Map<string, string>();
 
-    for (const stopId of groupDef.stopIds) {
-      const rawTt = rawTimetablesMap.get(stopId);
-      if (!rawTt || !rawTt.timetables) continue;
+  for (const stopId of config.stopIds) {
+    const rawTt = rawTimetablesMap.get(stopId);
+    if (!rawTt || !rawTt.timetables) continue;
 
-      const stopInfo = stopsMaster[stopId];
-      const stopName = stopInfo?.name || rawTt.stop_name || stopId;
-      const platform = stopInfo?.platform || '';
+    const stopInfo = stopsMaster[stopId];
+    const stopName = stopInfo?.name || rawTt.stop_name || stopId;
+    const platform = stopInfo?.platform || '';
 
-      for (const [routeId, tripsMap] of Object.entries(rawTt.timetables)) {
-        const routeInfo = routesMaster[routeId];
-        const routeCode = routeInfo?.short_name || routeId;
+    const { platformDisplay, filterKey, filterLabel } = resolveStopPlatformAndFilter(
+      stationId,
+      stopId,
+      platform,
+      stopName
+    );
 
-        for (const [tripId, trip] of Object.entries(tripsMap)) {
-          const dayType = parseServiceDayType(trip.service_id || '');
-          if (!dayType) continue;
+    for (const [routeId, tripsMap] of Object.entries(rawTt.timetables)) {
+      const routeInfo = routesMaster[routeId];
+      const routeCode = routeInfo?.short_name || routeId;
+      // GTFS / API から渡される正式な路線カラーを採用（#付与、フォールバックは #a3d742）
+      const rawColor = routeInfo?.color ? `#${routeInfo.color.replace(/^#/, '')}` : SENDAI_BUS_ROUTE_DEFAULT_COLOR;
+      const routeColor = rawColor;
+      const routeTextColor = getRouteBadgeTextColor(routeColor);
 
-          const rawStops = trip.stops || [];
-          const boardingIdx = rawStops.findIndex((s) => s.stop_id === stopId);
+      for (const [tripId, trip] of Object.entries(tripsMap)) {
+        const dayType = parseServiceDayType(trip.service_id || '');
+        if (!dayType) continue;
 
-          // 終着降車便の厳格除外: stopId が見つからない、または最後の要素である場合は除外
-          if (boardingIdx === -1 || boardingIdx === rawStops.length - 1) {
-            continue;
-          }
+        const rawStops = trip.stops || [];
+        const boardingIdx = rawStops.findIndex((s) => s.stop_id === stopId);
 
-          const boardingRawStop = rawStops[boardingIdx];
-          const parsedDep = parseBusTime(boardingRawStop.time);
-
-          // リアルタイム遅延（秒単位、60秒以上で反映）
-          const rawDelaySec = rawTt.delays?.[routeId]?.[tripId] ?? 0;
-          const isDelayed = rawDelaySec >= 60;
-          const delaySec = isDelayed ? rawDelaySec : 0;
-          const delayMinutes = isDelayed ? Math.floor(rawDelaySec / 60) : 0;
-          const expectedSec = parsedDep.scheduledSec + delaySec;
-          const expectedMinutes = parsedDep.scheduledMinutes + delayMinutes;
-          const expectedTime = formatMinutesToHHMM(expectedMinutes);
-
-          // 始発〜終着の全停車バス停タイムライン構築
-          const timelineStops: SendaiBusTimelineStop[] = rawStops.map((st, idx) => {
-            const stMaster = stopsMaster[st.stop_id];
-            const parsedSt = parseBusTime(st.time);
-            return {
-              stopId: st.stop_id,
-              stopName: stMaster?.name || st.stop_id,
-              platform: stMaster?.platform || '',
-              stopSequence: idx + 1,
-              time: parsedSt.formatted,
-              scheduledSec: parsedSt.scheduledSec,
-              scheduledMinutes: parsedSt.scheduledMinutes,
-            };
-          });
-
-          const originStop = timelineStops[0];
-          const terminalStop = timelineStops[timelineStops.length - 1];
-
-          const { filterKey, filterLabel } = resolveFilterKeyAndLabel(
-            groupDef.filterMode,
-            platform,
-            routeCode
-          );
-          if (!filterMap.has(filterKey)) {
-            filterMap.set(filterKey, filterLabel);
-          }
-
-          const departure: SendaiBusDeparture = {
-            id: `${stopId}__${routeId}__${tripId}`,
-            tripId,
-            routeId,
-            routeCode,
-            stopId,
-            stopName,
-            platform,
-            headsign: trip.headsign || terminalStop.stopName,
-            via: trip.via || '',
-            dayType,
-            departureTime: parsedDep.formatted,
-            scheduledSec: parsedDep.scheduledSec,
-            scheduledMinutes: parsedDep.scheduledMinutes,
-            delaySec,
-            delayMinutes,
-            isDelayed,
-            expectedTime,
-            expectedSec,
-            expectedMinutes,
-            originStopName: originStop.stopName,
-            originDepartureTime: originStop.time,
-            terminalStopName: terminalStop.stopName,
-            terminalArrivalTime: terminalStop.time,
-            boardingStopIndex: boardingIdx,
-            filterKey,
-            filterLabel,
-            stops: timelineStops,
-          };
-
-          byDay[dayType].push(departure);
+        // 終着降車便の厳格除外: stopId が見つからない、または最後の要素である場合は除外
+        if (boardingIdx === -1 || boardingIdx === rawStops.length - 1) {
+          continue;
         }
+
+        const boardingRawStop = rawStops[boardingIdx];
+        const parsedDep = parseBusTime(boardingRawStop.time);
+
+        // リアルタイム遅延（秒単位、60秒以上で反映）
+        const rawDelaySec = rawTt.delays?.[routeId]?.[tripId] ?? 0;
+        const isDelayed = rawDelaySec >= 60;
+        const delaySec = isDelayed ? rawDelaySec : 0;
+        const delayMinutes = isDelayed ? Math.floor(rawDelaySec / 60) : 0;
+        const expectedSec = parsedDep.scheduledSec + delaySec;
+        const expectedMinutes = parsedDep.scheduledMinutes + delayMinutes;
+        const expectedTime = formatMinutesToHHMM(expectedMinutes);
+
+        // 始発〜終着の全停車バス停タイムライン構築
+        const timelineStops: SendaiBusTimelineStop[] = rawStops.map((st, idx) => {
+          const stMaster = stopsMaster[st.stop_id];
+          const parsedSt = parseBusTime(st.time);
+          return {
+            stopId: st.stop_id,
+            stopName: stMaster?.name || st.stop_id,
+            platform: stMaster?.platform || '',
+            stopSequence: idx + 1,
+            time: parsedSt.formatted,
+            scheduledSec: parsedSt.scheduledSec,
+            scheduledMinutes: parsedSt.scheduledMinutes,
+          };
+        });
+
+        const originStop = timelineStops[0];
+        const terminalStop = timelineStops[timelineStops.length - 1];
+
+        if (!filterMap.has(filterKey)) {
+          filterMap.set(filterKey, filterLabel);
+        }
+
+        const departure: SendaiBusDeparture = {
+          id: `${stopId}__${routeId}__${tripId}`,
+          tripId,
+          routeId,
+          routeCode,
+          routeColor,
+          routeTextColor,
+          stopId,
+          stopName,
+          platform: platformDisplay,
+          headsign: trip.headsign || terminalStop.stopName,
+          via: trip.via || '',
+          dayType,
+          departureTime: parsedDep.formatted,
+          scheduledSec: parsedDep.scheduledSec,
+          scheduledMinutes: parsedDep.scheduledMinutes,
+          delaySec,
+          delayMinutes,
+          isDelayed,
+          expectedTime,
+          expectedSec,
+          expectedMinutes,
+          originStopName: originStop.stopName,
+          originDepartureTime: originStop.time,
+          terminalStopName: terminalStop.stopName,
+          terminalArrivalTime: terminalStop.time,
+          boardingStopIndex: boardingIdx,
+          filterKey,
+          filterLabel,
+          stops: timelineStops,
+        };
+
+        byDay[dayType].push(departure);
       }
     }
+  }
 
-    // 4:00基準の鉄道時刻順（昇順）にソート
-    const sortDepartures = (list: SendaiBusDeparture[]) =>
-      list.sort((a, b) => {
-        if (a.scheduledSec !== b.scheduledSec) {
-          return a.scheduledSec - b.scheduledSec;
-        }
-        return a.routeCode.localeCompare(b.routeCode, 'ja', { numeric: true });
-      });
+  // 4:00基準の鉄道時刻順（昇順）にソート
+  const sortDepartures = (list: SendaiBusDeparture[]) =>
+    list.sort((a, b) => {
+      if (a.scheduledSec !== b.scheduledSec) {
+        return a.scheduledSec - b.scheduledSec;
+      }
+      return a.routeCode.localeCompare(b.routeCode, 'ja', { numeric: true });
+    });
 
-    sortDepartures(byDay.weekday);
-    sortDepartures(byDay.saturday);
-    sortDepartures(byDay.holiday);
+  sortDepartures(byDay.weekday);
+  sortDepartures(byDay.saturday);
+  sortDepartures(byDay.holiday);
 
-    // フィルター選択肢の整列（のりば番号・系統番号を自然順ソート）
-    const filterOptions: SendaiBusFilterOption[] = Array.from(filterMap.entries())
-      .map(([key, label]) => ({ key, label }))
-      .sort((a, b) => a.key.localeCompare(b.key, 'ja', { numeric: true }));
-
-    return {
-      groupId: groupDef.groupId,
-      title: groupDef.title,
-      shortTitle: groupDef.shortTitle,
-      stopIds: groupDef.stopIds,
-      filterMode: groupDef.filterMode,
-      upcomingLimit: groupDef.upcomingLimit,
-      filterOptions,
-      weekday: byDay.weekday,
-      saturday: byDay.saturday,
-      holiday: byDay.holiday,
-    };
-  });
+  // フィルター選択肢の整列（数字キーは数値昇順、それ以外は自然順）
+  const filterOptions: SendaiBusFilterOption[] = Array.from(filterMap.entries())
+    .map(([key, label]) => ({ key, label }))
+    .sort((a, b) => {
+      const na = parseInt(a.key, 10);
+      const nb = parseInt(b.key, 10);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      return a.key.localeCompare(b.key, 'ja', { numeric: true });
+    });
 
   return {
     stationId,
     stationName: config.stationName,
-    groups,
+    stopIds: config.stopIds,
+    filterOptions,
+    weekday: byDay.weekday,
+    saturday: byDay.saturday,
+    holiday: byDay.holiday,
   };
 }
 
 /**
- * グループ内の直近発車便リストを取得
+ * 駅内の直近発車便リストを取得
+ * filterKey を指定した場合は当該のりばのみに絞り込み
  * 未発車の判定および並び順はリアルタイム遅延反映後の予想発車時刻（scheduledSec + delaySec）を基準に行う
  */
 export function getUpcomingSendaiBusDepartures(
-  group: SendaiBusStationGroupSchedule,
+  schedule: SendaiBusStationSchedule,
   now: Date = new Date(),
-  limit?: number
+  limit = 5,
+  filterKey?: string | null
 ): SendaiBusDeparture[] {
   const dayType = getSendaiBusDayType(now);
-  const allDeps = group[dayType] || [];
+  let allDeps = schedule[dayType] || [];
+  if (filterKey) {
+    allDeps = allDeps.filter((dep) => dep.filterKey === filterKey);
+  }
   const currentMinuteFloorSec = Math.floor(getCurrentRailwaySeconds(now) / 60) * 60;
-  const maxItems = limit ?? group.upcomingLimit;
 
   return allDeps
     .filter((dep) => dep.scheduledSec + dep.delaySec >= currentMinuteFloorSec)
@@ -649,5 +592,5 @@ export function getUpcomingSendaiBusDepartures(
       if (aExp !== bExp) return aExp - bExp;
       return a.scheduledSec - b.scheduledSec;
     })
-    .slice(0, maxItems);
+    .slice(0, limit);
 }

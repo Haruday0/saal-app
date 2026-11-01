@@ -25,7 +25,7 @@ export function getRouteBadgeTextColor(bgColor: string): string {
 export interface BusRouteBadgeProps {
   /** 系統番号・略号（例: 420, まち01, K610, 宮交） */
   routeCode: string;
-  /** 路線シンボルカラー（デフォルト: #00703c） */
+  /** 路線シンボルカラー（デフォルト: #a3d742） */
   color?: string;
   /** 文字色（省略時は背景色の明暗に応じた自動決定） */
   textColor?: string;
@@ -43,7 +43,7 @@ export interface BusRouteBadgeProps {
  */
 export const BusRouteBadge: React.FC<BusRouteBadgeProps> = ({
   routeCode,
-  color = '#00703c',
+  color = '#a3d742',
   textColor,
   size = 'sm',
   className = '',

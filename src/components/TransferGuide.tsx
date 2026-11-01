@@ -249,6 +249,7 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   );
 
   useEffect(() => {
+    setSelectedSendaiBusFilterKey(null);
     if (!hasSendaiBus) {
       setSendaiBusSchedule(null);
       setSendaiBusLoading(false);
@@ -314,7 +315,7 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
   // 仙台市営バス時刻表モーダルの状態管理
   const [sendaiBusModalOpen, setSendaiBusModalOpen] = useState(false);
-  const [sendaiBusInitialGroupId, setSendaiBusInitialGroupId] = useState<
+  const [selectedSendaiBusFilterKey, setSelectedSendaiBusFilterKey] = useState<
     string | null
   >(null);
   const [sendaiBusInitialDepId, setSendaiBusInitialDepId] = useState<
@@ -322,11 +323,13 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   >(null);
 
   const openSendaiBusTimetable = (
-    groupId: string | null = null,
-    departureId: string | null = null
+    departureId: string | null = null,
+    filterKey: string | null = null
   ) => {
-    setSendaiBusInitialGroupId(groupId);
     setSendaiBusInitialDepId(departureId);
+    if (filterKey !== null) {
+      setSelectedSendaiBusFilterKey(filterKey);
+    }
     setSendaiBusModalOpen(true);
   };
 
@@ -439,11 +442,11 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
       {hasSendaiBus && (
         <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
           <TransportSectionHeader
-            icon={<JisBus size={18} />}
+            icon={<JisBus size={18} color={SENDAI_BUS_COLOR} />}
             title="仙台市営バス"
             badgeLabel={
               sendaiBusSchedule
-                ? `${sendaiBusSchedule.groups.length}のりば群`
+                ? `${sendaiBusSchedule.stopIds.length}のりば`
                 : 'リアルタイム'
             }
             rightAction={
@@ -454,18 +457,74 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                   radius="xl"
                   fw={700}
                   leftSection={<Icon name="schedule" size={13} />}
-                  onClick={() =>
-                    openSendaiBusTimetable(
-                      sendaiBusSchedule.groups[0]?.groupId ?? null,
-                      null
-                    )
-                  }
+                  onClick={() => openSendaiBusTimetable(null, selectedSendaiBusFilterKey)}
                 >
                   時刻表
                 </Button>
               ) : undefined
             }
           />
+
+          {/* sendai-bus-map-v2 準拠ののりば選択ピル（全のりば / 各のりば切り替え） */}
+          {sendaiBusSchedule && sendaiBusSchedule.filterOptions.length > 1 && (
+            <Box
+              px={12}
+              py={8}
+              style={{
+                backgroundColor: 'var(--mantine-color-default-hover)',
+                borderBottom: '1px solid var(--mantine-color-default-border)',
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
+              <Group gap={6} wrap="nowrap">
+                <Button
+                  size="compact-xs"
+                  radius="xl"
+                  variant={selectedSendaiBusFilterKey === null ? 'filled' : 'default'}
+                  style={
+                    selectedSendaiBusFilterKey === null
+                      ? {
+                          backgroundColor: SENDAI_BUS_COLOR,
+                          color: '#ffffff',
+                        }
+                      : undefined
+                  }
+                  onClick={() => setSelectedSendaiBusFilterKey(null)}
+                  fw={700}
+                  className="shrink-0"
+                >
+                  すべてのりば
+                </Button>
+                {sendaiBusSchedule.filterOptions.map((opt) => {
+                  const isSelected = selectedSendaiBusFilterKey === opt.key;
+                  return (
+                    <Button
+                      key={opt.key}
+                      size="compact-xs"
+                      radius="xl"
+                      variant={isSelected ? 'filled' : 'default'}
+                      style={
+                        isSelected
+                          ? {
+                              backgroundColor: SENDAI_BUS_COLOR,
+                              color: '#ffffff',
+                            }
+                          : undefined
+                      }
+                      onClick={() =>
+                        setSelectedSendaiBusFilterKey(isSelected ? null : opt.key)
+                      }
+                      fw={700}
+                      className="shrink-0"
+                    >
+                      {opt.label}
+                    </Button>
+                  );
+                })}
+              </Group>
+            </Box>
+          )}
 
           {sendaiBusLoading && !sendaiBusSchedule ? (
             <Stack gap={8} p="sm">
@@ -495,126 +554,49 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
               </Button>
             </Group>
           ) : sendaiBusSchedule ? (
-            <Stack gap={0}>
-              {sendaiBusSchedule.groups.map((group, gIdx) => {
-                const upcoming = getUpcomingSendaiBusDepartures(group, now);
+            (() => {
+              const upcoming = getUpcomingSendaiBusDepartures(
+                sendaiBusSchedule,
+                now,
+                6,
+                selectedSendaiBusFilterKey
+              );
 
+              if (upcoming.length === 0) {
                 return (
-                  <Box key={group.groupId}>
-                    {/* のりば群サブヘッダー */}
-                    <Box
-                      py={4}
-                      px={12}
-                      style={{
-                        backgroundColor: 'var(--mantine-color-default-hover)',
-                        borderTop:
-                          gIdx > 0
-                            ? '1px solid var(--mantine-color-default-border)'
-                            : undefined,
-                        borderBottom:
-                          '1px solid var(--mantine-color-default-border)',
-                      }}
-                    >
-                      <Group justify="space-between" wrap="nowrap" align="center">
-                        <Group gap={6} wrap="nowrap" className="min-w-0">
-                          <Badge
-                            size="xs"
-                            radius="sm"
-                            variant="filled"
-                            color="gray"
-                            fw={700}
-                            tt="none"
-                            className="shrink-0"
-                          >
-                            {group.shortTitle}
-                          </Badge>
-                          <Text
-                            fz={11}
-                            fw={500}
-                            c="dimmed"
-                            className="truncate"
-                          >
-                            {group.title}
-                          </Text>
-                        </Group>
-
-                        <UnstyledButton
-                          onClick={() =>
-                            openSendaiBusTimetable(group.groupId, null)
-                          }
-                          className="shrink-0"
-                        >
-                          <Group gap={2} wrap="nowrap" align="center">
-                            <Text fz={10.5} c="dimmed" fw={600}>
-                              全便
-                            </Text>
-                            <Icon
-                              name="chevron_right"
-                              size={13}
-                              className="text-slate-400 dark:text-slate-500"
-                            />
-                          </Group>
-                        </UnstyledButton>
-                      </Group>
-                    </Box>
-
-                    {/* 直近発車便リスト */}
-                    {upcoming.length > 0 ? (
-                      <div>
-                        {upcoming.map((dep, dIdx) => (
-                          <BusDepartureRow
-                            key={dep.id}
-                            routeCode={dep.routeCode}
-                            routeColor={SENDAI_BUS_COLOR}
-                            headsign={dep.headsign}
-                            via={dep.via}
-                            platform={dep.platform}
-                            departureTime={dep.departureTime}
-                            isDelayed={dep.isDelayed}
-                            delayMinutes={dep.delayMinutes}
-                            expectedTime={dep.expectedTime}
-                            isNext={dIdx === 0}
-                            onClick={() =>
-                              openSendaiBusTimetable(group.groupId, dep.id)
-                            }
-                            isLast={
-                              dIdx === upcoming.length - 1 &&
-                              gIdx === sendaiBusSchedule.groups.length - 1
-                            }
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <Box
-                        py={8}
-                        px={14}
-                        style={{
-                          borderBottom:
-                            gIdx === sendaiBusSchedule.groups.length - 1
-                              ? 'none'
-                              : '1px solid var(--mantine-color-default-border)',
-                        }}
-                      >
-                        <Group justify="space-between" align="center">
-                          <Text fz={11.5} c="dimmed">
-                            本日の運行は終了しました
-                          </Text>
-                          <UnstyledButton
-                            onClick={() =>
-                              openSendaiBusTimetable(group.groupId, null)
-                            }
-                          >
-                            <Text fz={11} fw={700} c="blue">
-                              時刻表を見る →
-                            </Text>
-                          </UnstyledButton>
-                        </Group>
-                      </Box>
-                    )}
+                  <Box py="md" px="sm">
+                    <Text fz={12} c="dimmed" ta="center">
+                      本日の運行は終了しました
+                    </Text>
                   </Box>
                 );
-              })}
-            </Stack>
+              }
+
+              return (
+                <Stack gap={0}>
+                  {upcoming.map((dep, dIdx) => (
+                    <BusDepartureRow
+                      key={dep.id}
+                      routeCode={dep.routeCode}
+                      routeColor={dep.routeColor}
+                      routeTextColor={dep.routeTextColor}
+                      headsign={dep.headsign}
+                      via={dep.via}
+                      platform={dep.platform}
+                      departureTime={dep.departureTime}
+                      isDelayed={dep.isDelayed}
+                      delayMinutes={dep.delayMinutes}
+                      expectedTime={dep.expectedTime}
+                      isNext={dIdx === 0}
+                      onClick={() =>
+                        openSendaiBusTimetable(dep.id, selectedSendaiBusFilterKey)
+                      }
+                      isLast={dIdx === upcoming.length - 1}
+                    />
+                  ))}
+                </Stack>
+              );
+            })()
           ) : null}
         </Paper>
       )}
@@ -816,8 +798,8 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           isOpen={sendaiBusModalOpen}
           onClose={() => setSendaiBusModalOpen(false)}
           stationSchedule={sendaiBusSchedule}
-          initialGroupId={sendaiBusInitialGroupId}
           initialDepartureId={sendaiBusInitialDepId}
+          initialFilterKey={selectedSendaiBusFilterKey}
           now={now}
         />
       )}
