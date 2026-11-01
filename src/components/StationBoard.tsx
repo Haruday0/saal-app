@@ -807,9 +807,9 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                 </div>
               </>
             ) : (
-              /* ── 2番線: 左端に数字「2」、青ラインは「2」の上を通って右下へ下り方面テキストの下を通る（実機写真通り） ── */
+              /* ── 2番線: 1番線と完全同一の青ライン・レイアウト（左側〜中央に方面テキスト、右端に数字「2」） ── */
               <>
-                {/* 連続アクセス線青ライン（#0085ca・実機準拠424px幅・角ばらない滑らかなS字曲線ベジェ・均一線幅） */}
+                {/* 連続アクセス線青ライン（1番線と完全同一の形状・長さ・曲がり位置） */}
                 <svg
                   viewBox="0 0 424 46"
                   preserveAspectRatio="none"
@@ -821,7 +821,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     </clipPath>
                   </defs>
                   <path
-                    d="M 0 4 L 52 4 C 74 4, 74 42, 96 42 L 424 42"
+                    d="M 0 42 L 328 42 C 350 42, 350 4, 372 4 L 424 4"
                     fill="none"
                     stroke="#0085ca"
                     strokeWidth="3.5"
@@ -829,13 +829,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   />
                 </svg>
 
-                {/* 左端：のりば数字「2」（実機写真通り、上部青線から離れるよう若干下寄りに配置） */}
-                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-5 pr-2 mt-[2px]">
-                  <TrackNumeral num="2" className="h-[26px] w-auto text-slate-900" />
-                </div>
-
-                {/* 中央〜右側：方面テキスト（青ラインが下を通るため pb-[4px]） */}
-                <div className="flex-1 flex items-center justify-center h-full pb-[4px] z-10 pl-2 pr-6">
+                {/* 左側〜中央：方面テキスト（青ラインが下を通るため pb-[4px]） */}
+                <div className="flex-1 flex items-center justify-center h-full pb-[4px] z-10 pl-6 pr-2">
                   {stationId === 'sendai-airport' ? (
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
@@ -886,6 +881,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* 右端：のりば数字「2」（上部青線から離れるよう若干下寄りに配置） */}
+                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-2 pr-5 mt-[2px]">
+                  <TrackNumeral num="2" className="h-[26px] w-auto text-slate-900" />
                 </div>
               </>
             )}
