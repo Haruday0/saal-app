@@ -725,7 +725,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
           {/* ================= 上部白看板（SAT仕様・斜め青ライン＆番線数字左右反転対応） ================= */}
           <div className="bg-[#eef2f6] text-slate-900 px-3 h-[46px] border-b-2 border-neutral-950 flex items-center justify-between select-none relative font-signboard overflow-hidden">
             {satTrack === '1' ? (
-              /* ── 1番線: 左側〜中央に方面テキスト、青ラインは中央下部を通って右上へ滑らかに駆け上がり、右端の数字「1」の上を通る（実機写真通り） ── */
+              /* ── 1番線: 左端に数字「1」、青ラインは1の下を通って右上へ滑らかに駆け上がり、方面テキストの上を通る ── */
               <>
                 {/* 連続アクセス線青ライン（#0085ca・実機準拠424px幅・角ばらない滑らかなS字曲線ベジェ・均一線幅） */}
                 <svg
@@ -739,7 +739,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     </clipPath>
                   </defs>
                   <path
-                    d="M 0 42 L 328 42 C 350 42, 350 4, 372 4 L 424 4"
+                    d="M 0 42 L 60 42 C 82 42, 82 4, 104 4 L 424 4"
                     fill="none"
                     stroke="#0085ca"
                     strokeWidth="3.5"
@@ -747,8 +747,13 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   />
                 </svg>
 
-                {/* 左側〜中央：方面テキスト（青ラインが下を通るため pb-[4px]） */}
-                <div className="flex-1 flex items-center justify-center h-full pb-[4px] z-10 pl-6 pr-2">
+                {/* 左端：のりば数字「1」（下部青線から離れるよう若干小さく上寄りに配置） */}
+                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-2 pr-3 -mt-[4px]">
+                  <TrackNumeral num="1" className="h-[26px] w-auto text-slate-900" />
+                </div>
+
+                {/* 中央〜右側：方面テキスト（青ラインが上を通るため pt-[5px]） */}
+                <div className="flex-1 flex items-center justify-center h-full pt-[5px] z-10 pl-2 pr-4">
                   {stationId === 'sendai-airport' ? (
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
@@ -800,16 +805,11 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     </div>
                   )}
                 </div>
-
-                {/* 右端：のりば数字「1」（実機写真通り、上部青線から離れるよう若干下寄りに配置） */}
-                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-2 pr-5 mt-[2px]">
-                  <TrackNumeral num="1" className="h-[26px] w-auto text-slate-900" />
-                </div>
               </>
             ) : (
-              /* ── 2番線: 1番線と完全同一の青ライン・レイアウト（左側〜中央に方面テキスト、右端に数字「2」） ── */
+              /* ── 2番線: 右端に数字「2」、青ラインは方面テキストの下を通って右上へ滑らかに駆け上がり、2の上を通る ── */
               <>
-                {/* 連続アクセス線青ライン（1番線と完全同一の形状・長さ・曲がり位置） */}
+                {/* 連続アクセス線青ライン（#0085ca・実機準拠424px幅・角ばらない滑らかなS字曲線ベジェ・均一線幅） */}
                 <svg
                   viewBox="0 0 424 46"
                   preserveAspectRatio="none"
@@ -821,7 +821,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     </clipPath>
                   </defs>
                   <path
-                    d="M 0 42 L 328 42 C 350 42, 350 4, 372 4 L 424 4"
+                    d="M 0 42 L 320 42 C 342 42, 342 4, 364 4 L 424 4"
                     fill="none"
                     stroke="#0085ca"
                     strokeWidth="3.5"
@@ -829,8 +829,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   />
                 </svg>
 
-                {/* 左側〜中央：方面テキスト（青ラインが下を通るため pb-[4px]） */}
-                <div className="flex-1 flex items-center justify-center h-full pb-[4px] z-10 pl-6 pr-2">
+                {/* 左側〜中央：方面テキスト（青ラインが下を通るため pb-[5px]） */}
+                <div className="flex-1 flex items-center justify-center h-full pb-[5px] z-10 pl-4 pr-2">
                   {stationId === 'sendai-airport' ? (
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
@@ -883,8 +883,8 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   )}
                 </div>
 
-                {/* 右端：のりば数字「2」（上部青線から離れるよう若干下寄りに配置） */}
-                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-2 pr-5 mt-[2px]">
+                {/* 右端：のりば数字「2」（上部青線から離れるよう若干小さく下寄りに配置） */}
+                <div className="h-full flex items-center justify-center shrink-0 z-10 pl-3 pr-2 mt-[4px]">
                   <TrackNumeral num="2" className="h-[26px] w-auto text-slate-900" />
                 </div>
               </>
