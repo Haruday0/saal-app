@@ -1,5 +1,5 @@
 import React from 'react';
-import { UnstyledButton, Badge } from '@mantine/core';
+import { UnstyledButton } from '@mantine/core';
 import { BusRouteBadge } from './BusRouteBadge';
 import { Icon } from './Icon';
 
@@ -58,9 +58,8 @@ export function formatHeadsign(headsign: string): string {
  * 完全に同一のレイアウト・情報順・視認性を持つ共通バス発車行コンポーネント
  *
  * - 左側: 発車時刻カラム（固定幅58px・等幅欧文数字・遅延時は定時取消線＋予想時刻）
- * - 中央: 経由（上段小文字） ＋ 系統バッジ（ピル形状）＋行先（太字） ＋ のりば・路線名・遅延バッジ（下段）
+ * - 中央: 経由（上段小文字） ＋ 系統バッジ（ピル形状）＋行先（太字） ＋ のりば・路線名（下段）
  * - 右側: 詳細遷移シェブロンアイコン
- * - 次便: 左端カラーアクセントバー ＋ ほのかなハイライト背景
  * - 過去便: 控えめな減光表示（opacity: 0.55）
  */
 export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
@@ -76,7 +75,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
   delayMinutes: _delayMinutes = 0,
   expectedTime,
   showDelay = true,
-  isNext = false,
+  isNext: _isNext,
   isPast = false,
   onClick,
   title,
@@ -100,27 +99,8 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
           ? 'none'
           : '1px solid var(--mantine-color-default-border)',
         opacity: isPast ? 0.55 : 1,
-        backgroundColor: isNext
-          ? 'var(--mantine-color-default-hover)'
-          : undefined,
       }}
     >
-      {/* 次発強調: 左端カラーインジケーターバー */}
-      {isNext && (
-        <span
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 4,
-            backgroundColor: routeColor,
-            borderTopLeftRadius: 'var(--mantine-radius-sm)',
-            borderBottomLeftRadius: 'var(--mantine-radius-sm)',
-          }}
-        />
-      )}
-
       {/* 左カラム: 発車時刻（固定幅58px・中央揃え・等幅数字・sendai-bus-map-v2 .item-time 準拠） */}
       <div
         className="font-english tabular-nums shrink-0"
@@ -161,7 +141,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
               style={{
                 fontSize: 18,
                 fontWeight: 700,
-                color: isNext ? 'var(--mantine-color-blue-filled)' : 'var(--mantine-color-text)',
+                color: 'var(--mantine-color-text)',
                 letterSpacing: '-0.03em',
               }}
             >
@@ -173,7 +153,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: isNext ? 'var(--mantine-color-blue-filled)' : 'var(--mantine-color-text)',
+              color: 'var(--mantine-color-text)',
               letterSpacing: '-0.03em',
             }}
           >
@@ -237,7 +217,7 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
           </span>
         </div>
 
-        {/* 補足行: のりば番号・路線名・遅延バッジ・次便バッジ (sendai-bus-map-v2 .item-platform) */}
+        {/* 補足行: のりば番号・路線名 (sendai-bus-map-v2 .item-platform) */}
         <div
           style={{
             display: 'flex',
@@ -273,20 +253,6 @@ export const BusDepartureRow: React.FC<BusDepartureRowProps> = ({
             >
               {lineName}
             </span>
-          )}
-
-          {isNext && (
-            <Badge
-              size="xs"
-              variant="light"
-              color="blue"
-              radius="sm"
-              tt="none"
-              fw={700}
-              className="shrink-0"
-            >
-              次発
-            </Badge>
           )}
         </div>
       </div>
