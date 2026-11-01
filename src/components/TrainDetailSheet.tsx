@@ -683,6 +683,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                   const isFirst = i === 0;
                   const isLast = i === stopsToShow.length - 1;
                   const isStoppedHere = status.kind === 'stopped' && status.index === i;
+                  const isRunningAfterThis = status.kind === 'running' && status.index === i;
 
                   // すでに発車・通過済みの駅かどうか
                   const passed =
@@ -829,6 +830,41 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                           </Group>
                         </Group>
                       </UnstyledButton>
+
+                      {/* 駅間を走行中の場合: 左のレール線上に五角形電車アイコンを配置 */}
+                      {isRunningAfterThis && (
+                        <Box
+                          mt={6}
+                          mb={2}
+                          style={{
+                            position: 'relative',
+                            display: 'flex',
+                            alignItems: 'center',
+                            minHeight: 18,
+                          }}
+                        >
+                          {/* 左のレール線上に重なる五角形電車アイコン */}
+                          <Box
+                            style={{
+                              position: 'absolute',
+                              left: 'calc(-1 * (var(--tl-bullet-size, 18px) + var(--tl-line-width, 2.5px) * 1.5))',
+                              top: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 1,
+                            }}
+                          >
+                            <PentagonIcon lineColor={lineColor} size={14} />
+                          </Box>
+
+                          {/* 案内テキスト */}
+                          <Text fz={11} fw={700} style={{ color: lineColor }}>
+                            走行中
+                          </Text>
+                        </Box>
+                      )}
                     </Timeline.Item>
                   );
                 })}

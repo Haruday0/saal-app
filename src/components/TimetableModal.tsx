@@ -367,11 +367,6 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
           const mantineColor = getMantineLineColor(train.line);
           const cleanDest = cleanStationName(train.destination);
 
-          // 乗車駅の発車分
-          const boardingDepTime =
-            boardingIndex >= 0 ? stopsToShow[boardingIndex]?.dep : undefined;
-          const boardingMin = boardingDepTime ? toRailwayMinutes(boardingDepTime) : -1;
-
           return (
             <>
               {/* 詳細ヘッダー（地下鉄モーダルと同一構造） */}
@@ -513,10 +508,6 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
                         <PentagonIcon lineColor={lineColor} size={14} />
                       ) : undefined;
 
-                      // 乗車駅からの所要時間
-                      const stopMin = toRailwayMinutes(s.arr || s.dep);
-                      const diffFromBoarding = boardingMin >= 0 ? stopMin - boardingMin : -1;
-
                       return (
                         <Timeline.Item
                           key={`${s.stationName}-${i}`}
@@ -585,20 +576,8 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
                                 )}
                               </Group>
 
-                              {/* 右側: 所要時間（乗車駅以降）＋ 到着・出発時刻 ＆ 番線 */}
+                              {/* 右側: 到着・出発時刻 ＆ 番線 */}
                               <Group gap={6} wrap="nowrap" align="center" justify="flex-end" style={{ flexShrink: 0 }}>
-                                {i > boardingIndex && diffFromBoarding >= 0 && (
-                                  <Text
-                                    fz={11}
-                                    fw={600}
-                                    c="dimmed"
-                                    className="font-english tabular-nums"
-                                    style={{ whiteSpace: 'nowrap' }}
-                                  >
-                                    +{diffFromBoarding}分
-                                  </Text>
-                                )}
-
                                 <Stack gap={1} align="flex-end" justify="center" style={{ minWidth: 54 }}>
                                   {isFirst ? (
                                     <Text

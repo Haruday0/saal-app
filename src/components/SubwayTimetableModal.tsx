@@ -385,7 +385,6 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                 }
 
                 const boardingIdx = selectedTrainItem.stationIndex;
-                const boardingMin = selectedTrainItem.departureMinutes;
 
                 return (
                   <Timeline
@@ -398,8 +397,6 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                       const stCode = meta.stationCodes[i];
                       const rawTime = times[i];
                       const formattedTime = formatSubwayTime(rawTime);
-                      const stMin = stopMinutes[i];
-
                       const isFirst = i === 0;
                       const isLast = i === meta.stations.length - 1;
                       const isBoarding = i === boardingIdx;
@@ -411,7 +408,6 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                       const linePassed =
                         i < boardingIdx || (isCurrentlyRunning && i < currentStopIdx);
 
-                      const diffFromBoarding = stMin - boardingMin;
                       const customBullet = isCurrentPos ? (
                         <PentagonIcon lineColor={meta.color} size={14} />
                       ) : undefined;
@@ -516,7 +512,7 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                                 )}
                               </Group>
 
-                              {/* 右側: 所要時間（乗車駅以降）＋ 発着時刻 */}
+                              {/* 右側: 発着時刻 */}
                               <Group
                                 gap={8}
                                 wrap="nowrap"
@@ -524,17 +520,6 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                                 justify="flex-end"
                                 style={{ flexShrink: 0 }}
                               >
-                                {i > boardingIdx && diffFromBoarding >= 0 && (
-                                  <Text
-                                    fz={11}
-                                    fw={600}
-                                    c="dimmed"
-                                    className="font-english tabular-nums"
-                                    style={{ whiteSpace: 'nowrap' }}
-                                  >
-                                    +{diffFromBoarding}分
-                                  </Text>
-                                )}
                                 <Text
                                   fz="xs"
                                   fw={isBoarding || isLast ? 800 : 700}

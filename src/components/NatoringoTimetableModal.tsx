@@ -396,7 +396,6 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                 }
 
                 const boardingIdx = selectedDeparture.boardingStopIndex;
-                const boardingMin = selectedDeparture.departureMinutes;
                 const rColor = selectedDeparture.routeColor;
 
                 return (
@@ -413,7 +412,6 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                       const linePassed =
                         i < boardingIdx || (isCurrentlyRunning && i < currentStopIdx);
 
-                      const diffFromBoarding = st.minutes - boardingMin;
                       const customBullet = isCurrentPos ? (
                         <PentagonIcon lineColor={rColor} size={14} />
                       ) : undefined;
@@ -520,7 +518,7 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                                 )}
                               </Group>
 
-                              {/* 右側: 運賃 ＋ 所要時間（乗車バス停以降）＋ 発着時刻 */}
+                              {/* 右側: 運賃 ＋ 発着時刻 */}
                               <Group
                                 gap={6}
                                 wrap="nowrap"
@@ -539,17 +537,6 @@ export const NatoringoTimetableModal: React.FC<NatoringoTimetableModalProps> = (
                                   >
                                     {st.fare}円
                                   </Badge>
-                                )}
-                                {i > boardingIdx && diffFromBoarding >= 0 && (
-                                  <Text
-                                    fz={11}
-                                    fw={600}
-                                    c="dimmed"
-                                    className="font-english tabular-nums"
-                                    style={{ whiteSpace: 'nowrap', minWidth: 34, textAlign: 'right' }}
-                                  >
-                                    +{diffFromBoarding}分
-                                  </Text>
                                 )}
                                 <Text
                                   fz="xs"
