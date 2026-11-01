@@ -739,7 +739,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     </clipPath>
                   </defs>
                   <path
-                    d="M 0 42 L 60 42 C 82 42, 82 4, 104 4 L 424 4"
+                    d="M 0 42 L 46 42 C 66 42, 66 4, 86 4 L 424 4"
                     fill="none"
                     stroke="#0085ca"
                     strokeWidth="3.5"
@@ -821,7 +821,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                     </clipPath>
                   </defs>
                   <path
-                    d="M 0 42 L 320 42 C 342 42, 342 4, 364 4 L 424 4"
+                    d="M 0 42 L 338 42 C 358 42, 358 4, 378 4 L 424 4"
                     fill="none"
                     stroke="#0085ca"
                     strokeWidth="3.5"
