@@ -13,6 +13,7 @@ import {
 import { Station } from '../types';
 import { JisSubway, JisBus } from './icons';
 import { Icon } from './Icon';
+import { SubwayStationMark } from './SubwayStationMark';
 import { BusDepartureRow, BusDepartureRowSkeleton } from './BusDepartureRow';
 import { SubwayDepartureRow } from './SubwayDepartureRow';
 import { SubwayTimetableModal } from './SubwayTimetableModal';
@@ -286,13 +287,13 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
   return (
     <Stack gap="sm">
-      {/* 1. 仙台市地下鉄 南北線 */}
-      {hasSubway && subwayStationName && nambokuDirections.length > 0 && (
+      {/* 1. 仙台市地下鉄（南北線・東西線を1つのカード内で上品に区分け） */}
+      {hasSubway && subwayStationName && (
         <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
           <TransportSectionHeader
             icon={<JisSubway size={18} />}
-            title="地下鉄 南北線"
-            badgeLabel="1・2番線"
+            title="仙台市地下鉄"
+            badgeLabel={`${subwayDirections.length}方面`}
             rightAction={
               <Button
                 size="compact-xs"
@@ -308,84 +309,106 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           />
 
           <Stack gap={0}>
-            {nambokuDirections.map((dirKey, idx) => {
-              const meta = SUBWAY_DIRECTIONS[dirKey];
-              const upcoming = getUpcomingSubwayTrains(
-                subwayStationName,
-                dirKey,
-                now,
-                3
-              );
+            {/* 南北線エリア */}
+            {nambokuDirections.length > 0 && (
+              <>
+                <Box
+                  px={12}
+                  py={6}
+                  style={{
+                    backgroundColor: 'var(--mantine-color-default-hover)',
+                    borderBottom: '1px solid var(--mantine-color-default-border)',
+                  }}
+                >
+                  <Group gap={6} align="center" wrap="nowrap">
+                    <SubwayStationMark line="namboku" code="N" size={18} />
+                    <Text fz={12} fw={800} c="var(--mantine-color-text)">
+                      南北線
+                    </Text>
+                    <Badge size="xs" variant="light" color="teal" radius="sm" fw={700}>
+                      1・2番線
+                    </Badge>
+                  </Group>
+                </Box>
+                {nambokuDirections.map((dirKey, idx) => {
+                  const meta = SUBWAY_DIRECTIONS[dirKey];
+                  const upcoming = getUpcomingSubwayTrains(
+                    subwayStationName,
+                    dirKey,
+                    now,
+                    3
+                  );
 
-              return (
-                <SubwayDepartureRow
-                  key={dirKey}
-                  lineId={meta.lineId}
-                  lineName={meta.lineName}
-                  track={meta.track}
-                  directionLabel={meta.directionLabel}
-                  destinationCode={meta.destinationCode}
-                  upcomingTrains={upcoming}
-                  onSelectDirection={() => openSubwayTimetable(dirKey, null)}
-                  onSelectTrain={(trainId) =>
-                    openSubwayTimetable(dirKey, trainId)
-                  }
-                  isLast={idx === nambokuDirections.length - 1}
-                />
-              );
-            })}
-          </Stack>
-        </Paper>
-      )}
+                  return (
+                    <SubwayDepartureRow
+                      key={dirKey}
+                      lineId={meta.lineId}
+                      lineName={meta.lineName}
+                      track={meta.track}
+                      directionLabel={meta.directionLabel}
+                      destinationCode={meta.destinationCode}
+                      upcomingTrains={upcoming}
+                      onSelectDirection={() => openSubwayTimetable(dirKey, null)}
+                      onSelectTrain={(trainId) =>
+                        openSubwayTimetable(dirKey, trainId)
+                      }
+                      isLast={tozaiDirections.length === 0 && idx === nambokuDirections.length - 1}
+                    />
+                  );
+                })}
+              </>
+            )}
 
-      {/* 2. 仙台市地下鉄 東西線 */}
-      {hasSubway && subwayStationName && tozaiDirections.length > 0 && (
-        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
-          <TransportSectionHeader
-            icon={<JisSubway size={18} />}
-            title="地下鉄 東西線"
-            badgeLabel="3・4番線"
-            rightAction={
-              <Button
-                size="compact-xs"
-                variant="default"
-                radius="xl"
-                fw={700}
-                leftSection={<Icon name="schedule" size={13} />}
-                onClick={() => openSubwayTimetable('tozai-east', null)}
-              >
-                時刻表
-              </Button>
-            }
-          />
+            {/* 東西線エリア（仙台駅） */}
+            {tozaiDirections.length > 0 && (
+              <>
+                <Box
+                  px={12}
+                  py={6}
+                  style={{
+                    backgroundColor: 'var(--mantine-color-default-hover)',
+                    borderTop: '1px solid var(--mantine-color-default-border)',
+                    borderBottom: '1px solid var(--mantine-color-default-border)',
+                  }}
+                >
+                  <Group gap={6} align="center" wrap="nowrap">
+                    <SubwayStationMark line="tozai" code="T" size={18} />
+                    <Text fz={12} fw={800} c="var(--mantine-color-text)">
+                      東西線
+                    </Text>
+                    <Badge size="xs" variant="light" color="cyan" radius="sm" fw={700}>
+                      3・4番線
+                    </Badge>
+                  </Group>
+                </Box>
+                {tozaiDirections.map((dirKey, idx) => {
+                  const meta = SUBWAY_DIRECTIONS[dirKey];
+                  const upcoming = getUpcomingSubwayTrains(
+                    subwayStationName,
+                    dirKey,
+                    now,
+                    3
+                  );
 
-          <Stack gap={0}>
-            {tozaiDirections.map((dirKey, idx) => {
-              const meta = SUBWAY_DIRECTIONS[dirKey];
-              const upcoming = getUpcomingSubwayTrains(
-                subwayStationName,
-                dirKey,
-                now,
-                3
-              );
-
-              return (
-                <SubwayDepartureRow
-                  key={dirKey}
-                  lineId={meta.lineId}
-                  lineName={meta.lineName}
-                  track={meta.track}
-                  directionLabel={meta.directionLabel}
-                  destinationCode={meta.destinationCode}
-                  upcomingTrains={upcoming}
-                  onSelectDirection={() => openSubwayTimetable(dirKey, null)}
-                  onSelectTrain={(trainId) =>
-                    openSubwayTimetable(dirKey, trainId)
-                  }
-                  isLast={idx === tozaiDirections.length - 1}
-                />
-              );
-            })}
+                  return (
+                    <SubwayDepartureRow
+                      key={dirKey}
+                      lineId={meta.lineId}
+                      lineName={meta.lineName}
+                      track={meta.track}
+                      directionLabel={meta.directionLabel}
+                      destinationCode={meta.destinationCode}
+                      upcomingTrains={upcoming}
+                      onSelectDirection={() => openSubwayTimetable(dirKey, null)}
+                      onSelectTrain={(trainId) =>
+                        openSubwayTimetable(dirKey, trainId)
+                      }
+                      isLast={idx === tozaiDirections.length - 1}
+                    />
+                  );
+                })}
+              </>
+            )}
           </Stack>
         </Paper>
       )}

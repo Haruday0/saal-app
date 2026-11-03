@@ -29,12 +29,13 @@ const FONT_FAMILY = "'Inter', 'Barlow Condensed', 'Helvetica Neue', Arial, 'BIZ 
  * 仙台市地下鉄 路線記号（N / T）および駅ナンバリング（N01〜N17 / T01〜T13）丸枠マーク
  * - viewBox="0 0 1024 1024"（1024×1024 座標系）
  * - 外円: cx="512" cy="512" r="511"（南北線 #3b7d23、東西線 #00b0f0）
- * - 内側の白円: cx="512" cy="512" r="383"（fill="#FFFFFF"）
+ * - 内側の白円: cx="512" cy="512" r="422"（公式仕様画像から実測: 外径比約82.5%、fill="#FFFFFF"）
  * - 路線単体表示（'N' / 'T'）:
  *   フォント（<text>）に頼らず、1024×1024 PNGから1pxの狂いもなく測定した頂点座標の <path> で描画。
  * - 各駅ナンバリング表示（'N01'〜'N17' / 'T01'〜'T13'）:
- *   上段に正確なベクター <path> による N / T（scale 0.44 / Y=312中央）、
- *   下段に視認性と余白のバランスを整えた2桁の駅番号（fontSize 400 / Y=785基準）を配置。
+ *   公式仕様図の実測比率（外径に対して N 高さ約22%・Y中心304、数字高さ約29.5%・Y中心662）に基づき、
+ *   上段に正確なベクター <path> による N / T（scale 0.45 / Y=304中央）、
+ *   下段に dominantBaseline="central" で幾何学的中心 Y=662 にピタリと整列させた2桁の駅番号（fontSize 420）を配置。
  */
 export const SubwayStationMark: React.FC<SubwayStationMarkProps> = ({
   line,
@@ -71,8 +72,8 @@ export const SubwayStationMark: React.FC<SubwayStationMarkProps> = ({
 
   const letterTransform =
     prefix === 'N'
-      ? 'translate(512, 312) scale(0.44) translate(-507, -512.5)'
-      : 'translate(512, 312) scale(0.44) translate(-508, -542.5)';
+      ? 'translate(512, 304) scale(0.45) translate(-507, -512.5)'
+      : 'translate(512, 304) scale(0.45) translate(-508, -542.5)';
 
   return (
     <svg
@@ -91,26 +92,27 @@ export const SubwayStationMark: React.FC<SubwayStationMarkProps> = ({
       {/* 外円: 路線カラーリング (cx=512, cy=512, r=511) */}
       <circle cx="512" cy="512" r="511" fill={ringColor} />
 
-      {/* 内側の白円 */}
-      <circle cx="512" cy="512" r="383" fill="#FFFFFF" />
+      {/* 内側の白円 (公式仕様実測 r=422) */}
+      <circle cx="512" cy="512" r="422" fill="#FFFFFF" />
 
       {stationNum ? (
         <>
-          {/* 上段: 路線記号（N / T 公式ベクターパスを幾何学的中心でscale 0.44配置） */}
+          {/* 上段: 路線記号（N / T 公式ベクターパスを公式実測比率 scale 0.45 / Y=304配置） */}
           <g transform={letterTransform}>
             {renderLineLetterPath()}
           </g>
 
-          {/* 下段: 2桁の駅番号（視認性を保ちつつ微小化調整したfontSize 400配置） */}
+          {/* 下段: 2桁の駅番号（公式実測比率 Y=662中心 / fontSize 420配置） */}
           <text
             x="512"
-            y="785"
+            y="662"
             textAnchor="middle"
+            dominantBaseline="central"
             fill="#000000"
             fontFamily={FONT_FAMILY}
             fontWeight="700"
-            fontSize="400"
-            letterSpacing="-6"
+            fontSize="420"
+            letterSpacing="-8"
           >
             {stationNum}
           </text>
