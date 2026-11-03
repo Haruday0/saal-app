@@ -293,7 +293,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           <TransportSectionHeader
             icon={<JisSubway size={18} />}
             title="仙台市地下鉄"
-            badgeLabel={`${subwayDirections.length}方面`}
             rightAction={
               <Button
                 size="compact-xs"
@@ -419,11 +418,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           <TransportSectionHeader
             icon={<JisBus size={18} color={SENDAI_BUS_COLOR} />}
             title="仙台市営バス"
-            badgeLabel={
-              sendaiBusSchedule
-                ? `${sendaiBusSchedule.stopIds.length}のりば`
-                : 'リアルタイム'
-            }
             rightAction={
               <Button
                 size="compact-xs"
@@ -472,7 +466,7 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                   fw={700}
                   className="shrink-0"
                 >
-                  すべてのりば
+                  すべて
                 </Button>
                 {sendaiBusSchedule.filterOptions.map((opt) => {
                   const isSelected = selectedSendaiBusFilterKey === opt.key;
@@ -596,7 +590,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           <TransportSectionHeader
             icon={<JisBus size={18} />}
             title="名取市 なとりん号"
-            badgeLabel={`${natoringoStation.busStops.length}バス停`}
             rightAction={
               <Button
                 size="compact-xs"

@@ -954,7 +954,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                     fw={700}
                     className="shrink-0"
                   >
-                    すべてのりば
+                    すべて
                   </Button>
                   {availableFilterOptions.map((opt) => {
                     const isSelected = selectedFilterKey === opt.key;
