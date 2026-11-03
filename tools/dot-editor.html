@@ -348,6 +348,14 @@
         </div>
 
         <div class="tool-group">
+          <span class="label">幅変換(96⇄72):</span>
+          <button type="button" id="btn-conv-2ch-compress" title="2文字 96dot → 72dot 圧縮 (左右12dot空白カット)" style="font-size: 11px; padding: 3px 6px;">2字 96→72</button>
+          <button type="button" id="btn-conv-2ch-expand" title="2文字 72dot → 96dot 展開 (左右12dot空白追加)" style="font-size: 11px; padding: 3px 6px;">2字 72→96</button>
+          <button type="button" id="btn-conv-3ch-compress" title="3文字 96dot → 72dot 圧縮 (文字間12dot空白カット)" style="font-size: 11px; padding: 3px 6px;">3字 96→72</button>
+          <button type="button" id="btn-conv-3ch-expand" title="3文字 72dot → 96dot 展開 (文字間12dot空白追加)" style="font-size: 11px; padding: 3px 6px;">3字 72→96</button>
+        </div>
+
+        <div class="tool-group">
           <span class="label">表示倍率:</span>
           <select id="sel-cell-size" style="font-size: 11.5px;">
             <option value="auto" selected>自動フィット (Auto)</option>
@@ -604,6 +612,10 @@
 
     const numCanvasWidth = document.getElementById("num-canvas-width");
     const btnFitWidth = document.getElementById("btn-fit-width");
+    const btnConv2chCompress = document.getElementById("btn-conv-2ch-compress");
+    const btnConv2chExpand = document.getElementById("btn-conv-2ch-expand");
+    const btnConv3chCompress = document.getElementById("btn-conv-3ch-compress");
+    const btnConv3chExpand = document.getElementById("btn-conv-3ch-expand");
     const selCellSize = document.getElementById("sel-cell-size");
     const selColor = document.getElementById("sel-color");
     const chkHalf = document.getElementById("chk-half");
@@ -698,11 +710,11 @@
 
     // =========================================================================
     // 駅系統（型）の選択肢を動的に切り替え
-    // - 「数字」「行先」: 長町・太子堂・名取型、仙台型、南仙台型、アクセス線型 (SAT)
-    // - 「パーツ」: 長町・太子堂型、名取型、仙台型、南仙台型、アクセス線型 (SAT)
+    // - 「数字」: 長町・太子堂・名取型、仙台型、南仙台型、アクセス線型 (SAT)
+    // - 「行先」「パーツ」: 長町・太子堂型、名取型、仙台型、南仙台型、アクセス線型 (SAT)
     // =========================================================================
     function updateTargetSystemOptions() {
-      const isShared = (targetKind === "digits" || targetKind === "destinations");
+      const isShared = (targetKind === "digits");
       const prevVal = targetSystem;
 
       selTargetSystem.innerHTML = "";
@@ -851,7 +863,7 @@
 
     function updateTargetStatusIndicator() {
       const sys = appData[targetSystem] || {};
-      const isShared = (targetKind === "digits" || targetKind === "destinations") && targetSystem === "nagamachi";
+      const isShared = (targetKind === "digits") && targetSystem === "nagamachi";
       const sysName = isShared ? "長町・太子堂・名取型" : (sys.name || targetSystem);
 
       if (targetKind === "digits") {
@@ -955,7 +967,7 @@
       const sys = appData[targetSystem];
       if (!sys) return;
 
-      const isShared = (targetKind === "digits" || targetKind === "destinations") && targetSystem === "nagamachi";
+      const isShared = (targetKind === "digits") && targetSystem === "nagamachi";
       const sysName = isShared ? "長町・太子堂・名取型" : (sys.name || targetSystem);
 
       if (targetKind === "digits") {
@@ -1009,7 +1021,7 @@
       const sys = appData[targetSystem];
       if (!sys) return;
 
-      const isShared = (targetKind === "digits" || targetKind === "destinations") && targetSystem === "nagamachi";
+      const isShared = (targetKind === "digits") && targetSystem === "nagamachi";
       const sysName = isShared ? "長町・太子堂・名取型" : (sys.name || targetSystem);
 
       if (targetKind === "digits") {
@@ -1062,7 +1074,7 @@
       const sys = appData[targetSystem];
       if (!sys) return;
 
-      const isShared = (targetKind === "digits" || targetKind === "destinations") && targetSystem === "nagamachi";
+      const isShared = (targetKind === "digits") && targetSystem === "nagamachi";
       const sysName = isShared ? "長町・太子堂・名取型" : (sys.name || targetSystem);
 
       if (targetKind === "digits") {
@@ -1460,6 +1472,93 @@
     btnShiftRight.addEventListener("click", () => shiftGrid(1, 0));
     btnShiftUp.addEventListener("click", () => shiftGrid(0, -1));
     btnShiftDown.addEventListener("click", () => shiftGrid(0, 1));
+
+    // =========================================================================
+    // 行先幅変換ツール (96dot ⇄ 72dot コンバーター)
+    // =========================================================================
+
+    // ① 3文字 圧縮 (96dot → 72dot): 24 + (12) + 24 + (12) + 24 -> 24 + 24 + 24
+    btnConv3chCompress.addEventListener("click", () => {
+      if (currentWidth !== 96) {
+        alert(`現在のキャンバス幅が96dotではありません (現在: ${currentWidth}dot)。96dotのキャンバスでのみ実行できます。`);
+        return;
+      }
+      pushHistory();
+      const newGrid = createEmptyGrid(72);
+      for (let r = 0; r < 24; r++) {
+        const row = currentGrid[r];
+        const c1 = row.slice(0, 24);   // 0..23 (24dot)
+        const c2 = row.slice(36, 60);  // 36..59 (24dot)
+        const c3 = row.slice(72, 96);  // 72..95 (24dot)
+        newGrid[r] = [...c1, ...c2, ...c3];
+      }
+      currentGrid = newGrid;
+      currentWidth = 72;
+      numCanvasWidth.value = 72;
+      renderCanvas();
+      showStatusMsg("3文字圧縮 (96→72dot) を実行しました", "ok");
+    });
+
+    // ① 3文字 展開 (72dot → 96dot): 24 + 24 + 24 -> 24 + (12) + 24 + (12) + 24
+    btnConv3chExpand.addEventListener("click", () => {
+      if (currentWidth !== 72) {
+        alert(`現在のキャンバス幅が72dotではありません (現在: ${currentWidth}dot)。72dotのキャンバスでのみ実行できます。`);
+        return;
+      }
+      pushHistory();
+      const newGrid = createEmptyGrid(96);
+      const space12 = new Array(12).fill("0");
+      for (let r = 0; r < 24; r++) {
+        const row = currentGrid[r];
+        const c1 = row.slice(0, 24);   // 0..23 (24dot)
+        const c2 = row.slice(24, 48);  // 24..47 (24dot)
+        const c3 = row.slice(48, 72);  // 48..71 (24dot)
+        newGrid[r] = [...c1, ...space12, ...c2, ...space12, ...c3];
+      }
+      currentGrid = newGrid;
+      currentWidth = 96;
+      numCanvasWidth.value = 96;
+      renderCanvas();
+      showStatusMsg("3文字展開 (72→96dot) を実行しました", "ok");
+    });
+
+    // ② 2文字 圧縮 (96dot → 72dot): (12) + 24 + (24) + 24 + (12) -> 24 + (24) + 24
+    btnConv2chCompress.addEventListener("click", () => {
+      if (currentWidth !== 96) {
+        alert(`現在のキャンバス幅が96dotではありません (現在: ${currentWidth}dot)。96dotのキャンバスでのみ実行できます。`);
+        return;
+      }
+      pushHistory();
+      const newGrid = createEmptyGrid(72);
+      for (let r = 0; r < 24; r++) {
+        // col 12..83 (72dot) を切り出し
+        newGrid[r] = currentGrid[r].slice(12, 84);
+      }
+      currentGrid = newGrid;
+      currentWidth = 72;
+      numCanvasWidth.value = 72;
+      renderCanvas();
+      showStatusMsg("2文字圧縮 (96→72dot) を実行しました", "ok");
+    });
+
+    // ② 2文字 展開 (72dot → 96dot): 24 + (24) + 24 -> (12) + 24 + (24) + 24 + (12)
+    btnConv2chExpand.addEventListener("click", () => {
+      if (currentWidth !== 72) {
+        alert(`現在のキャンバス幅が72dotではありません (現在: ${currentWidth}dot)。72dotのキャンバスでのみ実行できます。`);
+        return;
+      }
+      pushHistory();
+      const newGrid = createEmptyGrid(96);
+      const space12 = new Array(12).fill("0");
+      for (let r = 0; r < 24; r++) {
+        newGrid[r] = [...space12, ...currentGrid[r].slice(0, 72), ...space12];
+      }
+      currentGrid = newGrid;
+      currentWidth = 96;
+      numCanvasWidth.value = 96;
+      renderCanvas();
+      showStatusMsg("2文字展開 (72→96dot) を実行しました", "ok");
+    });
 
     // =========================================================================
     // JSON読込 / 書出モーダル
