@@ -72,11 +72,11 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
   ).padStart(2, '0')}`;
   const dayOfWeekStr = ['日', '月', '火', '水', '木', '金', '土'][now.getDay()];
 
-  // スライダーは 04:00 (240分) 〜 翌02:00 (1560分) の範囲
+  // スライダーは 05:00 (300分) 〜 02:00 (1560分) の範囲
   const currentHours = now.getHours();
   const currentMinutes = now.getMinutes();
-  const railwayMinutes = (currentHours < 4 ? currentHours + 24 : currentHours) * 60 + currentMinutes;
-  const sliderValue = Math.min(1560, Math.max(240, railwayMinutes));
+  const railwayMinutes = (currentHours < 5 ? currentHours + 24 : currentHours) * 60 + currentMinutes;
+  const sliderValue = Math.min(1560, Math.max(300, railwayMinutes));
   const rowIndices: (0 | 1 | 2)[] = isSendai ? [0, 1, 2] : [0, 1];
 
   return (
@@ -181,10 +181,10 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
               </Button>
             </Group>
 
-            {/* 時刻スライダー (04:00〜翌02:00) */}
+            {/* 時刻スライダー (05:00〜02:00) */}
             <Box px={4} py={2}>
               <Slider
-                min={240}
+                min={300}
                 max={1560}
                 step={1}
                 value={sliderValue}
@@ -193,7 +193,7 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
                 color="yellow"
                 size="sm"
                 marks={[
-                  { value: 360, label: '6:00' },
+                  { value: 300, label: '5:00' },
                   { value: 720, label: '12:00' },
                   { value: 1080, label: '18:00' },
                   { value: 1440, label: '0:00' },
