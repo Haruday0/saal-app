@@ -27,11 +27,7 @@ function formatMinutesToHHMM(mins: number): string {
   const normalized = ((Math.round(mins) % 1440) + 1440) % 1440;
   const h = Math.floor(normalized / 60);
   const m = normalized % 60;
-  const hhmm = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  if (mins >= 1440) {
-    return `${hhmm} (翌${h}時)`;
-  }
-  return hhmm;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
@@ -200,8 +196,8 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
                   { value: 360, label: '6:00' },
                   { value: 720, label: '12:00' },
                   { value: 1080, label: '18:00' },
-                  { value: 1440, label: '24:00' },
-                  { value: 1560, label: '翌2:00' },
+                  { value: 1440, label: '0:00' },
+                  { value: 1560, label: '2:00' },
                 ]}
                 styles={{
                   markLabel: { fontSize: 9, marginTop: 3 },
