@@ -27,7 +27,11 @@ function formatMinutesToHHMM(mins: number): string {
   const normalized = ((Math.round(mins) % 1440) + 1440) % 1440;
   const h = Math.floor(normalized / 60);
   const m = normalized % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  const hhmm = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  if (mins >= 1440) {
+    return `${hhmm} (翌${h}時)`;
+  }
+  return hhmm;
 }
 
 export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
@@ -42,7 +46,6 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
     setIsSheetPanelOpen,
     now,
     isTimeOverridden,
-    effectiveMinutes,
     setOverrideMinutes,
     setOverrideTimeString,
     setOverrideDateString,
@@ -73,8 +76,11 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
   ).padStart(2, '0')}`;
   const dayOfWeekStr = ['日', '月', '火', '水', '木', '金', '土'][now.getDay()];
 
-  // スライダーは 04:00 (240分) 〜 23:59 (1439分) の範囲
-  const sliderValue = Math.min(1439, Math.max(240, effectiveMinutes));
+  // スライダーは 04:00 (240分) 〜 翌02:00 (1560分) の範囲
+  const currentHours = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const railwayMinutes = (currentHours < 4 ? currentHours + 24 : currentHours) * 60 + currentMinutes;
+  const sliderValue = Math.min(1560, Math.max(240, railwayMinutes));
   const rowIndices: (0 | 1 | 2)[] = isSendai ? [0, 1, 2] : [0, 1];
 
   return (
@@ -179,14 +185,14 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
               </Button>
             </Group>
 
-            {/* 時刻スライダー (04:00〜23:59) */}
+            {/* 時刻スライダー (04:00〜翌02:00) */}
             <Box px={4} py={2}>
               <Slider
                 min={240}
-                max={1439}
+                max={1560}
                 step={1}
                 value={sliderValue}
-                onChange={(val) => setOverrideMinutes(val)}
+                onChange={(val) => setOverrideMinutes(val % 1440)}
                 label={formatMinutesToHHMM}
                 color="yellow"
                 size="sm"
@@ -194,7 +200,8 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
                   { value: 360, label: '6:00' },
                   { value: 720, label: '12:00' },
                   { value: 1080, label: '18:00' },
-                  { value: 1380, label: '23:00' },
+                  { value: 1440, label: '24:00' },
+                  { value: 1560, label: '翌2:00' },
                 ]}
                 styles={{
                   markLabel: { fontSize: 9, marginTop: 3 },
