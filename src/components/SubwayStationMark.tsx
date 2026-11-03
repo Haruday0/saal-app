@@ -29,14 +29,12 @@ const FONT_FAMILY = "'Inter', 'Barlow Condensed', 'Helvetica Neue', Arial, 'BIZ 
  * 仙台市地下鉄 路線記号（N / T）および駅ナンバリング（N01〜N17 / T01〜T13）丸枠マーク
  * - viewBox="0 0 1024 1024"（1024×1024 座標系）
  * - 外円: cx="512" cy="512" r="511"（南北線 #3b7d23、東西線 #00b0f0）
- * - 内側の白円:
- *   - 路線記号単体（N / T）: r="383"
- *   - 駅ナンバリング表示（N01〜N17 / T01〜T13）: r="430"（公式ガイドラインの緑リング太さ8.0%に完全一致）
+ * - 内側の白円: cx="512" cy="512" r="383"（fill="#FFFFFF"）
  * - 路線単体表示（'N' / 'T'）:
  *   フォント（<text>）に頼らず、1024×1024 PNGから1pxの狂いもなく測定した頂点座標の <path> で描画。
  * - 各駅ナンバリング表示（'N01'〜'N17' / 'T01'〜'T13'）:
- *   上段に正確なベクター <path> による N / T（高さ210px / Y=305中央）、
- *   下段に公式比率に基づく2桁の駅番号（高さ260px / fontSize=360 / Y=780基準）をバランス良く配置。
+ *   上段に正確なベクター <path> による N / T（scale 0.44 / Y=312中央）、
+ *   下段に視認性と余白のバランスを整えた2桁の駅番号（fontSize 400 / Y=785基準）を配置。
  */
 export const SubwayStationMark: React.FC<SubwayStationMarkProps> = ({
   line,
@@ -52,9 +50,6 @@ export const SubwayStationMark: React.FC<SubwayStationMarkProps> = ({
   const match = rawCode.match(/^([A-Za-z]+)(\d+)$/);
   const prefix = (match ? match[1] : rawCode).toUpperCase();
   const stationNum = match ? match[2] : null;
-
-  // 駅ナンバリング表示時は公式ガイドライン（緑リング厚み8%）に合わせて白円半径を430に拡張
-  const innerRadius = stationNum ? 430 : 383;
 
   // 1024×1024 PNG画像から1ピクセル単位で完全抽出した N / T の黒図形パス
   const renderLineLetterPath = () => {
@@ -76,8 +71,8 @@ export const SubwayStationMark: React.FC<SubwayStationMarkProps> = ({
 
   const letterTransform =
     prefix === 'N'
-      ? 'translate(512, 305) scale(0.42) translate(-507, -512.5)'
-      : 'translate(512, 305) scale(0.42) translate(-508, -542.5)';
+      ? 'translate(512, 312) scale(0.44) translate(-507, -512.5)'
+      : 'translate(512, 312) scale(0.44) translate(-508, -542.5)';
 
   return (
     <svg
@@ -97,25 +92,25 @@ export const SubwayStationMark: React.FC<SubwayStationMarkProps> = ({
       <circle cx="512" cy="512" r="511" fill={ringColor} />
 
       {/* 内側の白円 */}
-      <circle cx="512" cy="512" r={innerRadius} fill="#FFFFFF" />
+      <circle cx="512" cy="512" r="383" fill="#FFFFFF" />
 
       {stationNum ? (
         <>
-          {/* 上段: 路線記号（N / T 公式ベクターパスを幾何学的中心でscale 0.42配置） */}
+          {/* 上段: 路線記号（N / T 公式ベクターパスを幾何学的中心でscale 0.44配置） */}
           <g transform={letterTransform}>
             {renderLineLetterPath()}
           </g>
 
-          {/* 下段: 2桁の駅番号（公式比率に合わせたfontSize 360・余白と調和する配置） */}
+          {/* 下段: 2桁の駅番号（視認性を保ちつつ微小化調整したfontSize 400配置） */}
           <text
             x="512"
-            y="780"
+            y="785"
             textAnchor="middle"
             fill="#000000"
             fontFamily={FONT_FAMILY}
             fontWeight="700"
-            fontSize="360"
-            letterSpacing="-8"
+            fontSize="400"
+            letterSpacing="-6"
           >
             {stationNum}
           </text>
