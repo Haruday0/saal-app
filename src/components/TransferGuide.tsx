@@ -339,15 +339,44 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                   );
 
                   return (
-                    <Box
-                      key={dirKey}
-                      style={{
-                        borderTop:
-                          dIdx > 0
-                            ? '1px solid var(--mantine-color-default-border)'
-                            : undefined,
-                      }}
-                    >
+                    <Box key={dirKey}>
+                      {/* 方面サブヘッダー（どっち方面・何番線かを表示） */}
+                      <Box
+                        px={12}
+                        py={5}
+                        style={{
+                          backgroundColor: 'var(--mantine-color-default-hover)',
+                          borderTop:
+                            dIdx > 0
+                              ? '1px solid var(--mantine-color-default-border)'
+                              : undefined,
+                          borderBottom: '1px solid var(--mantine-color-default-border)',
+                        }}
+                      >
+                        <Group justify="space-between" align="center" wrap="nowrap">
+                          <Group gap={6} align="center" wrap="nowrap">
+                            <SubwayStationMark line="namboku" code={meta.destinationCode} size={18} />
+                            <Text fz={12.5} fw={700} c="var(--mantine-color-text)">
+                              {meta.directionLabel}
+                            </Text>
+                            <Badge size="xs" variant="light" color="teal" radius="sm" fw={700}>
+                              {meta.track}番線
+                            </Badge>
+                          </Group>
+                          <Button
+                            size="compact-xs"
+                            variant="subtle"
+                            color="gray"
+                            fz={11}
+                            fw={700}
+                            leftSection={<Icon name="schedule" size={12} />}
+                            onClick={() => openSubwayTimetable(dirKey, null)}
+                          >
+                            時刻表
+                          </Button>
+                        </Group>
+                      </Box>
+
                       {upcoming.length > 0 ? (
                         upcoming.map((item, idx) => (
                           <SubwayDepartureRow
@@ -411,15 +440,44 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                   );
 
                   return (
-                    <Box
-                      key={dirKey}
-                      style={{
-                        borderTop:
-                          dIdx > 0
-                            ? '1px solid var(--mantine-color-default-border)'
-                            : undefined,
-                      }}
-                    >
+                    <Box key={dirKey}>
+                      {/* 方面サブヘッダー（どっち方面・何番線かを表示） */}
+                      <Box
+                        px={12}
+                        py={5}
+                        style={{
+                          backgroundColor: 'var(--mantine-color-default-hover)',
+                          borderTop:
+                            dIdx > 0
+                              ? '1px solid var(--mantine-color-default-border)'
+                              : undefined,
+                          borderBottom: '1px solid var(--mantine-color-default-border)',
+                        }}
+                      >
+                        <Group justify="space-between" align="center" wrap="nowrap">
+                          <Group gap={6} align="center" wrap="nowrap">
+                            <SubwayStationMark line="tozai" code={meta.destinationCode} size={18} />
+                            <Text fz={12.5} fw={700} c="var(--mantine-color-text)">
+                              {meta.directionLabel}
+                            </Text>
+                            <Badge size="xs" variant="light" color="cyan" radius="sm" fw={700}>
+                              {meta.track}番線
+                            </Badge>
+                          </Group>
+                          <Button
+                            size="compact-xs"
+                            variant="subtle"
+                            color="gray"
+                            fz={11}
+                            fw={700}
+                            leftSection={<Icon name="schedule" size={12} />}
+                            onClick={() => openSubwayTimetable(dirKey, null)}
+                          >
+                            時刻表
+                          </Button>
+                        </Group>
+                      </Box>
+
                       {upcoming.length > 0 ? (
                         upcoming.map((item, idx) => (
                           <SubwayDepartureRow
