@@ -42,15 +42,10 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
     setIsSheetPanelOpen,
     now,
     isTimeOverridden,
-    isDateOverridden,
     effectiveMinutes,
     setOverrideMinutes,
     setOverrideTimeString,
-    adjustTimeMinutes,
     setOverrideDateString,
-    adjustDateDays,
-    resetTime,
-    resetDate,
     resetAll,
     rowOverrides,
     setRowOverride,
@@ -109,7 +104,7 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
                 DEBUG
               </Badge>
               <Text fz={11.5} fw={800}>
-                {variant === 'header' ? 'シミュレーション時刻設定' : '時刻・電光掲示板デバッグ'}
+                {variant === 'header' ? 'シミュレーション設定' : 'デバッグ設定'}
               </Text>
               <Badge
                 size="xs"
@@ -123,7 +118,7 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
               </Badge>
               {hasRowOverrides && (
                 <Badge size="xs" color="orange" variant="light" radius="sm" tt="none">
-                  LED直接入力中
+                  LED入力中
                 </Badge>
               )}
             </Group>
@@ -143,280 +138,179 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
         </UnstyledButton>
 
         <Collapse expanded={isOpen}>
-          <Stack gap={8} pt={8}>
-            {/* 機能0: アプリ基準日付（シミュレーション現在日付）の変更 */}
-            <Stack gap={5}>
-              <Group justify="space-between" align="center" wrap="nowrap">
+          <Stack gap={10} pt={8}>
+            {/* 日付・時刻の設定行 */}
+            <Group justify="space-between" align="center" wrap="wrap" gap={8}>
+              <Group gap={6} align="center">
                 <Text fz={11} fw={700} c="dimmed">
-                  ① 日付シミュレーション
+                  日付
                 </Text>
-                <Group gap={4} wrap="nowrap">
-                  <input
-                    type="date"
-                    value={currentYMD}
-                    onChange={(e) => setOverrideDateString(e.target.value)}
-                    aria-label="シミュレーション日付入力"
-                    className="text-[11.5px] font-bold font-english tabular-nums px-1.5 py-0.5 rounded border border-[var(--mantine-color-default-border)] bg-transparent"
-                  />
-                  <Button
-                    size="compact-xs"
-                    variant={isDateOverridden ? 'light' : 'default'}
-                    color={isDateOverridden ? 'yellow' : 'gray'}
-                    onClick={resetDate}
-                    fz={10.5}
-                  >
-                    実日付
-                  </Button>
-                </Group>
-              </Group>
-
-              {/* 日付クイック選択ボタン */}
-              <Group gap={4} wrap="wrap">
-                <Button
-                  size="compact-xs"
-                  variant="default"
-                  fz={10.5}
-                  px={6}
-                  onClick={() => adjustDateDays(-1)}
-                >
-                  -1日
-                </Button>
-                <Button
-                  size="compact-xs"
-                  variant="default"
-                  fz={10.5}
-                  px={6}
-                  onClick={() => adjustDateDays(1)}
-                >
-                  +1日
-                </Button>
-                <Button
-                  size="compact-xs"
-                  variant={currentYMD === '2026-11-06' ? 'filled' : 'light'}
-                  color="saal"
-                  fz={10.5}
-                  px={6}
-                  onClick={() => setOverrideDateString('2026-11-06')}
-                >
-                  11/6(金) 増結1日目
-                </Button>
-                <Button
-                  size="compact-xs"
-                  variant={currentYMD === '2026-11-07' ? 'filled' : 'light'}
-                  color="saal"
-                  fz={10.5}
-                  px={6}
-                  onClick={() => setOverrideDateString('2026-11-07')}
-                >
-                  11/7(土) 増結2日目
-                </Button>
-                <Button
-                  size="compact-xs"
-                  variant={currentYMD === '2026-11-08' ? 'filled' : 'light'}
-                  color="saal"
-                  fz={10.5}
-                  px={6}
-                  onClick={() => setOverrideDateString('2026-11-08')}
-                >
-                  11/8(日) 増結3日目
-                </Button>
-              </Group>
-            </Stack>
-
-            <Divider my={2} />
-
-            {/* 機能A: アプリ基準時刻（シミュレーション現在時刻）の変更 */}
-            <Stack gap={5}>
-              <Group justify="space-between" align="center" wrap="nowrap">
-                <Text fz={11} fw={700} c="dimmed">
-                  ② 基準時刻シミュレーション (04:00〜23:59)
-                </Text>
-                <Group gap={4} wrap="nowrap">
-                  <input
-                    type="time"
-                    value={currentHHMM}
-                    onChange={(e) => setOverrideTimeString(e.target.value)}
-                    aria-label="シミュレーション時刻入力"
-                    className="text-[11.5px] font-bold font-english tabular-nums px-1.5 py-0.5 rounded border border-[var(--mantine-color-default-border)] bg-transparent"
-                  />
-                  <Button
-                    size="compact-xs"
-                    variant="default"
-                    onClick={resetTime}
-                    fz={10.5}
-                  >
-                    実時刻
-                  </Button>
-                  <Button
-                    size="compact-xs"
-                    variant={isTimeOverridden ? 'light' : 'default'}
-                    color={isTimeOverridden ? 'yellow' : 'gray'}
-                    onClick={resetAll}
-                    fz={10.5}
-                  >
-                    実日時に戻す
-                  </Button>
-                </Group>
-              </Group>
-
-              {/* スライダー (04:00〜23:59) */}
-              <Box px={4} py={2}>
-                <Slider
-                  min={240}
-                  max={1439}
-                  step={1}
-                  value={sliderValue}
-                  onChange={(val) => setOverrideMinutes(val)}
-                  label={formatMinutesToHHMM}
-                  color="yellow"
-                  size="sm"
-                  marks={[
-                    { value: 360, label: '6:00' },
-                    { value: 720, label: '12:00' },
-                    { value: 1080, label: '18:00' },
-                    { value: 1380, label: '23:00' },
-                  ]}
-                  styles={{
-                    markLabel: { fontSize: 9, marginTop: 3 },
-                  }}
+                <input
+                  type="date"
+                  value={currentYMD}
+                  onChange={(e) => setOverrideDateString(e.target.value)}
+                  aria-label="シミュレーション日付入力"
+                  className="text-[11.5px] font-bold font-english tabular-nums px-2 py-0.5 rounded border border-[var(--mantine-color-default-border)] bg-transparent text-[var(--mantine-color-text)] cursor-pointer"
                 />
-              </Box>
-
-              {/* 微調整ボタン (-1h, -10m, -1m, +1m, +10m, +1h) */}
-              <Group gap={4} grow mt={8}>
-                {[
-                  { label: '-1h', delta: -60 },
-                  { label: '-10m', delta: -10 },
-                  { label: '-1m', delta: -1 },
-                  { label: '+1m', delta: 1 },
-                  { label: '+10m', delta: 10 },
-                  { label: '+1h', delta: 60 },
-                ].map((btn) => (
-                  <Button
-                    key={btn.label}
-                    size="compact-xs"
-                    variant="default"
-                    fz={10.5}
-                    px={2}
-                    className="font-english tabular-nums"
-                    onClick={() => adjustTimeMinutes(btn.delta)}
-                  >
-                    {btn.label}
-                  </Button>
-                ))}
               </Group>
-            </Stack>
 
-            <Divider my={2} />
-
-            {/* 機能B: 電光掲示板の各段の発車時刻テキスト直接書き換え（全数字 0〜9 テスト用） */}
-            <Stack gap={5}>
-              <Group justify="space-between" align="center" wrap="nowrap">
+              <Group gap={6} align="center">
                 <Text fz={11} fw={700} c="dimmed">
-                  ③ 電光掲示板 直接オーバーライド (0〜9数字テスト)
+                  時刻
                 </Text>
-                <Button
-                  size="compact-xs"
-                  variant={hasRowOverrides ? 'light' : 'default'}
-                  color={hasRowOverrides ? 'red' : 'gray'}
-                  onClick={clearRowOverrides}
-                  fz={10.5}
-                >
-                  クリア
-                </Button>
+                <input
+                  type="time"
+                  value={currentHHMM}
+                  onChange={(e) => setOverrideTimeString(e.target.value)}
+                  aria-label="シミュレーション時刻入力"
+                  className="text-[11.5px] font-bold font-english tabular-nums px-2 py-0.5 rounded border border-[var(--mantine-color-default-border)] bg-transparent text-[var(--mantine-color-text)] cursor-pointer"
+                />
               </Group>
 
-              {/* ワンタップ数字プリセット */}
-              <Group gap={4} grow>
-                <Button
-                  size="compact-xs"
-                  variant="light"
-                  color="yellow"
-                  fz={10.5}
-                  px={4}
-                  onClick={() => applyDigitPreset(1)}
-                >
-                  0-9テストA (12:34 / 56:78)
-                </Button>
-                <Button
-                  size="compact-xs"
-                  variant="light"
-                  color="yellow"
-                  fz={10.5}
-                  px={4}
-                  onClick={() => applyDigitPreset(2)}
-                >
-                  0-9テストB (90:12 /  3:45)
-                </Button>
-              </Group>
+              <Button
+                size="compact-xs"
+                variant={isTimeOverridden ? 'light' : 'default'}
+                color={isTimeOverridden ? 'yellow' : 'gray'}
+                onClick={resetAll}
+                fz={10.5}
+                disabled={!isTimeOverridden}
+              >
+                実日時に戻す
+              </Button>
+            </Group>
 
-              {/* 駅詳細シート内では各段の直接入力欄を表示 */}
-              {variant === 'sheet' && (
-                <Stack gap={4} mt={2}>
-                  {rowIndices.map((idx) => (
-                    <Group key={idx} gap={4} wrap="nowrap" align="center">
-                      <Text fz={10.5} fw={700} c="dimmed" w={36} className="shrink-0">
-                        {idx + 1}段目
-                      </Text>
-                      <TextInput
-                        size="xs"
-                        placeholder="時刻 (例 12:34)"
-                        value={rowOverrides[idx].departureTime}
-                        onChange={(e) =>
-                          setRowOverride(idx, { departureTime: e.currentTarget.value })
-                        }
-                        style={{ flex: 1.2 }}
-                        styles={{
-                          input: {
-                            height: 26,
-                            minHeight: 26,
-                            fontSize: 11.5,
-                            paddingLeft: 6,
-                            paddingRight: 6,
-                            fontFamily: 'monospace',
-                          },
-                        }}
-                      />
-                      <TextInput
-                        size="xs"
-                        placeholder="行先 (任意)"
-                        value={rowOverrides[idx].destination}
-                        onChange={(e) =>
-                          setRowOverride(idx, { destination: e.currentTarget.value })
-                        }
-                        style={{ flex: 1 }}
-                        styles={{
-                          input: {
-                            height: 26,
-                            minHeight: 26,
-                            fontSize: 11.5,
-                            paddingLeft: 6,
-                            paddingRight: 6,
-                          },
-                        }}
-                      />
-                      <TextInput
-                        size="xs"
-                        placeholder="両"
-                        value={rowOverrides[idx].cars}
-                        onChange={(e) => setRowOverride(idx, { cars: e.currentTarget.value })}
-                        w={40}
-                        styles={{
-                          input: {
-                            height: 26,
-                            minHeight: 26,
-                            fontSize: 11.5,
-                            paddingLeft: 4,
-                            paddingRight: 4,
-                            textAlign: 'center',
-                          },
-                        }}
-                      />
+            {/* 時刻スライダー (04:00〜23:59) */}
+            <Box px={4} py={2}>
+              <Slider
+                min={240}
+                max={1439}
+                step={1}
+                value={sliderValue}
+                onChange={(val) => setOverrideMinutes(val)}
+                label={formatMinutesToHHMM}
+                color="yellow"
+                size="sm"
+                marks={[
+                  { value: 360, label: '6:00' },
+                  { value: 720, label: '12:00' },
+                  { value: 1080, label: '18:00' },
+                  { value: 1380, label: '23:00' },
+                ]}
+                styles={{
+                  markLabel: { fontSize: 9, marginTop: 3 },
+                }}
+              />
+            </Box>
+
+            {/* 駅詳細シート内のみ: 電光掲示板LEDの直接書き換え */}
+            {variant === 'sheet' && (
+              <>
+                <Divider my={2} />
+                <Stack gap={5}>
+                  <Group justify="space-between" align="center" wrap="nowrap">
+                    <Text fz={11} fw={700} c="dimmed">
+                      LED表示テスト
+                    </Text>
+                    <Group gap={4}>
+                      <Button
+                        size="compact-xs"
+                        variant="light"
+                        color="yellow"
+                        fz={10}
+                        px={4}
+                        onClick={() => applyDigitPreset(1)}
+                      >
+                        0-9テストA
+                      </Button>
+                      <Button
+                        size="compact-xs"
+                        variant="light"
+                        color="yellow"
+                        fz={10}
+                        px={4}
+                        onClick={() => applyDigitPreset(2)}
+                      >
+                        0-9テストB
+                      </Button>
+                      <Button
+                        size="compact-xs"
+                        variant={hasRowOverrides ? 'light' : 'default'}
+                        color={hasRowOverrides ? 'red' : 'gray'}
+                        onClick={clearRowOverrides}
+                        fz={10}
+                        disabled={!hasRowOverrides}
+                      >
+                        クリア
+                      </Button>
                     </Group>
-                  ))}
+                  </Group>
+
+                  <Stack gap={4} mt={2}>
+                    {rowIndices.map((idx) => (
+                      <Group key={idx} gap={4} wrap="nowrap" align="center">
+                        <Text fz={10.5} fw={700} c="dimmed" w={32} className="shrink-0">
+                          {idx + 1}段目
+                        </Text>
+                        <TextInput
+                          size="xs"
+                          placeholder="時刻 (例 12:34)"
+                          value={rowOverrides[idx].departureTime}
+                          onChange={(e) =>
+                            setRowOverride(idx, { departureTime: e.currentTarget.value })
+                          }
+                          style={{ flex: 1.2 }}
+                          styles={{
+                            input: {
+                              height: 24,
+                              minHeight: 24,
+                              fontSize: 11,
+                              paddingLeft: 6,
+                              paddingRight: 6,
+                              fontFamily: 'monospace',
+                            },
+                          }}
+                        />
+                        <TextInput
+                          size="xs"
+                          placeholder="行先 (任意)"
+                          value={rowOverrides[idx].destination}
+                          onChange={(e) =>
+                            setRowOverride(idx, { destination: e.currentTarget.value })
+                          }
+                          style={{ flex: 1 }}
+                          styles={{
+                            input: {
+                              height: 24,
+                              minHeight: 24,
+                              fontSize: 11,
+                              paddingLeft: 6,
+                              paddingRight: 6,
+                            },
+                          }}
+                        />
+                        <TextInput
+                          size="xs"
+                          placeholder="両"
+                          value={rowOverrides[idx].cars}
+                          onChange={(e) => setRowOverride(idx, { cars: e.currentTarget.value })}
+                          w={36}
+                          styles={{
+                            input: {
+                              height: 24,
+                              minHeight: 24,
+                              fontSize: 11,
+                              paddingLeft: 4,
+                              paddingRight: 4,
+                              textAlign: 'center',
+                            },
+                          }}
+                        />
+                      </Group>
+                    ))}
+                  </Stack>
                 </Stack>
-              )}
-            </Stack>
+              </>
+            )}
           </Stack>
         </Collapse>
       </Box>
