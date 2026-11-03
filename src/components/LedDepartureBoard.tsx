@@ -384,6 +384,7 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
         stationId={stationId}
         allTrains={allStationTrainsRaw}
         now={now}
+        initialDirection={effectiveDirection}
       />
     </Paper>
   );

@@ -23,6 +23,7 @@ import {
   ScheduledFullStop,
 } from '../utils/trainPosition';
 import { Icon } from './Icon';
+import { getTimetableDirectionLabels } from '../utils/stationDirection';
 
 interface TimetableModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ interface TimetableModalProps {
   stationId: string;
   allTrains: DepartureTrain[];
   now: Date;
+  initialDirection?: 'up' | 'down';
 }
 
 /** 鉄道時刻分計算 (4:00〜翌3:59、深夜0〜3時は24〜27時) */
@@ -132,6 +134,7 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
   stationId,
   allTrains,
   now,
+  initialDirection = 'up',
 }) => {
   const isSendai = stationId === 'sendai';
   const isAirport = stationId === 'sendai-airport';
@@ -139,7 +142,9 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
   const showDirectionFilter = !isSendai && !isAirport;
 
   // 1. 方面フィルター: 「上り」と「下り」の2択
-  const [selectedDirection, setSelectedDirection] = useState<'up' | 'down'>('up');
+  const [selectedDirection, setSelectedDirection] = useState<'up' | 'down'>(
+    isAirport ? 'down' : initialDirection
+  );
 
   // 2. 路線フィルター: 複数選択（マルチセレクト）。初期状態は未選択（＝全路線表示）
   const [selectedLines, setSelectedLines] = useState<LineType[]>([]);
@@ -150,10 +155,13 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
   // モーダルオープン時または駅・方面切り替え時にフィルター＆選択中列車を初期化
   useEffect(() => {
     if (isOpen) {
+      setSelectedDirection(isAirport ? 'down' : (initialDirection || 'up'));
       setSelectedLines([]);
       setSelectedTrainId(null);
     }
-  }, [isOpen, stationId, selectedDirection]);
+  }, [isOpen, stationId, initialDirection, isAirport]);
+
+  const directionLabels = useMemo(() => getTimetableDirectionLabels(stationId), [stationId]);
 
   // 並走区間（仙台〜名取）かつ上り（または仙台駅）で路線絞り込みを表示
   const hasMultipleLines = ['sendai', 'nagamachi', 'taishido', 'minami-sendai', 'natori'].includes(stationId);
@@ -647,8 +655,8 @@ export const TimetableModal: React.FC<TimetableModalProps> = ({
                   value={selectedDirection}
                   onChange={(value) => setSelectedDirection(value as 'up' | 'down')}
                   data={[
-                    { label: '上り（空港・白石方面）', value: 'up' },
-                    { label: '下り（仙台方面）', value: 'down' },
+                    { label: directionLabels.up, value: 'up' },
+                    { label: directionLabels.down, value: 'down' },
                   ]}
                 />
               )}

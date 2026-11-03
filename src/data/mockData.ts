@@ -19,9 +19,8 @@ export const STATIONS: Station[] = [
     ],
     platforms: {
       up: {
-
         trackNumber: '3・4',
-        directionName: '仙台空港・白石・原ノ町方面',
+        directionName: '名取・仙台空港方面',
         gates: [
           { id: 'g-sd-1', name: '西 改札', nameEn: 'West Gates', type: 'gate', carPosition: 1.4 },
           { id: 'g-sd-2', name: '南北線のりかえ', nameEn: 'Transfer to Namboku Line', type: 'transfer', carPosition: 2.3 },
@@ -36,9 +35,8 @@ export const STATIONS: Station[] = [
         ]
       },
       down: {
-
         trackNumber: '3・4',
-        directionName: '当駅終着 / 東北本線・仙山線方面',
+        directionName: '当駅終着',
         gates: [
           { id: 'g-sd-1', name: '西 改札', nameEn: 'West Gates', type: 'gate', carPosition: 1.4 },
           { id: 'g-sd-2', name: '南北線のりかえ', nameEn: 'Transfer to Namboku Line', type: 'transfer', carPosition: 2.3 },
@@ -69,9 +67,8 @@ export const STATIONS: Station[] = [
     ],
     platforms: {
       up: {
-
         trackNumber: '2',
-        directionName: '仙台空港・白石方面',
+        directionName: '名取・仙台空港方面',
         gates: [
           { id: 'g-ng-1', name: '西口・地下鉄連絡口', nameEn: 'West Exit & Subway', type: 'gate', carPosition: 1.5 },
           { id: 'g-ng-2', name: '東 口', nameEn: 'East Exit', type: 'gate', carPosition: 3.2 }
@@ -83,7 +80,6 @@ export const STATIONS: Station[] = [
         ]
       },
       down: {
-
         trackNumber: '1',
         directionName: '仙台方面',
         gates: [
@@ -112,9 +108,8 @@ export const STATIONS: Station[] = [
     ],
     platforms: {
       up: {
-
         trackNumber: '2',
-        directionName: '仙台空港・白石方面',
+        directionName: '名取・仙台空港方面',
         gates: [
           { id: 'g-ts-1', name: '改札口', nameEn: 'Ticket Gate', type: 'gate', carPosition: 2.0 }
         ],
@@ -124,7 +119,6 @@ export const STATIONS: Station[] = [
         ]
       },
       down: {
-
         trackNumber: '1',
         directionName: '仙台方面',
         gates: [
@@ -152,9 +146,8 @@ export const STATIONS: Station[] = [
     ],
     platforms: {
       up: {
-
         trackNumber: '1',
-        directionName: '仙台空港・白石方面',
+        directionName: '名取・仙台空港方面',
         gates: [
           { id: 'g-ms-1', name: '東 口', nameEn: 'East Exit', type: 'gate', carPosition: 1.5 },
           { id: 'g-ms-2', name: '西 口', nameEn: 'West Exit', type: 'gate', carPosition: 3.5 }
@@ -196,9 +189,8 @@ export const STATIONS: Station[] = [
     ],
     platforms: {
       up: {
-
         trackNumber: '2・3',
-        directionName: '仙台空港・岩沼・福島方面',
+        directionName: '仙台空港方面',
         gates: [
           { id: 'g-nt-1', name: '東 口', nameEn: 'East Exit', type: 'gate', carPosition: 1.5 },
           { id: 'g-nt-2', name: '西 口', nameEn: 'West Exit', type: 'gate', carPosition: 3.5 }
@@ -210,7 +202,6 @@ export const STATIONS: Station[] = [
         ]
       },
       down: {
-
         trackNumber: '1・2',
         directionName: '仙台方面',
         gates: [
@@ -252,7 +243,6 @@ export const STATIONS: Station[] = [
         ]
       },
       down: {
-
         trackNumber: '1',
         directionName: '仙台方面',
         gates: [
