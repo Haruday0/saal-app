@@ -794,24 +794,34 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                   className="group block p-3 rounded-2xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/25 hover:bg-blue-50/90 dark:hover:bg-blue-950/45 transition-colors shadow-sm"
                   style={{ textDecoration: 'none' }}
                 >
-                  <Group justify="space-between" align="flex-start" wrap="nowrap" gap="xs">
-                    <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
-                      <Group gap={6} align="center" wrap="nowrap">
-                        <Badge size="xs" color="saal" variant="filled" radius="sm">
-                          増結運転のお知らせ
-                        </Badge>
-                        <Text fz={11} fw={700} c="dimmed">
-                          {trainNotice.note}
-                        </Text>
-                      </Group>
+                  <div className="flex items-start gap-2.5">
+                    <span className="shrink-0 mt-0.5 text-saal-600 dark:text-saal-400">
+                      <Icon name="campaign" size={18} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1.5 mb-1">
+                        <Group gap={6} align="center" wrap="nowrap">
+                          <Badge size="xs" color="saal" variant="filled" radius="sm">
+                            増結運転のお知らせ
+                          </Badge>
+                          <Text fz={11} fw={700} c="dimmed">
+                            {trainNotice.note}
+                          </Text>
+                        </Group>
+                        <span className="shrink-0 text-slate-400 group-hover:text-saal transition-colors">
+                          <Icon name="open_in_new" size={15} />
+                        </span>
+                      </div>
                       <Text fz={12.5} fw={700} c="saal" className="leading-snug underline-offset-2 group-hover:underline">
                         {trainNotice.event.title}
                       </Text>
-                    </Stack>
-                    <span className="shrink-0 text-slate-400 group-hover:text-saal transition-colors mt-0.5">
-                      <Icon name="open_in_new" size={16} />
-                    </span>
-                  </Group>
+                      {trainNotice.event.description && (
+                        <Text fz={11} c="dimmed" className="mt-1 leading-snug">
+                          {trainNotice.event.description}
+                        </Text>
+                      )}
+                    </div>
+                  </div>
                 </a>
               </Box>
             )}

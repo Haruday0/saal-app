@@ -42,11 +42,16 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
     setIsSheetPanelOpen,
     now,
     isTimeOverridden,
+    isDateOverridden,
     effectiveMinutes,
     setOverrideMinutes,
     setOverrideTimeString,
     adjustTimeMinutes,
+    setOverrideDateString,
+    adjustDateDays,
     resetTime,
+    resetDate,
+    resetAll,
     rowOverrides,
     setRowOverride,
     applyDigitPreset,
@@ -68,6 +73,10 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
   const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(
     now.getMinutes()
   ).padStart(2, '0')}`;
+  const currentYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`;
+  const dayOfWeekStr = ['日', '月', '火', '水', '木', '金', '土'][now.getDay()];
 
   // スライダーは 04:00 (240分) 〜 23:59 (1439分) の範囲
   const sliderValue = Math.min(1439, Math.max(240, effectiveMinutes));
@@ -110,7 +119,7 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
                 tt="none"
                 className="font-english tabular-nums"
               >
-                {currentHHMM} {isTimeOverridden ? '(仮想)' : '(実時刻)'}
+                {currentYMD}({dayOfWeekStr}) {currentHHMM} {isTimeOverridden ? '(仮想)' : '(実日時)'}
               </Badge>
               {hasRowOverrides && (
                 <Badge size="xs" color="orange" variant="light" radius="sm" tt="none">
@@ -135,11 +144,92 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
 
         <Collapse expanded={isOpen}>
           <Stack gap={8} pt={8}>
+            {/* 機能0: アプリ基準日付（シミュレーション現在日付）の変更 */}
+            <Stack gap={5}>
+              <Group justify="space-between" align="center" wrap="nowrap">
+                <Text fz={11} fw={700} c="dimmed">
+                  ① 日付シミュレーション
+                </Text>
+                <Group gap={4} wrap="nowrap">
+                  <input
+                    type="date"
+                    value={currentYMD}
+                    onChange={(e) => setOverrideDateString(e.target.value)}
+                    aria-label="シミュレーション日付入力"
+                    className="text-[11.5px] font-bold font-english tabular-nums px-1.5 py-0.5 rounded border border-[var(--mantine-color-default-border)] bg-transparent"
+                  />
+                  <Button
+                    size="compact-xs"
+                    variant={isDateOverridden ? 'light' : 'default'}
+                    color={isDateOverridden ? 'yellow' : 'gray'}
+                    onClick={resetDate}
+                    fz={10.5}
+                  >
+                    実日付
+                  </Button>
+                </Group>
+              </Group>
+
+              {/* 日付クイック選択ボタン */}
+              <Group gap={4} wrap="wrap">
+                <Button
+                  size="compact-xs"
+                  variant="default"
+                  fz={10.5}
+                  px={6}
+                  onClick={() => adjustDateDays(-1)}
+                >
+                  -1日
+                </Button>
+                <Button
+                  size="compact-xs"
+                  variant="default"
+                  fz={10.5}
+                  px={6}
+                  onClick={() => adjustDateDays(1)}
+                >
+                  +1日
+                </Button>
+                <Button
+                  size="compact-xs"
+                  variant={currentYMD === '2026-11-06' ? 'filled' : 'light'}
+                  color="saal"
+                  fz={10.5}
+                  px={6}
+                  onClick={() => setOverrideDateString('2026-11-06')}
+                >
+                  11/6(金) 増結1日目
+                </Button>
+                <Button
+                  size="compact-xs"
+                  variant={currentYMD === '2026-11-07' ? 'filled' : 'light'}
+                  color="saal"
+                  fz={10.5}
+                  px={6}
+                  onClick={() => setOverrideDateString('2026-11-07')}
+                >
+                  11/7(土) 増結2日目
+                </Button>
+                <Button
+                  size="compact-xs"
+                  variant={currentYMD === '2026-11-08' ? 'filled' : 'light'}
+                  color="saal"
+                  fz={10.5}
+                  px={6}
+                  onClick={() => setOverrideDateString('2026-11-08')}
+                >
+                  11/8(日) 増結3日目
+                </Button>
+              </Group>
+            </Stack>
+
+            <Divider my={2} />
+
             {/* 機能A: アプリ基準時刻（シミュレーション現在時刻）の変更 */}
             <Stack gap={5}>
               <Group justify="space-between" align="center" wrap="nowrap">
                 <Text fz={11} fw={700} c="dimmed">
-                  ① 基準時刻シミュレーション (04:00〜23:59)
+                  ② 基準時刻シミュレーション (04:00〜23:59)
                 </Text>
                 <Group gap={4} wrap="nowrap">
                   <input
@@ -151,12 +241,20 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
                   />
                   <Button
                     size="compact-xs"
-                    variant={isTimeOverridden ? 'light' : 'default'}
-                    color={isTimeOverridden ? 'yellow' : 'gray'}
+                    variant="default"
                     onClick={resetTime}
                     fz={10.5}
                   >
-                    実時刻に戻す
+                    実時刻
+                  </Button>
+                  <Button
+                    size="compact-xs"
+                    variant={isTimeOverridden ? 'light' : 'default'}
+                    color={isTimeOverridden ? 'yellow' : 'gray'}
+                    onClick={resetAll}
+                    fz={10.5}
+                  >
+                    実日時に戻す
                   </Button>
                 </Group>
               </Group>
@@ -215,7 +313,7 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
             <Stack gap={5}>
               <Group justify="space-between" align="center" wrap="nowrap">
                 <Text fz={11} fw={700} c="dimmed">
-                  ② 電光掲示板 直接オーバーライド (0〜9数字テスト)
+                  ③ 電光掲示板 直接オーバーライド (0〜9数字テスト)
                 </Text>
                 <Button
                   size="compact-xs"

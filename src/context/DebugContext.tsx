@@ -17,8 +17,12 @@ interface DebugContextValue {
   setIsSheetPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** アプリ全体の基準現在時刻（シミュレーション時刻または実時刻） */
   now: Date;
-  /** 時刻オーバーライド中かどうか */
+  /** 時刻または日付がオーバーライド中かどうか */
   isTimeOverridden: boolean;
+  /** 日付がオーバーライド中かどうか */
+  isDateOverridden: boolean;
+  /** 日付オーバーライド値（YYYY-MM-DD または null） */
+  overrideDateString: string | null;
   /** 現在の基準時刻の分（0〜1439、鉄道時刻4:00基準スライダー用は240〜1439） */
   effectiveMinutes: number;
   /** 分単位（0〜1439）でシミュレーション時刻を直接設定 */
@@ -27,8 +31,16 @@ interface DebugContextValue {
   setOverrideTimeString: (timeStr: string) => void;
   /** 現在（またはシミュレーション中）の時刻から相対分数を加減算 */
   adjustTimeMinutes: (deltaMinutes: number) => void;
+  /** YYYY-MM-DD 文字列でシミュレーション日付を設定 */
+  setOverrideDateString: (dateStr: string | null) => void;
+  /** 相対日数を加減算 */
+  adjustDateDays: (deltaDays: number) => void;
   /** 実時刻にリセット */
   resetTime: () => void;
+  /** 実日付にリセット */
+  resetDate: () => void;
+  /** 時刻・日付の両方を実日時にリセット */
+  resetAll: () => void;
   /** 電光掲示板の各段（1〜3段目）の直接オーバーライド設定 */
   rowOverrides: [BoardRowOverride, BoardRowOverride, BoardRowOverride];
   /** 各段のオーバーライドを更新 */
@@ -60,6 +72,7 @@ export const DebugProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [realNow, setRealNow] = useState<Date>(() => new Date());
   const [overrideMinutes, setOverrideMinutesState] = useState<number | null>(null);
+  const [overrideDate, setOverrideDateState] = useState<string | null>(null); // 'YYYY-MM-DD'
 
   const [rowOverrides, setRowOverrides] = useState<
     [BoardRowOverride, BoardRowOverride, BoardRowOverride]
@@ -82,20 +95,33 @@ export const DebugProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => clearInterval(timer);
   }, []);
 
-  // 年月日キー（シミュレーション時刻固定中の不要な毎秒再計算を抑止）
-  const todayYMD = `${realNow.getFullYear()}-${realNow.getMonth()}-${realNow.getDate()}`;
-
   const now = useMemo(() => {
-    if (!isDebugMode || overrideMinutes === null) {
+    if (!isDebugMode || (overrideMinutes === null && overrideDate === null)) {
       return realNow;
     }
     const d = new Date(realNow);
-    const normalized = ((overrideMinutes % 1440) + 1440) % 1440;
-    const h = Math.floor(normalized / 60);
-    const m = normalized % 60;
-    d.setHours(h, m, 0, 0);
+
+    // 日付の上書き (YYYY-MM-DD)
+    if (overrideDate) {
+      const parts = overrideDate.split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      if (!isNaN(y) && !isNaN(m) && !isNaN(day)) {
+        d.setFullYear(y, m - 1, day);
+      }
+    }
+
+    // 時刻の上書き (0〜1439分)
+    if (overrideMinutes !== null) {
+      const normalized = ((overrideMinutes % 1440) + 1440) % 1440;
+      const h = Math.floor(normalized / 60);
+      const m = normalized % 60;
+      d.setHours(h, m, 0, 0);
+    }
+
     return d;
-  }, [isDebugMode, overrideMinutes, overrideMinutes !== null ? todayYMD : realNow]);
+  }, [isDebugMode, overrideMinutes, overrideDate, realNow]);
 
   const effectiveMinutes = useMemo(() => {
     return now.getHours() * 60 + now.getMinutes();
@@ -130,8 +156,51 @@ export const DebugProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [realNow]
   );
 
+  const setOverrideDateString = useCallback((dateStr: string | null) => {
+    if (!dateStr || dateStr.trim() === '') {
+      setOverrideDateState(null);
+    } else {
+      const match = dateStr.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (match) {
+        const y = match[1];
+        const m = match[2].padStart(2, '0');
+        const day = match[3].padStart(2, '0');
+        setOverrideDateState(`${y}-${m}-${day}`);
+      }
+    }
+  }, []);
+
+  const adjustDateDays = useCallback(
+    (deltaDays: number) => {
+      setOverrideDateState((prev) => {
+        let base: Date;
+        if (prev) {
+          const parts = prev.split('-');
+          base = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        } else {
+          base = new Date(realNow);
+        }
+        base.setDate(base.getDate() + deltaDays);
+        const y = base.getFullYear();
+        const m = String(base.getMonth() + 1).padStart(2, '0');
+        const day = String(base.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      });
+    },
+    [realNow]
+  );
+
   const resetTime = useCallback(() => {
     setOverrideMinutesState(null);
+  }, []);
+
+  const resetDate = useCallback(() => {
+    setOverrideDateState(null);
+  }, []);
+
+  const resetAll = useCallback(() => {
+    setOverrideMinutesState(null);
+    setOverrideDateState(null);
   }, []);
 
   const setRowOverride = useCallback((index: 0 | 1 | 2, patch: Partial<BoardRowOverride>) => {
@@ -184,12 +253,18 @@ export const DebugProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isSheetPanelOpen,
       setIsSheetPanelOpen,
       now,
-      isTimeOverridden: isDebugMode && overrideMinutes !== null,
+      isTimeOverridden: isDebugMode && (overrideMinutes !== null || overrideDate !== null),
+      isDateOverridden: isDebugMode && overrideDate !== null,
+      overrideDateString: overrideDate,
       effectiveMinutes,
       setOverrideMinutes,
       setOverrideTimeString,
       adjustTimeMinutes,
+      setOverrideDateString,
+      adjustDateDays,
       resetTime,
+      resetDate,
+      resetAll,
       rowOverrides,
       setRowOverride,
       applyDigitPreset,
@@ -202,11 +277,16 @@ export const DebugProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isSheetPanelOpen,
       now,
       overrideMinutes,
+      overrideDate,
       effectiveMinutes,
       setOverrideMinutes,
       setOverrideTimeString,
       adjustTimeMinutes,
+      setOverrideDateString,
+      adjustDateDays,
       resetTime,
+      resetDate,
+      resetAll,
       rowOverrides,
       setRowOverride,
       applyDigitPreset,
