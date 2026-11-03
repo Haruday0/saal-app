@@ -1536,7 +1536,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           {(() => {
                             const typeDots = getDestinationDots('natori', train.trainType);
                             if (typeDots) {
-                              return <DotLedBitmap dots={typeDots} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={train.trainType} />;
+                              return <DotLedBitmap dots={typeDots} targetWidth={33} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={train.trainType} />;
                             }
                             return (
                               <div className="w-full h-full flex items-center justify-between text-center text-[15px] leading-none font-bold py-[2px]">
@@ -1555,7 +1555,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                           {(() => {
                             const carsDots = getDestinationDots('natori', carsText);
                             if (carsDots) {
-                              return <DotLedBitmap dots={carsDots} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={carsText} />;
+                              return <DotLedBitmap dots={carsDots} targetWidth={33} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={carsText} />;
                             }
                             return (
                               <div className="w-full h-full flex items-center justify-between text-center text-[15px] leading-none font-bold py-[2px]">
