@@ -172,7 +172,9 @@
       box-sizing: border-box;
     }
     .cell:hover { outline: 1.5px solid #58a6ff; outline-offset: -1px; }
-    .cell.guide-col { border-right: 1.5px dashed rgba(56, 139, 253, 0.5); margin-right: 2px; }
+    .cell.guide-col { border-right: 1.5px dashed rgba(56, 139, 253, 0.6); margin-right: 2px; }
+    .cell.is-space-zone { background: #080a0d; }
+    .cell.is-space-zone:hover { opacity: 1 !important; }
 
     /* 原寸プレビュー */
     .preview-box {
@@ -365,6 +367,18 @@
             <option value="22">大 (22px)</option>
             <option value="26">特大 (26px)</option>
             <option value="32">超特大 (32px)</option>
+          </select>
+        </div>
+
+        <div class="tool-group">
+          <span class="label">補助線:</span>
+          <select id="sel-guide-mode" style="font-size: 11.5px;">
+            <option value="auto" selected>自動 (幅連動)</option>
+            <option value="4ch">4文字用 (24dot毎)</option>
+            <option value="3ch">3文字用 (24+12+24+12+24)</option>
+            <option value="2ch">2文字用 (12+24+24+24+12)</option>
+            <option value="33dot">33dot用 (16+1+16)</option>
+            <option value="none">補助線なし</option>
           </select>
         </div>
 
@@ -617,6 +631,7 @@
     const btnConv3chCompress = document.getElementById("btn-conv-3ch-compress");
     const btnConv3chExpand = document.getElementById("btn-conv-3ch-expand");
     const selCellSize = document.getElementById("sel-cell-size");
+    const selGuideMode = document.getElementById("sel-guide-mode");
     const selColor = document.getElementById("sel-color");
     const chkHalf = document.getElementById("chk-half");
     const btnUndo = document.getElementById("btn-undo");
@@ -1263,6 +1278,60 @@
     }
 
     // =========================================================================
+    // 補助線 (Guideline) 判定
+    // =========================================================================
+    function getGuideInfo(c, width, mode) {
+      let eff = mode;
+      if (eff === "auto") {
+        if (width === 33) {
+          eff = "33dot";
+        } else {
+          eff = "4ch";
+        }
+      }
+
+      if (eff === "none") {
+        return { isGuide: false, isSpace: false };
+      }
+
+      if (eff === "33dot") {
+        const isGuide = (c === 15 || c === 16) && c < width - 1;
+        const isSpace = (c === 16);
+        return { isGuide, isSpace };
+      }
+
+      if (eff === "2ch") {
+        if (width === 96) {
+          const isGuide = (c === 11 || c === 35 || c === 59 || c === 83) && c < width - 1;
+          const isSpace = (c <= 11) || (c >= 36 && c <= 59) || (c >= 84);
+          return { isGuide, isSpace };
+        }
+        if (width === 72) {
+          const isGuide = (c === 23 || c === 47) && c < width - 1;
+          const isSpace = (c >= 24 && c <= 47);
+          return { isGuide, isSpace };
+        }
+      }
+
+      if (eff === "3ch") {
+        if (width === 96) {
+          const isGuide = (c === 23 || c === 35 || c === 59 || c === 71) && c < width - 1;
+          const isSpace = (c >= 24 && c <= 35) || (c >= 60 && c <= 71);
+          return { isGuide, isSpace };
+        }
+        if (width === 72) {
+          const isGuide = (c === 23 || c === 47) && c < width - 1;
+          const isSpace = false;
+          return { isGuide, isSpace };
+        }
+      }
+
+      // 4ch またはその他の幅: 24dot間隔
+      const isGuide = ((c + 1) % 24 === 0) && (c !== width - 1);
+      return { isGuide, isSpace: false };
+    }
+
+    // =========================================================================
     // キャンバスレンダリング & 左右クリック描画
     // =========================================================================
     function renderCanvas() {
@@ -1271,13 +1340,19 @@
       dotGridEl.style.gridTemplateColumns = `repeat(${currentWidth}, var(--cell-size))`;
       dotGridEl.style.gridTemplateRows = `repeat(24, var(--cell-size))`;
 
+      const guideMode = selGuideMode ? selGuideMode.value : "auto";
+
       for (let r = 0; r < 24; r++) {
         for (let c = 0; c < currentWidth; c++) {
           const val = currentGrid[r] ? currentGrid[r][c] : "0";
           const cell = document.createElement("div");
           cell.className = "cell";
-          if ((c + 1) % 24 === 0 && c !== currentWidth - 1) {
+          const guideInfo = getGuideInfo(c, currentWidth, guideMode);
+          if (guideInfo.isGuide) {
             cell.classList.add("guide-col");
+          }
+          if (guideInfo.isSpace) {
+            cell.classList.add("is-space-zone");
           }
 
           applyCellColor(cell, val, currentColor);
@@ -1311,6 +1386,7 @@
     }
 
     function applyCellColor(el, val, color) {
+      const isSpace = el.classList.contains("is-space-zone");
       if (val === "1") {
         // 全点灯: アプリと完全同一のソリッド発光（100%点灯、不要なボカシなし）
         el.style.backgroundColor = color;
@@ -1325,8 +1401,8 @@
         el.style.boxShadow = "none";
       } else {
         // 消灯
-        el.style.backgroundColor = "#121518";
-        el.style.opacity = "1";
+        el.style.backgroundColor = isSpace ? "#080a0d" : "#121518";
+        el.style.opacity = isSpace ? "0.4" : "1";
         el.style.filter = "none";
         el.style.boxShadow = "none";
       }
@@ -1446,6 +1522,10 @@
       applyCellSize();
     });
 
+    selGuideMode.addEventListener("change", () => {
+      renderCanvas();
+    });
+
     btnClear.addEventListener("click", () => {
       pushHistory();
       currentGrid = createEmptyGrid(currentWidth);
@@ -1495,6 +1575,7 @@
       currentGrid = newGrid;
       currentWidth = 72;
       numCanvasWidth.value = 72;
+      selGuideMode.value = "3ch";
       renderCanvas();
       showStatusMsg("3文字圧縮 (96→72dot) を実行しました", "ok");
     });
@@ -1518,6 +1599,7 @@
       currentGrid = newGrid;
       currentWidth = 96;
       numCanvasWidth.value = 96;
+      selGuideMode.value = "3ch";
       renderCanvas();
       showStatusMsg("3文字展開 (72→96dot) を実行しました", "ok");
     });
@@ -1537,6 +1619,7 @@
       currentGrid = newGrid;
       currentWidth = 72;
       numCanvasWidth.value = 72;
+      selGuideMode.value = "2ch";
       renderCanvas();
       showStatusMsg("2文字圧縮 (96→72dot) を実行しました", "ok");
     });
@@ -1556,6 +1639,7 @@
       currentGrid = newGrid;
       currentWidth = 96;
       numCanvasWidth.value = 96;
+      selGuideMode.value = "2ch";
       renderCanvas();
       showStatusMsg("2文字展開 (72→96dot) を実行しました", "ok");
     });
