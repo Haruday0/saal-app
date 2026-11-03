@@ -272,21 +272,17 @@
         <div class="tool-group">
           <span class="label">駅系統（型）:</span>
           <select id="sel-target-system" style="font-weight: 700; color: #f0f6fc;">
-            <option value="nagamachi">長町・太子堂型</option>
-            <option value="natori">名取型（10マス）</option>
-            <option value="sendai">仙台型</option>
-            <option value="minami-sendai">南仙台型</option>
-            <option value="sat">アクセス線型 (SAT)</option>
+            <!-- JSでモードに応じて動的生成 -->
           </select>
         </div>
 
         <!-- 駅系統ごとの数字・コロン幅設定 -->
         <div class="tool-group" id="group-digit-widths">
           <span class="label">数字幅:</span>
-          <input type="number" id="num-sys-digit-width" value="18" min="4" max="48" style="width: 48px;">
+          <input type="number" id="num-sys-digit-width" value="16" min="4" max="48" style="width: 48px;">
           <span class="label">dot</span>
           <span class="label" style="margin-left: 4px;">コロン幅:</span>
-          <input type="number" id="num-sys-colon-width" value="12" min="2" max="24" style="width: 48px;">
+          <input type="number" id="num-sys-colon-width" value="7" min="2" max="24" style="width: 48px;">
           <span class="label">dot</span>
         </div>
 
@@ -294,10 +290,13 @@
         <div class="tool-group">
           <span class="label">種類:</span>
           <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;">
-            <input type="radio" name="target-kind" value="digits" id="kind-digits" checked> 数字 (0〜9, :)
+            <input type="radio" name="target-kind" value="digits" id="kind-digits" checked> 数字
           </label>
           <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; margin-left: 6px;">
-            <input type="radio" name="target-kind" value="parts" id="kind-parts"> パーツ (行先・種別・両数)
+            <input type="radio" name="target-kind" value="destinations" id="kind-destinations"> 行先
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; margin-left: 6px;">
+            <input type="radio" name="target-kind" value="parts" id="kind-parts"> パーツ
           </label>
         </div>
 
@@ -309,14 +308,12 @@
           </div>
         </div>
 
-        <!-- B: パーツセレクター（手入力または既存選択） -->
+        <!-- B: 行先・パーツセレクター（手入力または既存選択） -->
         <div class="tool-group" id="group-target-parts" style="display: none;">
-          <span class="label">カテゴリ:</span>
-          <select id="sel-part-category" style="width: 155px; font-weight: 600;">
+          <span class="label" id="label-part-category">カテゴリ:</span>
+          <select id="sel-part-category" style="width: 100px; font-weight: 600;">
             <option value="種別">種別</option>
-            <option value="行先">行先</option>
             <option value="両数">両数</option>
-            <option value="種別両数一体">種別両数一体（名取用）</option>
             <option value="その他">その他</option>
           </select>
           <span class="label" style="margin-left: 4px;">パーツ名:</span>
@@ -335,9 +332,7 @@
           <button type="button" class="danger" id="btn-delete-target">削除</button>
         </div>
         <div style="font-size: 11px; color: #8b949e; line-height: 1.5;">
-          ※ 型や文字を選び変えても、キャンバスの内容は勝手に消えません。「保存」で反映、「読込」で展開されます。<br>
-          <span style="color: #d29922;">※長町・太子堂と名取はフォントが共通ですが、レイアウトは長町・太子堂（種別52dot/両数43dot分離）と名取（種別両数一体72dot）で異なります。</span><br>
-          <span style="color: #58a6ff;">※両数の数字は時刻の数字フォントとは字形が異なるため、「4両」等の43dot一体型、または両数専用パーツとして作成します。</span>
+          ※ 型や文字を選び変えても、キャンバスの内容は勝手に消えません。「保存」で反映、「読込」で展開されます。
         </div>
       </div>
     </div>
@@ -461,7 +456,7 @@
           ]
         },
         "natori": {
-          "name": "名取型（10マス）",
+          "name": "名取型",
           "digitWidth": 16,
           "colonWidth": 7,
           "digits": {},
@@ -575,7 +570,7 @@
 
     // 保存先・読出ターゲットの指定状態
     let targetSystem = "nagamachi";
-    let targetKind = "digits"; // 'digits' または 'parts'
+    let targetKind = "digits"; // 'digits', 'destinations', 'parts'
     let targetDigitChar = "0"; // '0'〜'9', ':'
     let targetPartName = "";
 
@@ -590,12 +585,15 @@
     const selTargetSystem = document.getElementById("sel-target-system");
     const numSysDigitWidth = document.getElementById("num-sys-digit-width");
     const numSysColonWidth = document.getElementById("num-sys-colon-width");
+    const groupDigitWidths = document.getElementById("group-digit-widths");
     const targetStatusMsg = document.getElementById("target-status-msg");
     const kindDigits = document.getElementById("kind-digits");
+    const kindDestinations = document.getElementById("kind-destinations");
     const kindParts = document.getElementById("kind-parts");
     const groupTargetDigits = document.getElementById("group-target-digits");
     const groupTargetParts = document.getElementById("group-target-parts");
     const digitButtonsEl = document.getElementById("digit-buttons");
+    const labelPartCategory = document.getElementById("label-part-category");
     const selPartCategory = document.getElementById("sel-part-category");
     const inputPartName = document.getElementById("input-part-name");
     const selExistingParts = document.getElementById("sel-existing-parts");
@@ -699,10 +697,62 @@
     }
 
     // =========================================================================
+    // 駅系統（型）の選択肢を動的に切り替え
+    // - 「数字」「行先」: 長町・太子堂・名取型、仙台型、南仙台型、アクセス線型 (SAT)
+    // - 「パーツ」: 長町・太子堂型、名取型、仙台型、南仙台型、アクセス線型 (SAT)
+    // =========================================================================
+    function updateTargetSystemOptions() {
+      const isShared = (targetKind === "digits" || targetKind === "destinations");
+      const prevVal = targetSystem;
+
+      selTargetSystem.innerHTML = "";
+      if (isShared) {
+        const systems = [
+          { value: "nagamachi", label: "長町・太子堂・名取型" },
+          { value: "sendai", label: "仙台型" },
+          { value: "minami-sendai", label: "南仙台型" },
+          { value: "sat", label: "アクセス線型 (SAT)" }
+        ];
+        systems.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s.value;
+          opt.textContent = s.label;
+          selTargetSystem.appendChild(opt);
+        });
+        if (prevVal === "natori" || !systems.some(s => s.value === prevVal)) {
+          targetSystem = "nagamachi";
+        } else {
+          targetSystem = prevVal;
+        }
+      } else {
+        const systems = [
+          { value: "nagamachi", label: "長町・太子堂型" },
+          { value: "natori", label: "名取型" },
+          { value: "sendai", label: "仙台型" },
+          { value: "minami-sendai", label: "南仙台型" },
+          { value: "sat", label: "アクセス線型 (SAT)" }
+        ];
+        systems.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s.value;
+          opt.textContent = s.label;
+          selTargetSystem.appendChild(opt);
+        });
+        if (!systems.some(s => s.value === prevVal)) {
+          targetSystem = "nagamachi";
+        } else {
+          targetSystem = prevVal;
+        }
+      }
+      selTargetSystem.value = targetSystem;
+    }
+
+    // =========================================================================
     // ターゲット指定（型・種類・文字）の更新
     // ※ 変更してもキャンバスは勝手にクリア・ロードしない！
     // =========================================================================
     function refreshTargetUI() {
+      updateTargetSystemOptions();
       const sys = appData[targetSystem] || {};
       const digits = sys.digits || {};
       const parts = sys.parts || {};
@@ -711,59 +761,89 @@
       numSysDigitWidth.value = sys.digitWidth || (targetSystem === "sendai" ? 18 : 16);
       numSysColonWidth.value = sys.colonWidth || (targetSystem === "sendai" || targetSystem === "sat" ? 10 : (targetSystem === "minami-sendai" ? 8 : 7));
 
-      // 1. 数字ボタンの生成 & 保存済みドット表示
-      digitButtonsEl.innerHTML = "";
-      DIGIT_CHARS.forEach(ch => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "digit-btn" + (ch === targetDigitChar ? " active" : "");
-        if (digits[ch] && digits[ch].length === 24) {
-          btn.classList.add("has-data");
-        }
-        btn.textContent = ch;
-        btn.addEventListener("click", () => {
-          targetDigitChar = ch;
-          refreshTargetUI();
-        });
-        digitButtonsEl.appendChild(btn);
-      });
+      if (targetKind === "digits") {
+        groupTargetDigits.style.display = "flex";
+        groupTargetParts.style.display = "none";
+        groupDigitWidths.style.display = "flex";
 
-      // 2. パーツ選択プルダウンの更新（カテゴリ別グループ化）
-      selExistingParts.innerHTML = '<option value="">(登録済から選ぶ)</option>';
-      const groups = { "種別": [], "行先": [], "両数": [], "種別両数一体": [], "その他": [] };
-      Object.keys(parts).forEach(name => {
-        const p = parts[name];
-        let cat = p.category;
-        if (!cat) {
-          if ((name.includes("普通") || name.includes("快速") || name.includes("特急")) && name.includes("両")) {
-            cat = "種別両数一体";
-          } else if (name.includes("両")) {
-            cat = "両数";
-          } else if (name.includes("普通") || name.includes("快速") || name.includes("特急")) {
-            cat = "種別";
-          } else {
-            cat = "その他";
+        // 1. 数字ボタンの生成 & 保存済みドット表示
+        digitButtonsEl.innerHTML = "";
+        DIGIT_CHARS.forEach(ch => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "digit-btn" + (ch === targetDigitChar ? " active" : "");
+          if (digits[ch] && digits[ch].length === 24) {
+            btn.classList.add("has-data");
           }
-        } else if (cat.includes("種別両数一体")) {
-          cat = "種別両数一体";
-        }
-        if (!groups[cat]) groups[cat] = [];
-        groups[cat].push({ name, width: p.width || 0 });
-      });
-
-      ["種別", "行先", "両数", "種別両数一体", "その他"].forEach(cat => {
-        if (groups[cat] && groups[cat].length > 0) {
-          const optGroup = document.createElement("optgroup");
-          optGroup.label = cat === "種別両数一体" ? "種別両数一体（名取用）" : cat;
-          groups[cat].forEach(item => {
-            const opt = document.createElement("option");
-            opt.value = item.name;
-            opt.textContent = `${item.name} (${item.width}dot)`;
-            optGroup.appendChild(opt);
+          btn.textContent = ch;
+          btn.addEventListener("click", () => {
+            targetDigitChar = ch;
+            refreshTargetUI();
           });
-          selExistingParts.appendChild(optGroup);
-        }
-      });
+          digitButtonsEl.appendChild(btn);
+        });
+      } else if (targetKind === "destinations") {
+        groupTargetDigits.style.display = "none";
+        groupTargetParts.style.display = "flex";
+        groupDigitWidths.style.display = "none";
+        labelPartCategory.style.display = "none";
+        selPartCategory.style.display = "none";
+        inputPartName.placeholder = "行先名 (例: 仙台空港, 白石)";
+
+        // 行先パーツ選択プルダウンの更新
+        selExistingParts.innerHTML = '<option value="">(登録済から選ぶ)</option>';
+        Object.keys(parts).forEach(name => {
+          const p = parts[name];
+          if (p.category === "行先" || (!p.category && !name.includes("両") && !name.includes("普通") && !name.includes("快速") && !name.includes("特急"))) {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = `${name} (${p.width || 96}dot)`;
+            selExistingParts.appendChild(opt);
+          }
+        });
+      } else {
+        // parts（パーツ）
+        groupTargetDigits.style.display = "none";
+        groupTargetParts.style.display = "flex";
+        groupDigitWidths.style.display = "none";
+        labelPartCategory.style.display = "";
+        selPartCategory.style.display = "";
+        inputPartName.placeholder = "パーツ名 (例: 普通, 4両)";
+
+        // パーツ選択プルダウンの更新（行先以外、カテゴリ別グループ化）
+        selExistingParts.innerHTML = '<option value="">(登録済から選ぶ)</option>';
+        const groups = { "種別": [], "両数": [], "その他": [] };
+        Object.keys(parts).forEach(name => {
+          const p = parts[name];
+          let cat = p.category;
+          if (cat === "行先") return;
+          if (!cat) {
+            if (name.includes("両")) {
+              cat = "両数";
+            } else if (name.includes("普通") || name.includes("快速") || name.includes("特急")) {
+              cat = "種別";
+            } else {
+              cat = "その他";
+            }
+          }
+          if (!groups[cat]) groups[cat] = [];
+          groups[cat].push({ name, width: p.width || 0 });
+        });
+
+        ["種別", "両数", "その他"].forEach(cat => {
+          if (groups[cat] && groups[cat].length > 0) {
+            const optGroup = document.createElement("optgroup");
+            optGroup.label = cat;
+            groups[cat].forEach(item => {
+              const opt = document.createElement("option");
+              opt.value = item.name;
+              opt.textContent = `${item.name} (${item.width}dot)`;
+              optGroup.appendChild(opt);
+            });
+            selExistingParts.appendChild(optGroup);
+          }
+        });
+      }
 
       // 3. ターゲットの現状ステータス表示
       updateTargetStatusIndicator();
@@ -771,13 +851,28 @@
 
     function updateTargetStatusIndicator() {
       const sys = appData[targetSystem] || {};
+      const isShared = (targetKind === "digits" || targetKind === "destinations") && targetSystem === "nagamachi";
+      const sysName = isShared ? "長町・太子堂・名取型" : (sys.name || targetSystem);
+
       if (targetKind === "digits") {
         const has = sys.digits && sys.digits[targetDigitChar];
         const w = targetDigitChar === ":" ? (sys.colonWidth || 7) : (sys.digitWidth || 16);
         if (has) {
-          showStatusMsg(`[${sys.name}] 数字 '${targetDigitChar}': 登録済 (${w}dot)`, "ok");
+          showStatusMsg(`[${sysName}] 数字 '${targetDigitChar}': 登録済 (${w}dot)`, "ok");
         } else {
-          showStatusMsg(`[${sys.name}] 数字 '${targetDigitChar}': 未登録 (空)`, "warn");
+          showStatusMsg(`[${sysName}] 数字 '${targetDigitChar}': 未登録 (空)`, "warn");
+        }
+      } else if (targetKind === "destinations") {
+        const pName = inputPartName.value.trim();
+        if (!pName) {
+          showStatusMsg(`行先名を入力してください`, "");
+        } else {
+          const p = sys.parts && sys.parts[pName];
+          if (p) {
+            showStatusMsg(`[${sysName}] 行先「${pName}」: 登録済 (${p.width}dot)`, "ok");
+          } else {
+            showStatusMsg(`[${sysName}] 行先「${pName}」: 未登録 (空)`, "warn");
+          }
         }
       } else {
         const pName = inputPartName.value.trim();
@@ -785,10 +880,11 @@
           showStatusMsg(`パーツ名を入力してください`, "");
         } else {
           const p = sys.parts && sys.parts[pName];
+          const cat = selPartCategory.value || "その他";
           if (p) {
-            showStatusMsg(`[${sys.name}] パーツ「${pName}」: 登録済 (${p.width}dot)`, "ok");
+            showStatusMsg(`[${sysName}] パーツ「${pName}」[${p.category || cat}]: 登録済 (${p.width}dot)`, "ok");
           } else {
-            showStatusMsg(`[${sys.name}] パーツ「${pName}」: 未登録 (空)`, "warn");
+            showStatusMsg(`[${sysName}] パーツ「${pName}」[${cat}]: 未登録 (空)`, "warn");
           }
         }
       }
@@ -808,26 +904,29 @@
     // イベント: 種類の切り替え（キャンバスは保持）
     kindDigits.addEventListener("change", () => {
       targetKind = "digits";
-      groupTargetDigits.style.display = "flex";
-      groupTargetParts.style.display = "none";
+      refreshTargetUI();
+    });
+
+    kindDestinations.addEventListener("change", () => {
+      targetKind = "destinations";
       refreshTargetUI();
     });
 
     kindParts.addEventListener("change", () => {
       targetKind = "parts";
-      groupTargetDigits.style.display = "none";
-      groupTargetParts.style.display = "flex";
       refreshTargetUI();
     });
 
     // パーツ名入力・既存選択
     inputPartName.addEventListener("input", () => {
       targetPartName = inputPartName.value.trim();
-      const p = targetPartName;
-      if ((p.includes("普通") || p.includes("快速") || p.includes("特急")) && p.includes("両")) {
-        selPartCategory.value = "種別両数一体";
-      } else if (p.includes("両") && !p.includes("普通") && !p.includes("快速") && !p.includes("特急")) {
-        selPartCategory.value = "両数";
+      if (targetKind === "parts") {
+        const p = targetPartName;
+        if (p.includes("両") && !p.includes("普通") && !p.includes("快速") && !p.includes("特急")) {
+          selPartCategory.value = "両数";
+        } else if (p.includes("普通") || p.includes("快速") || p.includes("特急")) {
+          selPartCategory.value = "種別";
+        }
       }
       updateTargetStatusIndicator();
     });
@@ -839,8 +938,8 @@
         const sys = appData[targetSystem];
         if (sys && sys.parts && sys.parts[e.target.value]) {
           const p = sys.parts[e.target.value];
-          if (p.category) {
-            selPartCategory.value = p.category.includes("種別両数一体") ? "種別両数一体" : p.category;
+          if (targetKind === "parts" && p.category) {
+            selPartCategory.value = p.category;
           }
         }
         updateTargetStatusIndicator();
@@ -856,16 +955,39 @@
       const sys = appData[targetSystem];
       if (!sys) return;
 
+      const isShared = (targetKind === "digits" || targetKind === "destinations") && targetSystem === "nagamachi";
+      const sysName = isShared ? "長町・太子堂・名取型" : (sys.name || targetSystem);
+
       if (targetKind === "digits") {
         if (!sys.digits) sys.digits = {};
         sys.digits[targetDigitChar] = gridToStrings(currentGrid);
+        if (targetSystem === "nagamachi" && appData.natori) {
+          if (!appData.natori.digits) appData.natori.digits = {};
+          appData.natori.digits[targetDigitChar] = gridToStrings(currentGrid);
+        }
         saveData();
         refreshTargetUI();
-        showStatusMsg(`[${sys.name}] 数字 '${targetDigitChar}' に保存しました`, "ok");
+        showStatusMsg(`[${sysName}] 数字 '${targetDigitChar}' に保存しました`, "ok");
+      } else if (targetKind === "destinations") {
+        const pName = inputPartName.value.trim();
+        if (!pName) {
+          alert("行先名を入力してください (例: 仙台空港, 白石)");
+          inputPartName.focus();
+          return;
+        }
+        if (!sys.parts) sys.parts = {};
+        sys.parts[pName] = {
+          category: "行先",
+          width: currentWidth,
+          dots: gridToStrings(currentGrid)
+        };
+        saveData();
+        refreshTargetUI();
+        showStatusMsg(`[${sysName}] 行先「${pName}」(${currentWidth}dot) に保存しました`, "ok");
       } else {
         const pName = inputPartName.value.trim();
         if (!pName) {
-          alert("パーツ名を入力してください (例: 普通, 仙台空港)");
+          alert("パーツ名を入力してください (例: 普通, 4両)");
           inputPartName.focus();
           return;
         }
@@ -878,7 +1000,7 @@
         };
         saveData();
         refreshTargetUI();
-        showStatusMsg(`[${sys.name}] パーツ「${pName}」[${cat}] (${currentWidth}dot) に保存しました`, "ok");
+        showStatusMsg(`[${sysName}] パーツ「${pName}」[${cat}] (${currentWidth}dot) に保存しました`, "ok");
       }
     });
 
@@ -887,12 +1009,15 @@
       const sys = appData[targetSystem];
       if (!sys) return;
 
+      const isShared = (targetKind === "digits" || targetKind === "destinations") && targetSystem === "nagamachi";
+      const sysName = isShared ? "長町・太子堂・名取型" : (sys.name || targetSystem);
+
       if (targetKind === "digits") {
         const dots = sys.digits ? sys.digits[targetDigitChar] : null;
         const targetW = targetDigitChar === ":" ? (sys.colonWidth || 7) : (sys.digitWidth || 16);
 
         if (!dots) {
-          if (confirm(`[${sys.name}] の数字 '${targetDigitChar}' は未登録です。幅${targetW}dotの白紙キャンバスを展開しますか？`)) {
+          if (confirm(`[${sysName}] の数字 '${targetDigitChar}' は未登録です。幅${targetW}dotの白紙キャンバスを展開しますか？`)) {
             pushHistory();
             currentWidth = targetW;
             numCanvasWidth.value = currentWidth;
@@ -907,28 +1032,28 @@
         numCanvasWidth.value = currentWidth;
         currentGrid = stringsToGrid(dots, currentWidth);
         renderCanvas();
-        showStatusMsg(`[${sys.name}] 数字 '${targetDigitChar}' をキャンバスに読み込みました`, "ok");
+        showStatusMsg(`[${sysName}] 数字 '${targetDigitChar}' をキャンバスに読み込みました`, "ok");
       } else {
         const pName = inputPartName.value.trim();
         if (!pName) {
-          alert("読み込むパーツ名を入力または選択してください");
+          alert(targetKind === "destinations" ? "読み込む行先名を入力または選択してください" : "読み込むパーツ名を入力または選択してください");
           return;
         }
         const p = sys.parts ? sys.parts[pName] : null;
         if (!p) {
-          alert(`パーツ「${pName}」はまだ登録されていません`);
+          alert(`「${pName}」はまだ登録されていません`);
           return;
         }
 
         pushHistory();
-        if (p.category) {
-          selPartCategory.value = p.category.includes("種別両数一体") ? "種別両数一体" : p.category;
+        if (targetKind === "parts" && p.category) {
+          selPartCategory.value = p.category;
         }
-        currentWidth = p.width || 48;
+        currentWidth = p.width || (targetKind === "destinations" ? 96 : 48);
         numCanvasWidth.value = currentWidth;
         currentGrid = stringsToGrid(p.dots, currentWidth);
         renderCanvas();
-        showStatusMsg(`パーツ「${pName}」[${p.category || 'その他'}] (${currentWidth}dot) をキャンバスに読み込みました`, "ok");
+        showStatusMsg(`「${pName}」(${currentWidth}dot) をキャンバスに読み込みました`, "ok");
       }
     });
 
@@ -937,27 +1062,33 @@
       const sys = appData[targetSystem];
       if (!sys) return;
 
+      const isShared = (targetKind === "digits" || targetKind === "destinations") && targetSystem === "nagamachi";
+      const sysName = isShared ? "長町・太子堂・名取型" : (sys.name || targetSystem);
+
       if (targetKind === "digits") {
         if (!sys.digits || !sys.digits[targetDigitChar]) {
           alert(`数字 '${targetDigitChar}' は登録されていません`);
           return;
         }
-        if (!confirm(`[${sys.name}] の数字 '${targetDigitChar}' の登録データを削除してもよろしいですか？`)) return;
+        if (!confirm(`[${sysName}] の数字 '${targetDigitChar}' の登録データを削除してもよろしいですか？`)) return;
         delete sys.digits[targetDigitChar];
+        if (targetSystem === "nagamachi" && appData.natori?.digits) {
+          delete appData.natori.digits[targetDigitChar];
+        }
         saveData();
         refreshTargetUI();
         showStatusMsg(`数字 '${targetDigitChar}' を削除しました`, "warn");
       } else {
         const pName = inputPartName.value.trim();
         if (!pName || !sys.parts || !sys.parts[pName]) {
-          alert(`パーツ「${pName}」は登録されていません`);
+          alert(`「${pName}」は登録されていません`);
           return;
         }
-        if (!confirm(`[${sys.name}] のパーツ「${pName}」を削除してもよろしいですか？`)) return;
+        if (!confirm(`[${sysName}] の「${pName}」を削除してもよろしいですか？`)) return;
         delete sys.parts[pName];
         saveData();
         refreshTargetUI();
-        showStatusMsg(`パーツ「${pName}」を削除しました`, "warn");
+        showStatusMsg(`「${pName}」を削除しました`, "warn");
       }
     });
 
@@ -967,6 +1098,9 @@
       if (!isNaN(w) && w >= 4) {
         if (!appData[targetSystem]) appData[targetSystem] = {};
         appData[targetSystem].digitWidth = w;
+        if (targetSystem === "nagamachi" && appData.natori) {
+          appData.natori.digitWidth = w;
+        }
         saveData();
         updateTargetStatusIndicator();
       }
@@ -977,6 +1111,9 @@
       if (!isNaN(w) && w >= 2) {
         if (!appData[targetSystem]) appData[targetSystem] = {};
         appData[targetSystem].colonWidth = w;
+        if (targetSystem === "nagamachi" && appData.natori) {
+          appData.natori.colonWidth = w;
+        }
         saveData();
         updateTargetStatusIndicator();
       }
@@ -990,25 +1127,14 @@
         fitW = targetDigitChar === ":" 
           ? (sys.colonWidth || (targetSystem === "sendai" || targetSystem === "sat" ? 10 : (targetSystem === "minami-sendai" ? 8 : 7))) 
           : (sys.digitWidth || (targetSystem === "sendai" ? 18 : 16));
+      } else if (targetKind === "destinations") {
+        fitW = targetSystem === "minami-sendai" ? 72 : 96;
       } else {
         const cat = selPartCategory.value || "その他";
         const pName = inputPartName.value.trim();
-        const isCombo = cat === "種別両数一体" || 
-          cat.includes("種別両数一体") ||
-          ((pName.includes("普通") || pName.includes("快速") || pName.includes("特急")) && pName.includes("両"));
 
-        if (cat === "行先") {
-          fitW = 96;
-        } else if (targetSystem === "natori") {
-          if (cat === "種別" || cat === "両数") {
-            fitW = 33; // 名取駅: 種別33dot（16+1+16）、両数33dot（16+1+16）
-          } else if (isCombo) {
-            fitW = 67; // 名取駅一体パーツ時（16+1+16+1+16+1+16）
-          } else {
-            fitW = 33;
-          }
-        } else if (isCombo) {
-          fitW = 72; // 名取駅用 種別両数一体パーツ（24×3枠）
+        if (targetSystem === "natori") {
+          fitW = 33; // 名取駅: 種別33dot、両数33dot、その他33dot
         } else if (cat === "種別") {
           fitW = targetSystem === "nagamachi" ? 52 : 48;
         } else if (cat === "両数") {
@@ -1021,9 +1147,7 @@
           }
         } else {
           // その他カテゴリ
-          if (targetSystem === "natori") {
-            fitW = 33;
-          } else if (targetSystem === "nagamachi") {
+          if (targetSystem === "nagamachi") {
             if (pName.includes("普通") || pName.includes("快速") || pName.includes("特急")) {
               fitW = 52;
             } else if (pName.includes("両")) {

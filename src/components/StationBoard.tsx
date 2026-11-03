@@ -1521,9 +1521,9 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   // 名取型: 10マス構成（計240dot）
                   // 種別(33dot) + 空白(1dot) + 両数(33dot) + 空白(5dot) + 時刻(72dot) + 行先(96dot) = 240dot
                   if (stationId === 'natori') {
-                    // 名取駅は番線に関係なく、「普通何両」の表示色が上り=緑、下り=オレンジ
+                    // 名取駅は番線に関係なく、種別・両数の表示色が上り=緑、下り=オレンジ
                     const trainDir = train.direction || direction;
-                    const comboColor: LedColor = trainDir === 'up' ? 'green' : 'amber';
+                    const typeCarsColor: LedColor = trainDir === 'up' ? 'green' : 'amber';
                     const carsText = `${train.cars}両`;
 
                     return (
@@ -1532,7 +1532,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         className="w-full h-[24px] text-[24px] font-bold leading-none grid grid-cols-[33fr_1fr_33fr_5fr_72fr_96fr] items-center whitespace-nowrap rounded-none cursor-default"
                       >
                         {/* 1. 種別（33dot）: 普通等 */}
-                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES[comboColor]}`}>
+                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES[typeCarsColor]}`}>
                           {(() => {
                             const typeDots = getDestinationDots('natori', train.trainType);
                             if (typeDots) {
@@ -1551,7 +1551,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         <span className="h-full w-full" />
 
                         {/* 3. 両数（33dot）: 4両等 */}
-                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES[comboColor]}`}>
+                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES[typeCarsColor]}`}>
                           {(() => {
                             const carsDots = getDestinationDots('natori', carsText);
                             if (carsDots) {

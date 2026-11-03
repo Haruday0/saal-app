@@ -119,7 +119,7 @@ export function getDestinationDots(
 
   if (!groupKey) return null;
 
-  // 2. 新統合データ stationLedData.json から検索（自駅グループのみを厳格検索・相互流用厳禁）
+  // 2. 新統合データ stationLedData.json から検索
   const unifiedData = stationLedData as unknown as Record<
     string,
     { parts?: Record<string, DotBitmapInput> }
@@ -129,12 +129,18 @@ export function getDestinationDots(
     if (entry) return normalizeDotsArray(entry);
   }
 
-  // 3. 従来データ dotDestinations.json から検索（互換用）
+  // 3. 名取駅の場合: 行先や共通パーツは長町・太子堂型（nagamachi）と同一フォントのためフォールバック検索
+  if (groupKey === 'natori' && unifiedData.nagamachi?.parts) {
+    const entry = findMatchingEntry(unifiedData.nagamachi.parts, cleanDest);
+    if (entry) return normalizeDotsArray(entry);
+  }
+
+  // 4. 従来データ dotDestinations.json から検索（互換用）
   const groupsData = dotDestinationsData as unknown as Record<
     string,
     Record<string, DotBitmapInput>
   >;
-  const groupMap = groupsData[groupKey] || {};
+  const groupMap = groupsData[groupKey] || (groupKey === 'natori' ? groupsData.nagamachi : {}) || {};
 
   // 南仙台駅の場合、専用長体キー（南仙台_仙台空港 等）を最優先検索
   if (sId === 'minami-sendai') {
