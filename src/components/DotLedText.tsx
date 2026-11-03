@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import dotFonts from '../data/dotFonts.json';
 import stationLedData from '../data/stationLedData.json';
 
-export type DigitFontScope = 'nagamachi' | 'sendai' | 'minami-sendai' | 'sat';
+export type DigitFontScope = 'nagamachi' | 'sendai' | 'minami-sendai' | 'sat' | 'natori';
 
 export interface FontDefinition {
   stationType?: string;
@@ -41,10 +41,13 @@ export function getDigitFontScope(stationId?: string): DigitFontScope | null {
 
   if (
     s === 'nagamachi' || s === '長町' ||
-    s === 'taishido' || s === '太子堂' ||
-    s === 'natori' || s === '名取'
+    s === 'taishido' || s === '太子堂'
   ) {
     return 'nagamachi';
+  }
+
+  if (s === 'natori' || s === '名取') {
+    return 'natori';
   }
 
   if (s === 'sendai' || s === '仙台') {

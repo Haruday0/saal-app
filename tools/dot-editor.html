@@ -272,7 +272,8 @@
         <div class="tool-group">
           <span class="label">駅系統（型）:</span>
           <select id="sel-target-system" style="font-weight: 700; color: #f0f6fc;">
-            <option value="nagamachi">長町・太子堂・名取（フォント共通）</option>
+            <option value="nagamachi">長町・太子堂型</option>
+            <option value="natori">名取型（10マス）</option>
             <option value="sendai">仙台型</option>
             <option value="minami-sendai">南仙台型</option>
             <option value="sat">アクセス線型 (SAT)</option>
@@ -444,7 +445,7 @@
             function getEmptyData() {
       return {
         "nagamachi": {
-          "name": "長町・太子堂・名取（フォント共通）",
+          "name": "長町・太子堂型",
           "digitWidth": 16,
           "colonWidth": 7,
           "digits": {},
@@ -456,6 +457,21 @@
             { "name": "両数", "role": "cars", "part": "", "width": 43, "color": "#00e676" },
             { "name": "余白", "role": "space", "part": "", "width": 21, "color": "#00e676" },
             { "name": "時刻", "role": "time", "part": "time", "width": 71, "color": "#00e676" },
+            { "name": "行先", "role": "dest", "part": "", "width": 96, "color": "#f59e0b" }
+          ]
+        },
+        "natori": {
+          "name": "名取型（10マス）",
+          "digitWidth": 16,
+          "colonWidth": 7,
+          "digits": {},
+          "parts": {},
+          "slots": [
+            { "name": "種別", "role": "type", "part": "", "width": 33, "color": "#00e676" },
+            { "name": "空白", "role": "space", "part": "", "width": 1, "color": "#00e676" },
+            { "name": "両数", "role": "cars", "part": "", "width": 33, "color": "#00e676" },
+            { "name": "空白", "role": "space", "part": "", "width": 5, "color": "#00e676" },
+            { "name": "時刻", "role": "time", "part": "time", "width": 72, "color": "#00e676" },
             { "name": "行先", "role": "dest", "part": "", "width": 96, "color": "#f59e0b" }
           ]
         },
@@ -529,6 +545,9 @@
         const parsed = JSON.parse(saved);
         if (parsed && parsed.nagamachi) {
           appData = parsed;
+          if (!appData.natori) {
+            appData.natori = getEmptyData().natori;
+          }
         }
       }
     } catch (e) {
@@ -980,6 +999,14 @@
 
         if (cat === "行先") {
           fitW = 96;
+        } else if (targetSystem === "natori") {
+          if (cat === "種別" || cat === "両数") {
+            fitW = 33; // 名取駅: 種別33dot（16+1+16）、両数33dot（16+1+16）
+          } else if (isCombo) {
+            fitW = 67; // 名取駅一体パーツ時（16+1+16+1+16+1+16）
+          } else {
+            fitW = 33;
+          }
         } else if (isCombo) {
           fitW = 72; // 名取駅用 種別両数一体パーツ（24×3枠）
         } else if (cat === "種別") {
@@ -994,7 +1021,9 @@
           }
         } else {
           // その他カテゴリ
-          if (targetSystem === "nagamachi") {
+          if (targetSystem === "natori") {
+            fitW = 33;
+          } else if (targetSystem === "nagamachi") {
             if (pName.includes("普通") || pName.includes("快速") || pName.includes("特急")) {
               fitW = 52;
             } else if (pName.includes("両")) {
@@ -1345,6 +1374,9 @@
               return;
             }
             appData = data;
+            if (!appData.natori) {
+              appData.natori = getEmptyData().natori;
+            }
             saveData();
             refreshTargetUI();
             alert(`ファイル「${file.name}」を正常に読み込みました！`);
@@ -1386,6 +1418,9 @@
           return;
         }
         appData = parsed;
+        if (!appData.natori) {
+          appData.natori = getEmptyData().natori;
+        }
         saveData();
         ioModal.classList.remove("open");
         refreshTargetUI();

@@ -103,10 +103,12 @@ export function getDestinationDots(
   const sId = (stationId || '').trim().toLowerCase();
 
   // 1. 駅IDから所属するフォント系統を判定（南仙台と仙台は文字幅3/4が異なるため完全分離）
-  let groupKey: 'nagamachi' | 'sendai' | 'minami-sendai' | 'sat' | null = null;
+  let groupKey: 'nagamachi' | 'sendai' | 'minami-sendai' | 'sat' | 'natori' | null = null;
 
-  if (['nagamachi', 'taishido', 'natori'].includes(sId)) {
+  if (['nagamachi', 'taishido'].includes(sId)) {
     groupKey = 'nagamachi';
+  } else if (sId === 'natori') {
+    groupKey = 'natori';
   } else if (sId === 'sendai') {
     groupKey = 'sendai';
   } else if (sId === 'minami-sendai') {

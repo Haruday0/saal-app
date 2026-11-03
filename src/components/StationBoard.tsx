@@ -1561,43 +1561,64 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                   }
 
                   // Case B: natori
+                  // 名取型: 10マス構成（計240dot）
+                  // 種別(33dot) + 空白(1dot) + 両数(33dot) + 空白(5dot) + 時刻(72dot) + 行先(96dot) = 240dot
                   if (stationId === 'natori') {
                     // 名取駅は番線に関係なく、「普通何両」の表示色が上り=緑、下り=オレンジ
                     const trainDir = train.direction || direction;
                     const comboColor: LedColor = trainDir === 'up' ? 'green' : 'amber';
+                    const carsText = `${train.cars}両`;
 
                     return (
                       <div
                         key={train.id}
-                        className="w-full h-[24px] text-[24px] font-bold leading-none grid grid-cols-[repeat(10,minmax(0,1fr))] items-center whitespace-nowrap rounded-none cursor-default"
+                        className="w-full h-[24px] text-[24px] font-bold leading-none grid grid-cols-[33fr_1fr_33fr_5fr_72fr_96fr] items-center whitespace-nowrap rounded-none cursor-default"
                       >
-                        {/* 1〜3マス目: 種別・両数（3文字幅枠に4文字を美しく収める16dot準拠の小型フォント）
-                            名取駅は番線に関係なく「普通何両」が上り緑・下りオレンジ */}
-                        <div className={`col-span-3 h-full flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>
+                        {/* 1. 種別（33dot）: 普通等 */}
+                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES[comboColor]}`}>
                           {(() => {
-                            const comboText = `${train.trainType}${train.cars}両`;
-                            const comboDots = getDestinationDots('natori', comboText);
-                            if (comboDots) {
-                              return <DotLedBitmap dots={comboDots} className="h-full w-auto max-w-full" ariaLabel={comboText} />;
+                            const typeDots = getDestinationDots('natori', train.trainType);
+                            if (typeDots) {
+                              return <DotLedBitmap dots={typeDots} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={train.trainType} />;
                             }
                             return (
-                              <div className="w-full h-full grid grid-cols-4 items-center text-center text-[15px] leading-none font-bold py-[2px]">
-                                <span className={`h-[20px] flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>{train.trainType[0] ?? '普'}</span>
-                                <span className={`h-[20px] flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>{train.trainType[1] ?? '通'}</span>
-                                <span className={`h-[20px] flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>{toFW(train.cars)}</span>
-                                <span className={`h-[20px] flex items-center justify-center ${LED_COLOR_CLASSES[comboColor]}`}>両</span>
+                              <div className="w-full h-full flex items-center justify-between text-center text-[15px] leading-none font-bold py-[2px]">
+                                <span className="h-[20px] w-[16px] flex items-center justify-center">{train.trainType[0] ?? '普'}</span>
+                                <span className="h-[20px] w-[16px] flex items-center justify-center">{train.trainType[1] ?? '通'}</span>
                               </div>
                             );
                           })()}
                         </div>
 
-                        {/* 4〜6マス目: 発車時刻（名取駅・長町型専用手打ちドット・上下2dot余白込みで完全フィット） */}
-                        <div className={`col-span-3 h-full flex items-center justify-end pr-1 ${LED_COLOR_CLASSES[theme.timeColor]}`}>
-                          <DotLedText text={train.departureTime} stationId={stationId} className="h-full w-auto" />
+                        {/* 2. 空白（1dot）: 種別と両数の間 */}
+                        <span className="h-full w-full" />
+
+                        {/* 3. 両数（33dot）: 4両等 */}
+                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden ${LED_COLOR_CLASSES[comboColor]}`}>
+                          {(() => {
+                            const carsDots = getDestinationDots('natori', carsText);
+                            if (carsDots) {
+                              return <DotLedBitmap dots={carsDots} className="h-full w-full block" preserveAspectRatio="xMidYMid meet" ariaLabel={carsText} />;
+                            }
+                            return (
+                              <div className="w-full h-full flex items-center justify-between text-center text-[15px] leading-none font-bold py-[2px]">
+                                <span className="h-[20px] w-[16px] flex items-center justify-center">{toFW(train.cars)}</span>
+                                <span className="h-[20px] w-[16px] flex items-center justify-center">両</span>
+                              </div>
+                            );
+                          })()}
                         </div>
 
-                        {/* 7〜10マス目: 行先（高さ20dot完全維持） */}
-                        {renderDestGrid(train.destination, dc, stationId)}
+                        {/* 4. 空白（5dot）: 両数と時刻の間の余白 */}
+                        <span className="h-full w-full" />
+
+                        {/* 5. 発車時刻（72dot / 3マス）: 長町・名取型手打ちドット数字 */}
+                        <div className={`h-full w-full flex items-center justify-end pr-0.5 ${LED_COLOR_CLASSES[theme.timeColor]}`}>
+                          <DotLedText text={train.departureTime} stationId="natori" className="h-full w-auto" />
+                        </div>
+
+                        {/* 6. 行先（96dot / 4マス） */}
+                        {renderDestGrid(train.destination, dc, 'natori')}
                       </div>
                     );
                   }
