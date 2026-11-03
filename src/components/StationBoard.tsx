@@ -235,14 +235,19 @@ const Time: React.FC<{ t?: string; color: LedColor }> = ({ t, color }) => {
 };
 
 /** LEDグリッド行先セル（手打ちドット96dot優先、なければ2字・3字・4字を実機準拠で割付） */
-const renderDestGrid = (dest: string, dc: LedColor, stationId?: string) => {
+const renderDestGrid = (
+  dest: string,
+  dc: LedColor,
+  stationId?: string,
+  wrapperClassName: string = 'h-full w-full'
+) => {
   const clean = dest.trim();
 
   // 手打ちドットデータがあれば96dot枠全体にそのまま優先描画
   const dots = getDestinationDots(stationId, clean);
   if (dots) {
     return (
-      <div className={`col-span-4 h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
+      <div className={`${wrapperClassName} flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
         <DotLedBitmap
           dots={dots}
           targetWidth={96}
@@ -255,7 +260,7 @@ const renderDestGrid = (dest: string, dc: LedColor, stationId?: string) => {
   }
 
   return (
-    <div className={`col-span-4 h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
+    <div className={`${wrapperClassName} flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
       {clean.length === 2 ? (
         /* 2文字行先: 12dot空白 + 24dot(1文字目) + 24dot空白 + 24dot(2文字目) + 12dot空白 = 96dot（上下2dot空き再現: text-[20px] py-[2px]） */
         <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center text-[20px] leading-none py-[2px]">
@@ -1507,55 +1512,7 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         </div>
 
                         {/* 7. 行先: 96dot (24 × 4 = 96dot、時刻の直後から右端まで、上下2dot空き再現) */}
-                        <div className={`h-full w-full flex items-center justify-center p-0 overflow-hidden leading-[24px] ${LED_COLOR_CLASSES[dc]}`}>
-                          {(() => {
-                            const destDots = getDestinationDots(stationId, cleanDest);
-                            if (destDots) {
-                              return (
-                                <DotLedBitmap
-                                  dots={destDots}
-                                  targetWidth={96}
-                                  className="h-full w-full block"
-                                  preserveAspectRatio="xMidYMid meet"
-                                  ariaLabel={cleanDest}
-                                />
-                              );
-                            }
-                            if (cleanDest.length === 2) {
-                              /* 2文字行先: 12dot空白 + 24dot(1文字目) + 24dot空白 + 24dot(2文字目) + 12dot空白 = 96dot（上下2dot空き） */
-                              return (
-                                <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center text-[20px] leading-none py-[2px]">
-                                  <span className="h-full w-full" />
-                                  <span className="h-[20px] flex items-center justify-center">{cleanDest[0]}</span>
-                                  <span className="h-full w-full" />
-                                  <span className="h-[20px] flex items-center justify-center">{cleanDest[1]}</span>
-                                  <span className="h-full w-full" />
-                                </div>
-                              );
-                            }
-                            if (cleanDest.length === 3) {
-                              /* 3文字行先: 12dot空白 + 24dot×3文字 + 12dot空白 = 96dot（上下2dot空き） */
-                              return (
-                                <div className="w-full h-full grid grid-cols-[12fr_24fr_24fr_24fr_12fr] items-center text-center text-[20px] leading-none py-[2px]">
-                                  <span className="h-full w-full" />
-                                  <span className="h-[20px] flex items-center justify-center">{cleanDest[0]}</span>
-                                  <span className="h-[20px] flex items-center justify-center">{cleanDest[1]}</span>
-                                  <span className="h-[20px] flex items-center justify-center">{cleanDest[2]}</span>
-                                  <span className="h-full w-full" />
-                                </div>
-                              );
-                            }
-                            /* 4文字行先: 24dot×4文字 = 96dot（上下2dot空き） */
-                            return (
-                              <div className="w-full h-full grid grid-cols-[24fr_24fr_24fr_24fr] items-center text-center text-[20px] leading-none py-[2px]">
-                                <span className="h-[20px] flex items-center justify-center">{cleanDest[0]}</span>
-                                <span className="h-[20px] flex items-center justify-center">{cleanDest[1]}</span>
-                                <span className="h-[20px] flex items-center justify-center">{cleanDest[2]}</span>
-                                <span className="h-[20px] flex items-center justify-center">{cleanDest[3]}</span>
-                              </div>
-                            );
-                          })()}
-                        </div>
+                        {renderDestGrid(cleanDest, dc, stationId)}
                       </div>
                     );
                   }
