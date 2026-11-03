@@ -20,6 +20,12 @@ import {
   ScheduledTrain,
   ScheduledFullStop,
 } from '../utils/trainPosition';
+import { useDebug } from '../context/DebugContext';
+import { Icon } from './Icon';
+import {
+  getTrainNoticeInfo,
+  applySpecialOverrides,
+} from '../config/specialScheduleOverrides';
 
 interface TrainDetailSheetProps {
   trainId: string | null;
@@ -81,6 +87,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   onClose,
   onSelectStation,
 }) => {
+  const { now } = useDebug();
   const [activeTrain, setActiveTrain] = useState<ScheduledTrain | null>(null);
 
   // 閉じるフラグと DOM ref（StationDetailSheet と完全同一のGPU高速アニメーション）
@@ -123,7 +130,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
 
   useEffect(() => {
     if (trainId) {
-      const t = getScheduledTrainById(trainId);
+      const t = getScheduledTrainById(trainId, now);
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
@@ -569,18 +576,29 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     };
   }, [activeTrain?.id]);
 
+  // 臨時運行上書き適用（11/6〜11/8は両数・番線変更、それ以外は通常ダイヤ）
+  const train = useMemo(() => {
+    if (!activeTrain) return null;
+    return applySpecialOverrides(activeTrain, now);
+  }, [activeTrain, now]);
+
+  // 対象便に対する告知案内情報（告知期間中のみ取得）
+  const trainNotice = useMemo(() => {
+    return getTrainNoticeInfo(train?.trainNumber, now);
+  }, [train?.trainNumber, now]);
+
   // 停車駅リスト: 始発〜終着の全駅（allStops）を使用
   const stopsToShow = useMemo(() => {
-    if (!activeTrain) return [];
-    if (activeTrain.allStops && activeTrain.allStops.length > 0) {
-      return activeTrain.allStops;
+    if (!train) return [];
+    if (train.allStops && train.allStops.length > 0) {
+      return train.allStops;
     }
-    return activeTrain.stops;
-  }, [activeTrain]);
+    return train.stops;
+  }, [train]);
 
   const status = useMemo(
-    () => (activeTrain ? getTrainStatus(nowSec, stopsToShow) : ({ kind: 'before' } as TrainStatus)),
-    [activeTrain, nowSec, stopsToShow]
+    () => (train ? getTrainStatus(nowSec, stopsToShow) : ({ kind: 'before' } as TrainStatus)),
+    [train, nowSec, stopsToShow]
   );
 
   const handleStopClick = (stationId?: string) => {
@@ -601,10 +619,10 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       : status.index;
   }, [status, stopsToShow.length]);
 
-  // 開いた瞬間（activeTrain セット直後）、現在走行位置または停車駅が画面に出てくるよう即時スクロール
+  // 開いた瞬間（train セット直後）、現在走行位置または停車駅が画面に出てくるよう即時スクロール
   // 直前の過去停車駅（1〜2駅）が画面上部に見えるスクロール位置に合わせる
   useEffect(() => {
-    if (!activeTrain) return;
+    if (!train) return;
 
     const scrollToCurrentStop = () => {
       const content = contentRef.current;
@@ -664,11 +682,10 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       clearTimeout(t3);
       clearTimeout(t4);
     };
-  }, [activeTrain?.id, status.kind, activeIndex]);
+  }, [train?.id, status.kind, activeIndex]);
 
-  if (!activeTrain) return null;
+  if (!train) return null;
 
-  const train = activeTrain;
   const lineColor = getLineColor(train.line);
   const mantineColor = getMantineLineColor(train.line);
 
@@ -741,6 +758,11 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                 <Badge size="sm" radius="sm" variant="default" fw={700} style={{ flexShrink: 0 }}>
                   {train.cars}両
                 </Badge>
+                {trainNotice && (
+                  <Badge size="xs" radius="xs" color="saal" variant="light" tt="none" style={{ flexShrink: 0 }}>
+                    増結対象
+                  </Badge>
+                )}
               </Group>
             </Stack>
 
@@ -762,6 +784,38 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         {/* コンテンツ領域 */}
         <div ref={contentRef} className="relative flex-1 min-h-0 p-4 pb-8 overflow-y-auto space-y-4 overscroll-contain">
           <Stack gap="md">
+            {/* 臨時ダイヤ・増結運転のお知らせバナー（対象便かつ告知期間中のみ表示） */}
+            {trainNotice && (
+              <Box>
+                <a
+                  href={trainNotice.event.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block p-3 rounded-2xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/25 hover:bg-blue-50/90 dark:hover:bg-blue-950/45 transition-colors shadow-sm"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Group justify="space-between" align="flex-start" wrap="nowrap" gap="xs">
+                    <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+                      <Group gap={6} align="center" wrap="nowrap">
+                        <Badge size="xs" color="saal" variant="filled" radius="sm">
+                          増結運転のお知らせ
+                        </Badge>
+                        <Text fz={11} fw={700} c="dimmed">
+                          {trainNotice.note}
+                        </Text>
+                      </Group>
+                      <Text fz={12.5} fw={700} c="saal" className="leading-snug underline-offset-2 group-hover:underline">
+                        {trainNotice.event.title}
+                      </Text>
+                    </Stack>
+                    <span className="shrink-0 text-slate-400 group-hover:text-saal transition-colors mt-0.5">
+                      <Icon name="open_in_new" size={16} />
+                    </span>
+                  </Group>
+                </a>
+              </Box>
+            )}
+
             {/* Mantine Timeline による洗練された全区間時刻表 */}
             <Box>
               <Group justify="space-between" align="baseline" mb={12} wrap="nowrap">

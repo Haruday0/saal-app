@@ -7,6 +7,7 @@ import { Icon } from './Icon';
 import { TimetableModal } from './TimetableModal';
 import { isWeekendHolidayOrYearEnd } from '../utils/calendar';
 import { useDebug } from '../context/DebugContext';
+import { getActiveNoticeEvents, applySpecialOverrides } from '../config/specialScheduleOverrides';
 
 interface LedDepartureBoardProps {
   stationId: string;
@@ -88,25 +89,31 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
 
   const rawDepartures = MOCK_DEPARTURES[stationId] || { up: [], down: [] };
 
-  // 全便（平日専用便含む、時刻表モーダル送信用）
+  // 全便（平日専用便含む、時刻表モーダル送信用、期間内上書き適用）
   const allStationTrainsRaw = useMemo(() => {
-    const list = [...(rawDepartures.up || []), ...(rawDepartures.down || [])];
+    const list = [...(rawDepartures.up || []), ...(rawDepartures.down || [])].map((t) =>
+      applySpecialOverrides(t, now)
+    );
     return list.sort((a, b) => toRailwayMinutes(a.departureTime) - toRailwayMinutes(b.departureTime));
-  }, [rawDepartures]);
+  }, [rawDepartures, now]);
 
-  // 電光掲示板（StationBoard）用：今日が運休日（土曜・休日・12/30〜1/3）なら平日専用便（1428M, 1425M等）を除外
+  // 電光掲示板（StationBoard）用：今日が運休日（土曜・休日・12/30〜1/3）なら平日専用便（1428M, 1425M等）を除外＆特別ダイヤ適用
   const departures = useMemo(() => {
     const filterByDay = (list: DepartureTrain[]) => {
+      let result = list;
       if (isTodayHoliday) {
-        return list.filter((t) => t.calendar !== 'weekday');
+        result = result.filter((t) => t.calendar !== 'weekday');
       }
-      return list;
+      return result.map((t) => applySpecialOverrides(t, now));
     };
     return {
       up: filterByDay(rawDepartures.up || []),
       down: filterByDay(rawDepartures.down || []),
     };
-  }, [rawDepartures, isTodayHoliday]);
+  }, [rawDepartures, isTodayHoliday, now]);
+
+  // 臨時運行・お知らせ（告知期間中のみ取得）
+  const activeNotices = useMemo(() => getActiveNoticeEvents(now), [now]);
 
   const allStationTrains = useMemo(() => {
     const list = [...(departures.up || []), ...(departures.down || [])];
@@ -317,6 +324,43 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
           <span className="ml-0.5">現在</span>
         </Text>
       </div>
+
+      {/* 臨時運行・増結運転のお知らせリンク（告知期間中のみ表示） */}
+      {activeNotices.length > 0 && (
+        <Box px={10} py={7} style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
+          {activeNotices.map((notice) => (
+            <a
+              key={notice.id}
+              href={notice.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group block p-2.5 rounded-xl border border-blue-200/70 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 transition-colors"
+              style={{ textDecoration: 'none' }}
+            >
+              <div className="flex items-start gap-2">
+                <span className="shrink-0 mt-0.5 text-saal-600 dark:text-saal-400">
+                  <Icon name="campaign" size={16} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <Text fz={12} fw={700} c="saal" className="leading-snug underline-offset-2 group-hover:underline">
+                      {notice.title}
+                    </Text>
+                    <span className="shrink-0 text-slate-400 group-hover:text-saal transition-colors">
+                      <Icon name="open_in_new" size={14} />
+                    </span>
+                  </div>
+                  {notice.description && (
+                    <Text fz={11} c="dimmed" className="mt-0.5 leading-tight">
+                      {notice.description}
+                    </Text>
+                  )}
+                </div>
+              </div>
+            </a>
+          ))}
+        </Box>
+      )}
 
       {/* 時刻表ボタン — 大きく押しやすい独立ボタン（Mantine Button） */}
       <Box p={10} style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>

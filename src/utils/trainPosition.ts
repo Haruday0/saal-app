@@ -1,6 +1,7 @@
 import trainScheduleData from '../data/trainSchedule.json';
 import { MovingTrain, DirectionType, LineType } from '../types';
 import { isWeekendHolidayOrYearEnd } from './calendar';
+import { applySpecialOverrides } from '../config/specialScheduleOverrides';
 
 export const ROUTE_STATION_IDS = [
   'sendai',
@@ -70,14 +71,15 @@ export interface ScheduledTrain {
 }
 
 /** 列車ID（公式列車番号）から trainSchedule.json の全停車駅データを取得 */
-export function getScheduledTrainById(id: string): ScheduledTrain | null {
+export function getScheduledTrainById(id: string, now: Date = new Date()): ScheduledTrain | null {
   const data = trainScheduleData as unknown as { up: ScheduledTrain[]; down: ScheduledTrain[] };
   const cleanId = id.includes('-') ? id.split('-')[0] : id;
-  return (
+  const raw =
     data.up.find((t) => t.id === cleanId || t.trainNumber === cleanId || t.id === id) ||
     data.down.find((t) => t.id === cleanId || t.trainNumber === cleanId || t.id === id) ||
-    null
-  );
+    null;
+  if (!raw) return null;
+  return applySpecialOverrides(raw, now);
 }
 
 /**
@@ -120,10 +122,11 @@ export function getActiveMovingTrains(
   const directions: DirectionType[] = ['up', 'down'];
   for (const dir of directions) {
     const trainList = data[dir] || [];
-    for (const train of trainList) {
-      if (isHoliday && train.calendar === 'weekday') {
+    for (const rawTrain of trainList) {
+      if (isHoliday && rawTrain.calendar === 'weekday') {
         continue;
       }
+      const train = applySpecialOverrides(rawTrain, now);
       const stops = train.stops;
       if (!stops || stops.length === 0) continue;
 
