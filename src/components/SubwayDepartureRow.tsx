@@ -51,7 +51,7 @@ export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
       style={{
         display: 'flex',
         alignItems: 'center',
-        padding: '10px 12px',
+        padding: '8px 12px',
         gap: 10,
         borderBottom: isLast
           ? 'none'
