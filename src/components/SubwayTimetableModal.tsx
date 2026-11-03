@@ -663,10 +663,9 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                       <Group gap={8} wrap="nowrap" className="min-w-0">
                         <Text
                           fz="sm"
-                          fw={800}
+                          fw={isNext ? 800 : 700}
                           w="3.1em"
                           ta="right"
-                          c={isNext ? meta.mantineColor : undefined}
                           className="font-english tabular-nums shrink-0"
                         >
                           {item.departureTime}
@@ -681,7 +680,6 @@ export const SubwayTimetableModal: React.FC<SubwayTimetableModalProps> = ({
                           <Text
                             fz="sm"
                             fw={isNext ? 800 : 600}
-                            c={isNext ? meta.mantineColor : undefined}
                           >
                             {item.terminalStation}行
                           </Text>

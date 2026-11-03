@@ -13,10 +13,9 @@ export interface SubwayDepartureItem {
 export interface SubwayDepartureRowProps {
   lineId: 'namboku' | 'tozai';
   lineName: string;
-  lineCode: string;
   track: string;
   directionLabel: string;
-  mantineColor: string;
+  destinationCode?: string;
   upcomingTrains: SubwayDepartureItem[];
   onSelectDirection: () => void;
   onSelectTrain: (trainId: string) => void;
@@ -26,17 +25,16 @@ export interface SubwayDepartureRowProps {
 /**
  * バス行（BusDepartureRow）と完全に文法を揃えた地下鉄発車行コンポーネント
  *
- * - 左側: 直近発車時刻カラム（固定幅58px・路線カラー・等幅欧文数字）
- * - 中央: 路線記号丸枠マーク（SubwayStationMark N/T） ＋ 方面・のりば ＋ 後続発車便ボタン
+ * - 左側: 直近発車時刻カラム（固定幅58px・他交通機関と統一した黒文字・等幅欧文数字）
+ * - 中央: 行き先駅ナンバリングマーク（SubwayStationMark N01/N17/T01/T13） ＋ 方面・のりば ＋ 後続発車便ボタン
  * - 右側: 方面時刻表遷移シェブロンアイコン
  */
 export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
   lineId,
   lineName,
-  lineCode,
   track,
   directionLabel,
-  mantineColor,
+  destinationCode,
   upcomingTrains,
   onSelectDirection,
   onSelectTrain,
@@ -44,6 +42,7 @@ export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
 }) => {
   const nextTrain = upcomingTrains[0] ?? null;
   const subsequentTrains = upcomingTrains.slice(1);
+  const markCode = destinationCode || (lineId === 'namboku' ? 'N' : 'T');
 
   return (
     <UnstyledButton
@@ -61,7 +60,7 @@ export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
           : '1px solid var(--mantine-color-default-border)',
       }}
     >
-      {/* 左カラム: 次発時刻（固定幅58px・中央揃え・等幅数字） */}
+      {/* 左カラム: 次発時刻（固定幅58px・中央揃え・等幅数字・他交通機関と統一した黒文字） */}
       <div
         className="font-english tabular-nums shrink-0"
         style={{
@@ -72,15 +71,15 @@ export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           textAlign: 'center',
-          minHeight: 44,
+          minHeight: 46,
         }}
       >
         {nextTrain ? (
           <span
             style={{
-              fontSize: 17,
-              fontWeight: 800,
-              color: mantineColor,
+              fontSize: 18,
+              fontWeight: 700,
+              color: 'var(--mantine-color-text)',
               letterSpacing: '-0.03em',
             }}
           >
@@ -109,7 +108,7 @@ export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
           justifyContent: 'center',
         }}
       >
-        {/* 方面・路線マーク・のりば行 */}
+        {/* 方面・行き先駅マーク・のりば行 */}
         <div
           style={{
             display: 'flex',
@@ -119,7 +118,7 @@ export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
             minWidth: 0,
           }}
         >
-          <SubwayStationMark line={lineId} code={lineCode} size={20} />
+          <SubwayStationMark line={lineId} code={markCode} size={22} />
           <span
             className="truncate"
             style={{
@@ -140,7 +139,7 @@ export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
               marginLeft: 2,
             }}
           >
-            {lineName} {track}番線
+            {track}番線
           </span>
         </div>
 
