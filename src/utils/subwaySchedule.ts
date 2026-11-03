@@ -247,7 +247,7 @@ export function getSubwayStationTimetable(
   });
 }
 
-/** 現在時刻以降の直近 N 本の発車列車を取得 */
+/** 現在時刻以降の直近 N 本の発車列車を取得（方面単体） */
 export function getUpcomingSubwayTrains(
   stationName: string,
   directionKey: SubwayDirectionKey,
@@ -262,4 +262,37 @@ export function getUpcomingSubwayTrains(
   return allItems
     .filter((item) => item.departureMinutes >= currentMinutes)
     .slice(0, limit);
+}
+
+/** 路線ID（namboku / tozai）ごとに、駅の全直近発車便を完全時系列順（発車時刻順）に N 本取得 */
+export function getUpcomingSubwayTrainsByLine(
+  stationName: string,
+  lineId: SubwayLineId,
+  now: Date = new Date(),
+  limit = 3
+): SubwayStationTrainItem[] {
+  const isHoliday = isWeekendHolidayOrYearEnd(now);
+  const dayType: SubwayDayType = isHoliday ? 'holiday' : 'weekday';
+  const currentMinutes = Math.floor(getCurrentRailwaySeconds(now) / 60);
+
+  const directionKeys: SubwayDirectionKey[] =
+    lineId === 'namboku'
+      ? ['namboku-north', 'namboku-south']
+      : ['tozai-east', 'tozai-west'];
+
+  const allTrains: SubwayStationTrainItem[] = [];
+  for (const dirKey of directionKeys) {
+    const list = getSubwayStationTimetable(stationName, dirKey, dayType);
+    allTrains.push(...list.filter((t) => t.departureMinutes >= currentMinutes));
+  }
+
+  // 鉄道発車時刻順に昇順ソート（同時刻の場合は番線昇順）
+  allTrains.sort((a, b) => {
+    if (a.departureMinutes !== b.departureMinutes) {
+      return a.departureMinutes - b.departureMinutes;
+    }
+    return a.track.localeCompare(b.track);
+  });
+
+  return allTrains.slice(0, limit);
 }

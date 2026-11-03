@@ -21,10 +21,9 @@ import { NatoringoTimetableModal } from './NatoringoTimetableModal';
 import { SendaiBusTimetableModal } from './SendaiBusTimetableModal';
 import {
   SubwayDirectionKey,
-  SUBWAY_DIRECTIONS,
   getSubwayStationNameById,
   getAvailableSubwayDirections,
-  getUpcomingSubwayTrains,
+  getUpcomingSubwayTrainsByLine,
 } from '../utils/subwaySchedule';
 import {
   getNatoringoStationSchedule,
@@ -309,105 +308,111 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
           <Stack gap={0}>
             {/* 南北線エリア */}
-            {nambokuDirections.length > 0 && (
-              <>
-                <Box
-                  px={12}
-                  py={6}
-                  style={{
-                    backgroundColor: 'var(--mantine-color-default-hover)',
-                    borderBottom: '1px solid var(--mantine-color-default-border)',
-                  }}
-                >
-                  <Group gap={6} align="center" wrap="nowrap">
-                    <SubwayStationMark line="namboku" code="N" size={18} />
-                    <Text fz={12} fw={800} c="var(--mantine-color-text)">
-                      南北線
-                    </Text>
-                    <Badge size="xs" variant="light" color="teal" radius="sm" fw={700}>
-                      1・2番線
-                    </Badge>
-                  </Group>
-                </Box>
-                {nambokuDirections.map((dirKey, idx) => {
-                  const meta = SUBWAY_DIRECTIONS[dirKey];
-                  const upcoming = getUpcomingSubwayTrains(
-                    subwayStationName,
-                    dirKey,
-                    now,
-                    3
-                  );
-
-                  return (
-                    <SubwayDepartureRow
-                      key={dirKey}
-                      lineId={meta.lineId}
-                      lineName={meta.lineName}
-                      track={meta.track}
-                      directionLabel={meta.directionLabel}
-                      destinationCode={meta.destinationCode}
-                      upcomingTrains={upcoming}
-                      onSelectDirection={() => openSubwayTimetable(dirKey, null)}
-                      onSelectTrain={(trainId) =>
-                        openSubwayTimetable(dirKey, trainId)
-                      }
-                      isLast={tozaiDirections.length === 0 && idx === nambokuDirections.length - 1}
-                    />
-                  );
-                })}
-              </>
-            )}
+            {nambokuDirections.length > 0 && (() => {
+              const upcomingNamboku = getUpcomingSubwayTrainsByLine(
+                subwayStationName,
+                'namboku',
+                now,
+                3
+              );
+              return (
+                <>
+                  <Box
+                    px={12}
+                    py={6}
+                    style={{
+                      backgroundColor: 'var(--mantine-color-default-hover)',
+                      borderBottom: '1px solid var(--mantine-color-default-border)',
+                    }}
+                  >
+                    <Group gap={6} align="center" wrap="nowrap">
+                      <SubwayStationMark line="namboku" code="N" size={18} />
+                      <Text fz={12} fw={800} c="var(--mantine-color-text)">
+                        南北線
+                      </Text>
+                      <Badge size="xs" variant="light" color="teal" radius="sm" fw={700}>
+                        1・2番線
+                      </Badge>
+                    </Group>
+                  </Box>
+                  {upcomingNamboku.length > 0 ? (
+                    upcomingNamboku.map((item, idx) => (
+                      <SubwayDepartureRow
+                        key={`${item.train.id}-${item.departureTime}`}
+                        lineId="namboku"
+                        lineName="南北線"
+                        track={item.track}
+                        destination={item.terminalStation}
+                        destinationCode={item.terminalCode}
+                        departureTime={item.departureTime}
+                        onClick={() => openSubwayTimetable(item.directionKey, item.train.id)}
+                        isLast={tozaiDirections.length === 0 && idx === upcomingNamboku.length - 1}
+                      />
+                    ))
+                  ) : (
+                    <Box py="sm" px="sm">
+                      <Text fz={12} c="dimmed" ta="center">
+                        本日の運行は終了しました
+                      </Text>
+                    </Box>
+                  )}
+                </>
+              );
+            })()}
 
             {/* 東西線エリア（仙台駅） */}
-            {tozaiDirections.length > 0 && (
-              <>
-                <Box
-                  px={12}
-                  py={6}
-                  style={{
-                    backgroundColor: 'var(--mantine-color-default-hover)',
-                    borderTop: '1px solid var(--mantine-color-default-border)',
-                    borderBottom: '1px solid var(--mantine-color-default-border)',
-                  }}
-                >
-                  <Group gap={6} align="center" wrap="nowrap">
-                    <SubwayStationMark line="tozai" code="T" size={18} />
-                    <Text fz={12} fw={800} c="var(--mantine-color-text)">
-                      東西線
-                    </Text>
-                    <Badge size="xs" variant="light" color="cyan" radius="sm" fw={700}>
-                      3・4番線
-                    </Badge>
-                  </Group>
-                </Box>
-                {tozaiDirections.map((dirKey, idx) => {
-                  const meta = SUBWAY_DIRECTIONS[dirKey];
-                  const upcoming = getUpcomingSubwayTrains(
-                    subwayStationName,
-                    dirKey,
-                    now,
-                    3
-                  );
-
-                  return (
-                    <SubwayDepartureRow
-                      key={dirKey}
-                      lineId={meta.lineId}
-                      lineName={meta.lineName}
-                      track={meta.track}
-                      directionLabel={meta.directionLabel}
-                      destinationCode={meta.destinationCode}
-                      upcomingTrains={upcoming}
-                      onSelectDirection={() => openSubwayTimetable(dirKey, null)}
-                      onSelectTrain={(trainId) =>
-                        openSubwayTimetable(dirKey, trainId)
-                      }
-                      isLast={idx === tozaiDirections.length - 1}
-                    />
-                  );
-                })}
-              </>
-            )}
+            {tozaiDirections.length > 0 && (() => {
+              const upcomingTozai = getUpcomingSubwayTrainsByLine(
+                subwayStationName,
+                'tozai',
+                now,
+                3
+              );
+              return (
+                <>
+                  <Box
+                    px={12}
+                    py={6}
+                    style={{
+                      backgroundColor: 'var(--mantine-color-default-hover)',
+                      borderTop: '1px solid var(--mantine-color-default-border)',
+                      borderBottom: '1px solid var(--mantine-color-default-border)',
+                    }}
+                  >
+                    <Group gap={6} align="center" wrap="nowrap">
+                      <SubwayStationMark line="tozai" code="T" size={18} />
+                      <Text fz={12} fw={800} c="var(--mantine-color-text)">
+                        東西線
+                      </Text>
+                      <Badge size="xs" variant="light" color="cyan" radius="sm" fw={700}>
+                        3・4番線
+                      </Badge>
+                    </Group>
+                  </Box>
+                  {upcomingTozai.length > 0 ? (
+                    upcomingTozai.map((item, idx) => (
+                      <SubwayDepartureRow
+                        key={`${item.train.id}-${item.departureTime}`}
+                        lineId="tozai"
+                        lineName="東西線"
+                        track={item.track}
+                        destination={item.terminalStation}
+                        destinationCode={item.terminalCode}
+                        departureTime={item.departureTime}
+                        onClick={() => openSubwayTimetable(item.directionKey, item.train.id)}
+                        isLast={idx === upcomingTozai.length - 1}
+                      />
+                    ))
+                  ) : (
+                    <Box py="sm" px="sm">
+                      <Text fz={12} c="dimmed" ta="center">
+                        本日の運行は終了しました
+                      </Text>
+                    </Box>
+                  )}
+                </>
+              );
+            })()}
           </Stack>
         </Paper>
       )}
