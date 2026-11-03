@@ -140,7 +140,7 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
         </UnstyledButton>
 
         <Collapse expanded={isOpen}>
-          <Stack gap={10} pt={8}>
+          <Stack gap={10} pt={8} pb={6}>
             {/* 日付・時刻の設定行 */}
             <Group justify="space-between" align="center" wrap="wrap" gap={8}>
               <Group gap={6} align="center">
@@ -182,7 +182,7 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
             </Group>
 
             {/* 時刻スライダー (05:00〜02:00) */}
-            <Box px={4} py={2}>
+            <Box px={12} pt={4} pb={16}>
               <Slider
                 min={300}
                 max={1560}
@@ -200,7 +200,7 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
                   { value: 1560, label: '2:00' },
                 ]}
                 styles={{
-                  markLabel: { fontSize: 9, marginTop: 3 },
+                  markLabel: { fontSize: 9.5, marginTop: 4 },
                 }}
               />
             </Box>
