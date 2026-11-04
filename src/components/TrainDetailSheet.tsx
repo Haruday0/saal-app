@@ -92,11 +92,13 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
 
   // 閉じるフラグと DOM ref（StationDetailSheet と完全同一のGPU高速アニメーション）
   const isClosingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transitionEndHandlerRef = useRef<((e: TransitionEvent) => void) | null>(null);
 
   // 親（App.tsx）の再レンダリング（1秒ごとの時計更新等）で onClose や onSelectStation の参照が変わっても
   // handleClose や drag 用 useEffect が不必要に再生成されないよう ref で最新参照を保持
@@ -125,6 +127,10 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
       }
+      if (sheetRef.current && transitionEndHandlerRef.current) {
+        sheetRef.current.removeEventListener('transitionend', transitionEndHandlerRef.current);
+        transitionEndHandlerRef.current = null;
+      }
     };
   }, []);
 
@@ -135,23 +141,33 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
       }
+      if (sheetRef.current && transitionEndHandlerRef.current) {
+        sheetRef.current.removeEventListener('transitionend', transitionEndHandlerRef.current);
+        transitionEndHandlerRef.current = null;
+      }
       isClosingRef.current = false;
       setActiveTrain(t);
+      if (containerRef.current) {
+        containerRef.current.style.removeProperty('pointer-events');
+      }
       if (sheetRef.current) {
         sheetRef.current.classList.add('m3-sheet-enter');
         sheetRef.current.style.removeProperty('transform');
         sheetRef.current.style.removeProperty('transition');
         sheetRef.current.style.removeProperty('animation');
+        sheetRef.current.style.removeProperty('pointer-events');
       }
       if (scrimRef.current) {
         scrimRef.current.classList.add('m3-scrim-enter');
         scrimRef.current.style.removeProperty('opacity');
         scrimRef.current.style.removeProperty('transition');
         scrimRef.current.style.removeProperty('animation');
+        scrimRef.current.style.removeProperty('pointer-events');
       }
     } else {
-      isClosingRef.current = false;
-      setActiveTrain(null);
+      if (!isClosingRef.current) {
+        setActiveTrain(null);
+      }
     }
   }, [trainId]);
 
@@ -161,6 +177,14 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   const handleClose = useCallback((fromSwipe = false) => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
+
+    // 1. 閉じるアニメーション開始と同時にタッチイベントの遮断を即座に解除
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('pointer-events', 'none', 'important');
+    }
+
+    // 2. 親の selectedTrainId を即座に null に同期更新
+    onCloseRef.current();
 
     const sheet = sheetRef.current;
     const scrim = scrimRef.current;
@@ -178,12 +202,14 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       sheet.classList.remove('m3-sheet-enter');
       sheet.style.setProperty('transition', `transform ${duration}ms ${easing}`, 'important');
       sheet.style.setProperty('transform', 'translate3d(0, 100%, 0)', 'important');
+      sheet.style.setProperty('pointer-events', 'none', 'important');
     }
     if (scrim) {
       scrim.style.animation = 'none';
       scrim.classList.remove('m3-scrim-enter');
       scrim.style.setProperty('transition', `opacity ${scrimDuration}ms ${easing}`, 'important');
       scrim.style.setProperty('opacity', '0', 'important');
+      scrim.style.setProperty('pointer-events', 'none', 'important');
     }
 
     let cleanedUp = false;
@@ -194,10 +220,10 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
       }
-      if (sheet) {
-        sheet.removeEventListener('transitionend', onTransitionEnd);
+      if (sheet && transitionEndHandlerRef.current) {
+        sheet.removeEventListener('transitionend', transitionEndHandlerRef.current);
+        transitionEndHandlerRef.current = null;
       }
-      onCloseRef.current();
       setActiveTrain(null);
       isClosingRef.current = false;
     };
@@ -207,6 +233,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
         cleanup();
       }
     };
+    transitionEndHandlerRef.current = onTransitionEnd;
 
     if (sheet) {
       sheet.addEventListener('transitionend', onTransitionEnd);
@@ -338,12 +365,14 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     };
 
     // ====================================================
-    // 1. ヘッダーでのドラッグ操作（Pointer Events）
+    // 1. ヘッダーでのドラッグ操作
+    // PCマウス: Pointer Events（pointerType === 'mouse' のみ）
+    // スマホ・タッチ: Touch Events（コンテンツ領域と完全統一）
     // ====================================================
     const onPointerDown = (e: PointerEvent) => {
-      if (isClosingRef.current) return;
+      if (e.pointerType !== 'mouse') return;
+      if (isClosingRef.current || e.button !== 0) return;
       if ((e.target as HTMLElement).closest('button')) return;
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
 
       try {
         header?.setPointerCapture(e.pointerId);
@@ -361,6 +390,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
       if (!isHeaderDragging || isClosingRef.current) return;
       const clientY = e.clientY;
       const delta = clientY - startY;
@@ -375,6 +405,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
       if (!isHeaderDragging) return;
       isHeaderDragging = false;
       try {
@@ -392,7 +423,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       }
     };
 
-    // レガシー環境向け TouchEvent フォールバック（PointerEvent 非対応環境のみ）
+    // スマホ実機向け TouchEvent ハンドラ（コンテンツ領域と完全同一の安定実装）
     const onHeaderTouchStart = (e: TouchEvent) => {
       if (isClosingRef.current || e.touches.length !== 1) return;
       if ((e.target as HTMLElement).closest('button')) return;
@@ -533,16 +564,18 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     const supportsPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
 
     if (header) {
+      // スマホ・タッチ端末用（コンテンツ領域と完全に同じ安定した TouchEvent）
+      header.addEventListener('touchstart', onHeaderTouchStart, { passive: true });
+      header.addEventListener('touchmove', onHeaderTouchMove, { passive: false });
+      header.addEventListener('touchend', onHeaderTouchEnd, { passive: true });
+      header.addEventListener('touchcancel', onHeaderTouchEnd, { passive: true });
+
+      // PCマウス用（pointerType === 'mouse' のみフィルタリングして処理）
       if (supportsPointerEvents) {
         header.addEventListener('pointerdown', onPointerDown);
         header.addEventListener('pointermove', onPointerMove);
         header.addEventListener('pointerup', onPointerUp);
         header.addEventListener('pointercancel', onPointerUp);
-      } else {
-        header.addEventListener('touchstart', onHeaderTouchStart, { passive: true });
-        header.addEventListener('touchmove', onHeaderTouchMove, { passive: false });
-        header.addEventListener('touchend', onHeaderTouchEnd, { passive: true });
-        header.addEventListener('touchcancel', onHeaderTouchEnd, { passive: true });
       }
     }
 
@@ -555,16 +588,16 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
 
     return () => {
       if (header) {
+        header.removeEventListener('touchstart', onHeaderTouchStart);
+        header.removeEventListener('touchmove', onHeaderTouchMove);
+        header.removeEventListener('touchend', onHeaderTouchEnd);
+        header.removeEventListener('touchcancel', onHeaderTouchEnd);
+
         if (supportsPointerEvents) {
           header.removeEventListener('pointerdown', onPointerDown);
           header.removeEventListener('pointermove', onPointerMove);
           header.removeEventListener('pointerup', onPointerUp);
           header.removeEventListener('pointercancel', onPointerUp);
-        } else {
-          header.removeEventListener('touchstart', onHeaderTouchStart);
-          header.removeEventListener('touchmove', onHeaderTouchMove);
-          header.removeEventListener('touchend', onHeaderTouchEnd);
-          header.removeEventListener('touchcancel', onHeaderTouchEnd);
         }
       }
       if (content) {
@@ -692,7 +725,10 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   const cleanDestination = cleanStationName(train.destination);
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-[60] flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden"
+    >
       {/* 背景スクリム */}
       <div
         ref={scrimRef}

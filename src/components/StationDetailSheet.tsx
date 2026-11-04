@@ -130,6 +130,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
   const headerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transitionEndHandlerRef = useRef<((e: TransitionEvent) => void) | null>(null);
 
   // 親（App.tsx）の再レンダリング（1秒ごとの時計更新等）で onClose の参照が変わっても
   // handleClose や drag 用 useEffect が不必要に再生成されないよう ref で最新参照を保持
@@ -142,12 +143,16 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     setSelectedTrain(train);
   }, []);
 
-  // コンポーネント破棄時にタイマーをクリーンアップ
+  // コンポーネント破棄時にタイマーおよびリスナーをクリーンアップ
   useEffect(() => {
     return () => {
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
+      }
+      if (sheetRef.current && transitionEndHandlerRef.current) {
+        sheetRef.current.removeEventListener('transitionend', transitionEndHandlerRef.current);
+        transitionEndHandlerRef.current = null;
       }
     };
   }, []);
@@ -158,6 +163,10 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       if (closeTimeoutRef.current) {
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
+      }
+      if (sheetRef.current && transitionEndHandlerRef.current) {
+        sheetRef.current.removeEventListener('transitionend', transitionEndHandlerRef.current);
+        transitionEndHandlerRef.current = null;
       }
       isClosingRef.current = false;
       setActiveStation(station);
@@ -181,8 +190,12 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       // 駅を開いた時は初期選択を null にし、各駅の現在時刻以降の直近列車を自動反映
       setSelectedTrain(null);
     } else {
-      isClosingRef.current = false;
-      setActiveStation(null);
+      // 親コンポーネントで station が null になった場合
+      // すでに自発的な閉じるアニメーション（isClosingRef = true）が進行中の場合は activeStation を保持し、
+      // 外部要因で急に null にされた場合のみ即時 null にリセットする
+      if (!isClosingRef.current) {
+        setActiveStation(null);
+      }
     }
   }, [station]);
 
@@ -193,11 +206,16 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     if (isClosingRef.current) return;
     isClosingRef.current = true;
 
-    // 閉じるアニメーション開始と同時にタッチイベントの遮断を即座に解除
+    // 1. 閉じるアニメーション開始と同時にタッチイベントの遮断を即座に解除
     // （背後の路線図や別駅ボタンへの1タップ目がアニメーション中に吸収されるのを完全に防止）
     if (containerRef.current) {
       containerRef.current.style.setProperty('pointer-events', 'none', 'important');
     }
+
+    // 2. 親の selectedStation を即座に null に同期更新
+    // これにより、閉じるアニメーション中やスワイプ完了直後にユーザーが同一駅または別駅をタップした際、
+    // 親側で確実に値の変更（null -> station）として検知され、1タップ目で即座に新規オープンできる
+    onCloseRef.current();
 
     const sheet = sheetRef.current;
     const scrim = scrimRef.current;
@@ -233,10 +251,10 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         clearTimeout(closeTimeoutRef.current);
         closeTimeoutRef.current = null;
       }
-      if (sheet) {
-        sheet.removeEventListener('transitionend', onTransitionEnd);
+      if (sheet && transitionEndHandlerRef.current) {
+        sheet.removeEventListener('transitionend', transitionEndHandlerRef.current);
+        transitionEndHandlerRef.current = null;
       }
-      onCloseRef.current();
       setActiveStation(null);
       isClosingRef.current = false;
     };
@@ -247,6 +265,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
         cleanup();
       }
     };
+    transitionEndHandlerRef.current = onTransitionEnd;
 
     if (sheet) {
       sheet.addEventListener('transitionend', onTransitionEnd);
@@ -379,12 +398,15 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     // ====================================================
-    // 1. ヘッダーでのドラッグ操作（Pointer Events）
+    // 1. ヘッダーでのドラッグ操作
+    // PCマウス: Pointer Events（pointerType === 'mouse' のみ）
+    // スマホ・タッチ: Touch Events（コンテンツ領域と完全統一）
     // ====================================================
     const onPointerDown = (e: PointerEvent) => {
-      if (isClosingRef.current) return;
+      // タッチ・ペン操作は TouchEvent で処理するため完全にスキップ（setPointerCapture によるタップ抑制バグを防止）
+      if (e.pointerType !== 'mouse') return;
+      if (isClosingRef.current || e.button !== 0) return;
       if ((e.target as HTMLElement).closest('button')) return;
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
 
       try {
         header?.setPointerCapture(e.pointerId);
@@ -402,6 +424,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
       if (!isHeaderDragging || isClosingRef.current) return;
       const clientY = e.clientY;
       const delta = clientY - startY;
@@ -416,6 +439,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
       if (!isHeaderDragging) return;
       isHeaderDragging = false;
       try {
@@ -433,7 +457,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
     };
 
-    // レガシー環境向け TouchEvent フォールバック（PointerEvent 非対応環境のみ）
+    // スマホ実機向け TouchEvent ハンドラ（コンテンツ領域と完全同一の安定実装）
     const onHeaderTouchStart = (e: TouchEvent) => {
       if (isClosingRef.current || e.touches.length !== 1) return;
       if ((e.target as HTMLElement).closest('button')) return;
@@ -574,16 +598,18 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
     const supportsPointerEvents = typeof window !== 'undefined' && 'PointerEvent' in window;
 
     if (header) {
+      // スマホ・タッチ端末用（コンテンツ領域と完全に同じ安定した TouchEvent）
+      header.addEventListener('touchstart', onHeaderTouchStart, { passive: true });
+      header.addEventListener('touchmove', onHeaderTouchMove, { passive: false });
+      header.addEventListener('touchend', onHeaderTouchEnd, { passive: true });
+      header.addEventListener('touchcancel', onHeaderTouchEnd, { passive: true });
+
+      // PCマウス用（pointerType === 'mouse' のみフィルタリングして処理）
       if (supportsPointerEvents) {
         header.addEventListener('pointerdown', onPointerDown);
         header.addEventListener('pointermove', onPointerMove);
         header.addEventListener('pointerup', onPointerUp);
         header.addEventListener('pointercancel', onPointerUp);
-      } else {
-        header.addEventListener('touchstart', onHeaderTouchStart, { passive: true });
-        header.addEventListener('touchmove', onHeaderTouchMove, { passive: false });
-        header.addEventListener('touchend', onHeaderTouchEnd, { passive: true });
-        header.addEventListener('touchcancel', onHeaderTouchEnd, { passive: true });
       }
     }
 
@@ -596,16 +622,16 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
     return () => {
       if (header) {
+        header.removeEventListener('touchstart', onHeaderTouchStart);
+        header.removeEventListener('touchmove', onHeaderTouchMove);
+        header.removeEventListener('touchend', onHeaderTouchEnd);
+        header.removeEventListener('touchcancel', onHeaderTouchEnd);
+
         if (supportsPointerEvents) {
           header.removeEventListener('pointerdown', onPointerDown);
           header.removeEventListener('pointermove', onPointerMove);
           header.removeEventListener('pointerup', onPointerUp);
           header.removeEventListener('pointercancel', onPointerUp);
-        } else {
-          header.removeEventListener('touchstart', onHeaderTouchStart);
-          header.removeEventListener('touchmove', onHeaderTouchMove);
-          header.removeEventListener('touchend', onHeaderTouchEnd);
-          header.removeEventListener('touchcancel', onHeaderTouchEnd);
         }
       }
       if (content) {
