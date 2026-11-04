@@ -17,10 +17,9 @@ export interface StationBoardFullscreenProps {
 }
 
 /**
- * 電光掲示板（StationBoard）専用の全画面・横画面モーダル
- * 背景は純黒（#000000）で電光掲示板のみを最大化表示。
- * スマホが縦向きの場合は自動で90度回転（landscape化）し、
- * 横向きの場合はそのまま画面全体へアスペクト比を維持して最大フィット。
+ * 電光掲示板 専用全画面・横画面コンポーネント
+ * YouTubeのように端末を縦持ち・横持ちどちらで持っても常に横画面として最大表示。
+ * 不安定なネイティブFullscreen APIや自動解除は排除し、×ボタン押下時のみ終了。
  */
 export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   isOpen,
@@ -34,56 +33,56 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   noticeText,
 }) => {
   const boardRef = useRef<HTMLDivElement>(null);
-  const [isPortrait, setIsPortrait] = useState<boolean>(false);
-  const [scale, setScale] = useState<number>(1);
-  const [showControls, setShowControls] = useState<boolean>(true);
-  const hideControlsTimerRef = useRef<number | null>(null);
+  const [dimensions, setDimensions] = useState<{
+    width: number;
+    height: number;
+    isPortrait: boolean;
+    scale: number;
+  }>({
+    width: typeof window !== 'undefined' ? window.innerWidth : 800,
+    height: typeof window !== 'undefined' ? window.innerHeight : 600,
+    isPortrait: false,
+    scale: 1,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Fullscreen API & Screen Orientation Lock (ブラウザサポート時)
-    try {
-      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-      if (screen.orientation && (screen.orientation as any).lock) {
-        (screen.orientation as any).lock('landscape').catch(() => {});
-      }
-    } catch (_) {}
-
-    const calculateLayout = () => {
+    const updateLayout = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
       const portrait = h > w;
-      setIsPortrait(portrait);
 
-      // 横画面表示としての有効寸法（縦持ち時は h が横幅、w が縦幅になる）
-      const effectiveWidth = portrait ? h : w;
-      const effectiveHeight = portrait ? w : h;
+      // 横画面としての長辺（横幅）と短辺（縦幅）
+      const landscapeW = Math.max(w, h);
+      const landscapeH = Math.min(w, h);
 
       const baseWidth = STATION_BOARD_BASE_WIDTHS[stationId] || 400;
 
       // ボードの高さ（DOM計測、未描画時は概算120px）
       let bHeight = 120;
-      if (boardRef.current) {
-        const measured = boardRef.current.offsetHeight;
-        if (measured > 0) bHeight = measured;
+      if (boardRef.current && boardRef.current.offsetHeight > 0) {
+        bHeight = boardRef.current.offsetHeight;
       }
 
-      // 画面の上下左右に安全マージンを確保して相似拡大
-      const scaleByWidth = (effectiveWidth * 0.94) / baseWidth;
-      const scaleByHeight = (effectiveHeight * 0.88) / bHeight;
+      // 画面の上下左右に安全マージン（約6%）を確保して最大相似拡大
+      const scaleByWidth = (landscapeW * 0.94) / baseWidth;
+      const scaleByHeight = (landscapeH * 0.88) / bHeight;
       const targetScale = Math.min(scaleByWidth, scaleByHeight);
 
-      setScale(Math.max(targetScale, 0.5));
+      setDimensions({
+        width: w,
+        height: h,
+        isPortrait: portrait,
+        scale: Math.max(targetScale, 0.5),
+      });
     };
 
-    calculateLayout();
-    const timer = setTimeout(calculateLayout, 60);
+    updateLayout();
+    const timer = setTimeout(updateLayout, 50);
 
-    window.addEventListener('resize', calculateLayout);
-    window.addEventListener('orientationchange', calculateLayout);
+    window.addEventListener('resize', updateLayout);
+    window.addEventListener('orientationchange', updateLayout);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -92,100 +91,64 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    // 4秒後に閉じるボタンを自動フェードアウト（タップで再表示）
-    setShowControls(true);
-    hideControlsTimerRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 4000);
-
     return () => {
       clearTimeout(timer);
-      if (hideControlsTimerRef.current) {
-        clearTimeout(hideControlsTimerRef.current);
-      }
-      window.removeEventListener('resize', calculateLayout);
-      window.removeEventListener('orientationchange', calculateLayout);
+      window.removeEventListener('resize', updateLayout);
+      window.removeEventListener('orientationchange', updateLayout);
       window.removeEventListener('keydown', handleKeyDown);
-
-      // Fullscreen解除
-      try {
-        if (document.fullscreenElement && document.exitFullscreen) {
-          document.exitFullscreen().catch(() => {});
-        }
-        if (screen.orientation && (screen.orientation as any).unlock) {
-          (screen.orientation as any).unlock();
-        }
-      } catch (_) {}
     };
   }, [isOpen, stationId, onClose]);
-
-  const handleScreenTap = () => {
-    // 画面タップでコントロールの表示/非表示をトグル
-    setShowControls((prev) => {
-      const next = !prev;
-      if (hideControlsTimerRef.current) {
-        clearTimeout(hideControlsTimerRef.current);
-      }
-      if (next) {
-        hideControlsTimerRef.current = setTimeout(() => {
-          setShowControls(false);
-        }, 4000);
-      }
-      return next;
-    });
-  };
 
   if (!isOpen) return null;
 
   const baseWidth = STATION_BOARD_BASE_WIDTHS[stationId] || 400;
+  const landscapeW = Math.max(dimensions.width, dimensions.height);
+  const landscapeH = Math.min(dimensions.width, dimensions.height);
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] bg-[#000000] flex items-center justify-center overflow-hidden select-none animate-in fade-in duration-200"
-      onClick={handleScreenTap}
+      className="fixed inset-0 z-[99999] bg-[#000000] flex items-center justify-center overflow-hidden select-none"
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
-      {/* 閉じるボタン（Material 3 シンプルな丸型半透明アイコンボタン） */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        style={{
-          top: 'max(1rem, env(safe-area-inset-top, 1rem))',
-          right: 'max(1rem, env(safe-area-inset-right, 1rem))',
-        }}
-        aria-label="全画面表示を閉じる"
-        className={`fixed z-[10000] w-11 h-11 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-md transition-all duration-300 border border-white/10 shadow-lg ${
-          showControls ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
-        }`}
-      >
-        <Icon name="close" size={22} />
-      </button>
-
-      {/* 横画面回転＆相似拡大コンテナ */}
+      {/* 
+        横画面ステージコンテナ:
+        - 縦持ち時: 90度回転して画面中央に配置（長辺=landscapeW, 短辺=landscapeH）
+        - 横持ち時: 回転なしで画面中央に配置
+      */}
       <div
         style={{
-          transform: isPortrait ? 'rotate(90deg)' : 'none',
+          width: `${landscapeW}px`,
+          height: `${landscapeH}px`,
+          transform: dimensions.isPortrait ? 'rotate(90deg)' : 'none',
           transformOrigin: 'center center',
-          width: isPortrait ? '100dvh' : '100dvw',
-          height: isPortrait ? '100dvw' : '100dvh',
         }}
-        className="flex items-center justify-center pointer-events-none"
+        className="relative flex items-center justify-center shrink-0 overflow-hidden"
       >
+        {/* 閉じるボタン（横画面内の右上に常時配置・タップで確実に終了） */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          aria-label="全画面表示を閉じる"
+          className="absolute top-3 right-3 z-50 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center backdrop-blur-md transition-colors border border-white/15 cursor-pointer shadow-lg"
+        >
+          <Icon name="close" size={24} />
+        </button>
+
+        {/* 電光掲示板ボード本体（最大スケール） */}
         <div
           ref={boardRef}
           style={{
             width: `${baseWidth}px`,
-            transform: `scale(${scale})`,
+            transform: `scale(${dimensions.scale})`,
             transformOrigin: 'center center',
           }}
-          className="shrink-0 flex items-center justify-center transition-transform duration-150 pointer-events-auto shadow-2xl"
-          onClick={(e) => {
-            // ボード自体のタップでもコントロールトグルを発火
-            e.stopPropagation();
-            handleScreenTap();
-          }}
+          className="shrink-0 flex items-center justify-center transition-transform duration-150"
         >
           <StationBoard
             stationId={stationId}
