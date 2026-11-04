@@ -45,8 +45,13 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
     scale: 1,
   });
 
-  // 安全に全画面を終了するハンドラー
+  // 安全に全画面を終了するハンドラー（横画面ロック解除＆全画面解除）
   const handleClose = useCallback(() => {
+    try {
+      if (screen.orientation && 'unlock' in screen.orientation) {
+        (screen.orientation as any).unlock();
+      }
+    } catch (_) {}
     try {
       if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
@@ -110,7 +115,7 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
         updateLayout();
       } else if (hasEnteredFullscreen) {
         // ネイティブ全画面から抜けた場合は閉じる
-        onClose();
+        handleClose();
       }
     };
 
@@ -124,6 +129,12 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+      try {
+        if (screen.orientation && 'unlock' in screen.orientation) {
+          (screen.orientation as any).unlock();
+        }
+      } catch (_) {}
     };
   }, [isOpen, stationId, onClose, handleClose]);
 
