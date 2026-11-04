@@ -458,28 +458,28 @@ export const StationBoard: React.FC<StationBoardProps> = ({
             {activeSendaiLine === 'joban' ? (
               /* 常磐線: 文字は黒（slate-900）、カラーバーのみ青 */
               <>
-                <div className="w-[28%] flex items-end justify-between self-end pb-[4.5px] shrink-0">
+                <div className="w-[29%] flex items-end justify-between self-end pb-[4.5px] shrink-0">
                   <div className="flex-1 flex flex-col justify-end items-center text-center leading-none">
-                    <span className="text-[12px] font-bold text-slate-900 leading-none">
+                    <span className="text-[15px] font-bold text-slate-900 leading-none whitespace-nowrap">
                       常磐線
                     </span>
-                    <span className="text-[7.5px] font-semibold text-slate-900 leading-none mt-[2px] font-english tracking-wide">
+                    <span className="text-[9px] font-semibold text-slate-900 leading-none mt-[2px] font-english tracking-wide whitespace-nowrap">
                       Jōban Line
                     </span>
                   </div>
-                  <div className="w-2.5 self-stretch -mb-[4.5px] shrink-0 shadow-2xs" style={{ backgroundColor: LINE_COLORS.joban }} />
+                  <div className="w-2.5 h-[30px] self-end -mb-[4.5px] shrink-0 shadow-2xs" style={{ backgroundColor: LINE_COLORS.joban }} />
                 </div>
 
                 <div className="flex-1 flex flex-col justify-center items-center text-center pl-2 h-full pt-[1px]">
                   <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
-                    <span className="text-[15.5px] font-bold text-slate-900 tracking-tight">
+                    <span className="text-[16.5px] font-bold text-slate-900 tracking-tight">
                       亘理・相馬・原ノ町
                     </span>
-                    <span className="text-[10.5px] font-semibold text-slate-900 ml-1">
+                    <span className="text-[11.5px] font-semibold text-slate-900 ml-1">
                       方面
                     </span>
                   </div>
-                  <span className="text-[8px] text-slate-900 font-medium leading-none mt-[2px] font-english whitespace-nowrap">
+                  <span className="text-[9px] text-slate-900 font-medium leading-none mt-[2px] font-english whitespace-nowrap">
                     for Watari, Sōma &amp; Haranomachi
                   </span>
                 </div>
@@ -487,36 +487,36 @@ export const StationBoard: React.FC<StationBoardProps> = ({
             ) : activeSendaiLine === 'saal' ? (
               /* 仙台空港アクセス線（実機看板比率・文字サイズ完全再現） */
               <>
-                <div className="w-[41.5%] flex items-end justify-between self-end pb-[4.5px] shrink-0 pl-1">
-                  <div className="flex items-center gap-1.5 flex-1">
+                <div className="w-[42%] flex items-end justify-between self-end pb-[4.5px] shrink-0 pl-0.5">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     {/* 日本語表記上端〜英語表記下端の高さに揃う角丸なしの正方形青バッジ */}
-                    <div className="w-[22px] h-[22px] aspect-square rounded-none flex items-center justify-center shrink-0 p-[1.5px]" style={{ backgroundColor: LINE_COLORS.saal }}>
+                    <div className="w-[24px] h-[24px] aspect-square rounded-none flex items-center justify-center shrink-0 p-[1.5px]" style={{ backgroundColor: LINE_COLORS.saal }}>
                       <JisAirplane tight className="w-full h-full" color="#ffffff" />
                     </div>
                     {/* 実機通り看板幅いっぱいに広がる「仙台空港アクセス線」日本語＋英語テキストブロック */}
-                    <div className="h-[23px] flex flex-col justify-between items-start leading-none flex-1 min-w-0 pr-1">
-                      <span className="text-[13.5px] font-bold leading-none tracking-tight whitespace-nowrap" style={{ color: LINE_COLORS.saal }}>
+                    <div className="h-[25px] flex flex-col justify-between items-start leading-none flex-1 min-w-0 pr-1">
+                      <span className="text-[15px] font-bold leading-none tracking-tight whitespace-nowrap" style={{ color: LINE_COLORS.saal }}>
                         仙台空港アクセス線
                       </span>
-                      <span className="text-[8px] font-semibold leading-none font-english tracking-tight whitespace-nowrap" style={{ color: LINE_COLORS.saal }}>
+                      <span className="text-[8.5px] font-semibold leading-none font-english tracking-tight whitespace-nowrap" style={{ color: LINE_COLORS.saal }}>
                         Sendai Airport Access Line
                       </span>
                     </div>
                   </div>
                   {/* 看板下端に接地する公式ブルーの縦カラーバー */}
-                  <div className="w-2.5 h-[28px] self-end -mb-[4.5px] shrink-0 shadow-2xs" style={{ backgroundColor: LINE_COLORS.saal }} />
+                  <div className="w-2.5 h-[30px] self-end -mb-[4.5px] shrink-0 shadow-2xs" style={{ backgroundColor: LINE_COLORS.saal }} />
                 </div>
 
                 <div className="flex-1 flex flex-col justify-center items-center text-center pl-2 h-full pt-[1px]">
                   <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
-                    <span className="text-[15.5px] font-bold text-slate-900 tracking-tight">
+                    <span className="text-[16.5px] font-bold text-slate-900 tracking-tight">
                       名取・仙台空港
                     </span>
-                    <span className="text-[10.5px] font-semibold text-slate-900 ml-1">
+                    <span className="text-[11.5px] font-semibold text-slate-900 ml-1">
                       方面
                     </span>
                   </div>
-                  <span className="text-[8.5px] text-slate-900 font-medium leading-none mt-[2px] font-english whitespace-nowrap">
+                  <span className="text-[9px] text-slate-900 font-medium leading-none mt-[2px] font-english whitespace-nowrap">
                     for Natori &amp; Sendai Airport
                   </span>
                 </div>
@@ -524,28 +524,28 @@ export const StationBoard: React.FC<StationBoardProps> = ({
             ) : (
               /* 東北本線 上り: 文字は黒（slate-900）、カラーバーのみ緑 */
               <>
-                <div className="w-[28%] flex items-end justify-between self-end pb-[4.5px] shrink-0">
+                <div className="w-[32%] flex items-end justify-between self-end pb-[4.5px] shrink-0">
                   <div className="flex-1 flex flex-col justify-end items-center text-center leading-none">
-                    <span className="text-[12px] font-bold text-slate-900 leading-none whitespace-nowrap">
+                    <span className="text-[15px] font-bold text-slate-900 leading-none whitespace-nowrap">
                       東北本線 上り
                     </span>
-                    <span className="text-[7.5px] font-semibold text-slate-900 leading-none mt-[2px] font-english tracking-wide">
+                    <span className="text-[9px] font-semibold text-slate-900 leading-none mt-[2px] font-english tracking-wide whitespace-nowrap">
                       Tōhoku Line
                     </span>
                   </div>
-                  <div className="w-2.5 self-stretch -mb-[4.5px] shrink-0 shadow-2xs" style={{ backgroundColor: LINE_COLORS.tohoku }} />
+                  <div className="w-2.5 h-[30px] self-end -mb-[4.5px] shrink-0 shadow-2xs" style={{ backgroundColor: LINE_COLORS.tohoku }} />
                 </div>
 
                 <div className="flex-1 flex flex-col justify-center items-center text-center pl-2 h-full pt-[1px]">
                   <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
-                    <span className="text-[15.5px] font-bold text-slate-900 tracking-tight">
+                    <span className="text-[16.5px] font-bold text-slate-900 tracking-tight">
                       岩沼・白石・福島
                     </span>
-                    <span className="text-[10.5px] font-semibold text-slate-900 ml-1">
+                    <span className="text-[11.5px] font-semibold text-slate-900 ml-1">
                       方面
                     </span>
                   </div>
-                  <span className="text-[8px] text-slate-900 font-medium leading-none mt-[2px] font-english whitespace-nowrap">
+                  <span className="text-[9px] text-slate-900 font-medium leading-none mt-[2px] font-english whitespace-nowrap">
                     for Iwanuma, Shiroishi &amp; Fukushima
                   </span>
                 </div>
