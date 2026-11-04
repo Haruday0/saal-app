@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { DepartureTrain, DirectionType } from '../types';
 import { StationBoard, STATION_BOARD_BASE_WIDTHS } from './StationBoard';
@@ -18,8 +18,8 @@ export interface StationBoardFullscreenProps {
 
 /**
  * 電光掲示板 専用全画面・横画面コンポーネント
+ * Fullscreen API（ブラウザのアドレスバー・ステータスバー非表示）に対応。
  * YouTubeのように端末を縦持ち・横持ちどちらで持っても常に横画面として最大表示。
- * 不安定なネイティブFullscreen APIや自動解除は排除し、×ボタン押下時のみ終了。
  */
 export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   isOpen,
@@ -44,6 +44,16 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
     isPortrait: false,
     scale: 1,
   });
+
+  // 安全に全画面を終了するハンドラー
+  const handleClose = useCallback(() => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch (_) {}
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -79,25 +89,43 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
     };
 
     updateLayout();
-    const timer = setTimeout(updateLayout, 50);
+    const timer = setTimeout(updateLayout, 60);
 
     window.addEventListener('resize', updateLayout);
     window.addEventListener('orientationchange', updateLayout);
 
+    // キーボード Esc 対応
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
+
+    // ブラウザのネイティブ全画面解除（Android戻るボタンやジェスチャー）との連動
+    let hasEnteredFullscreen = !!document.fullscreenElement;
+    const handleFullscreenChange = () => {
+      if (document.fullscreenElement) {
+        hasEnteredFullscreen = true;
+        updateLayout();
+      } else if (hasEnteredFullscreen) {
+        // ネイティブ全画面から抜けた場合は閉じる
+        onClose();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
     return () => {
       clearTimeout(timer);
       window.removeEventListener('resize', updateLayout);
       window.removeEventListener('orientationchange', updateLayout);
       window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
-  }, [isOpen, stationId, onClose]);
+  }, [isOpen, stationId, onClose, handleClose]);
 
   if (!isOpen) return null;
 
@@ -132,7 +160,7 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onClose();
+            handleClose();
           }}
           aria-label="全画面表示を閉じる"
           className="absolute top-3 right-3 z-50 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center backdrop-blur-md transition-colors border border-white/15 cursor-pointer shadow-lg"

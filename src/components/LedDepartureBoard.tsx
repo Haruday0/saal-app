@@ -42,6 +42,15 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
   const [isFullTimetableOpen, setIsFullTimetableOpen] = useState(false);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
+  const handleOpenFullscreen = () => {
+    try {
+      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch (_) {}
+    setIsFullscreenOpen(true);
+  };
+
   // 鉄道時刻分計算 (4:00〜翌3:59、深夜0〜3時は24〜27時)
   const toRailwayMinutes = (t: string) => {
     const parts = t.split(':');
@@ -325,7 +334,7 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
             color="gray"
             size="sm"
             radius="md"
-            onClick={() => setIsFullscreenOpen(true)}
+            onClick={handleOpenFullscreen}
             title="全画面表示（横画面）"
             aria-label="電光掲示板を横画面で全画面表示"
           >
