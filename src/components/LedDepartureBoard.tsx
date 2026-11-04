@@ -42,20 +42,13 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
   const [isFullTimetableOpen, setIsFullTimetableOpen] = useState(false);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
-  const handleOpenFullscreen = async () => {
-    setIsFullscreenOpen(true);
+  const handleOpenFullscreen = () => {
     try {
       if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
+        document.documentElement.requestFullscreen().catch(() => {});
       }
     } catch (_) {}
-
-    try {
-      // YouTube同様、端末の画面の向きを強制的に横画面（Landscape）にロック
-      if (screen.orientation && 'lock' in screen.orientation) {
-        await (screen.orientation as any).lock('landscape');
-      }
-    } catch (_) {}
+    setIsFullscreenOpen(true);
   };
 
   // 鉄道時刻分計算 (4:00〜翌3:59、深夜0〜3時は24〜27時)

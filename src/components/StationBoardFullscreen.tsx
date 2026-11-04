@@ -18,8 +18,8 @@ export interface StationBoardFullscreenProps {
 
 /**
  * 電光掲示板 専用全画面・横画面コンポーネント
- * Fullscreen API（ブラウザのアドレスバー・ステータスバー非表示）に対応。
- * YouTubeのように端末を縦持ち・横持ちどちらで持っても常に横画面として最大表示。
+ * 端末を縦持ち・横持ちどちらで持っていても、YouTubeのように確実に横画面として最大表示。
+ * 画面回転やサイズ判定を100% CSSメディアクエリに委ねることで、JSのイベントループ・点滅・反復フリップを完全に防止。
  */
 export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   isOpen,
@@ -33,25 +33,10 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   noticeText,
 }) => {
   const boardRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState<{
-    width: number;
-    height: number;
-    isPortrait: boolean;
-    scale: number;
-  }>({
-    width: typeof window !== 'undefined' ? window.innerWidth : 800,
-    height: typeof window !== 'undefined' ? window.innerHeight : 600,
-    isPortrait: false,
-    scale: 1,
-  });
+  const [scale, setScale] = useState<number>(1);
 
-  // 安全に全画面を終了するハンドラー（横画面ロック解除＆全画面解除）
+  // 安全に全画面を終了するハンドラー
   const handleClose = useCallback(() => {
-    try {
-      if (screen.orientation && 'unlock' in screen.orientation) {
-        (screen.orientation as any).unlock();
-      }
-    } catch (_) {}
     try {
       if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
@@ -63,48 +48,33 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    // マウント時にも確実に横画面ロックを試行
-    try {
-      if (screen.orientation && 'lock' in screen.orientation) {
-        (screen.orientation as any).lock('landscape').catch(() => {});
-      }
-    } catch (_) {}
-
-    const updateLayout = () => {
+    const updateScale = () => {
+      // 端末の向きに関わらず、長辺を横幅・短辺を縦幅として取得
+      // これにより縦横回転時もavailWとavailHが変わらず、スケール計算が振動しない
       const w = window.innerWidth;
       const h = window.innerHeight;
-      const portrait = h > w;
-
-      // 横画面としての長辺（横幅）と短辺（縦幅）
-      const landscapeW = Math.max(w, h);
-      const landscapeH = Math.min(w, h);
+      const availW = Math.max(w, h);
+      const availH = Math.min(w, h);
 
       const baseWidth = STATION_BOARD_BASE_WIDTHS[stationId] || 400;
-
-      // ボードの高さ（DOM計測、未描画時は概算120px）
-      let bHeight = 120;
+      let bHeight = 130;
       if (boardRef.current && boardRef.current.offsetHeight > 0) {
         bHeight = boardRef.current.offsetHeight;
       }
 
-      // 画面の上下左右に安全マージン（約6%）を確保して最大相似拡大
-      const scaleByWidth = (landscapeW * 0.94) / baseWidth;
-      const scaleByHeight = (landscapeH * 0.88) / bHeight;
-      const targetScale = Math.min(scaleByWidth, scaleByHeight);
+      // 上下左右に安全マージン（横8%、縦14%）を確保
+      const scaleW = (availW * 0.92) / baseWidth;
+      const scaleH = (availH * 0.84) / bHeight;
+      const target = Math.min(scaleW, scaleH);
+      const rounded = Math.round(Math.max(target, 0.4) * 100) / 100;
 
-      setDimensions({
-        width: w,
-        height: h,
-        isPortrait: portrait,
-        scale: Math.max(targetScale, 0.5),
-      });
+      setScale((prev) => (Math.abs(prev - rounded) > 0.01 ? rounded : prev));
     };
 
-    updateLayout();
-    const timer = setTimeout(updateLayout, 60);
+    updateScale();
+    const timer = setTimeout(updateScale, 80);
 
-    window.addEventListener('resize', updateLayout);
-    window.addEventListener('orientationchange', updateLayout);
+    window.addEventListener('resize', updateScale);
 
     // キーボード Esc 対応
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -114,35 +84,16 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    // フルスクリーン切り替え時のレイアウト再計算のみ行う（勝手に閉じる処理は排除）
-    const handleFullscreenChange = () => {
-      updateLayout();
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('resize', updateLayout);
-      window.removeEventListener('orientationchange', updateLayout);
+      window.removeEventListener('resize', updateScale);
       window.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-
-      try {
-        if (screen.orientation && 'unlock' in screen.orientation) {
-          (screen.orientation as any).unlock();
-        }
-      } catch (_) {}
     };
-  }, [isOpen, stationId, onClose, handleClose]);
+  }, [isOpen, stationId, handleClose]);
 
   if (!isOpen) return null;
 
   const baseWidth = STATION_BOARD_BASE_WIDTHS[stationId] || 400;
-  const landscapeW = Math.max(dimensions.width, dimensions.height);
-  const landscapeH = Math.min(dimensions.width, dimensions.height);
 
   return createPortal(
     <div
@@ -153,20 +104,30 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
       onClick={(e) => e.stopPropagation()}
     >
       {/* 
-        横画面ステージコンテナ:
-        - 縦持ち時: 90度回転して画面中央に配置（長辺=landscapeW, 短辺=landscapeH）
-        - 横持ち時: 回転なしで画面中央に配置
+        純粋なCSSによる横画面ステージ制御:
+        縦持ち（portrait）時は 100dvh × 100dvw で 90度回転
+        横持ち（landscape）時は 100dvw × 100dvh で 回転なし
+        JSステートを介さないため、端末回転時も点滅やループが物理的に発生しない
       */}
-      <div
-        style={{
-          width: `${landscapeW}px`,
-          height: `${landscapeH}px`,
-          transform: dimensions.isPortrait ? 'rotate(90deg)' : 'none',
-          transformOrigin: 'center center',
-        }}
-        className="relative flex items-center justify-center shrink-0 overflow-hidden"
-      >
-        {/* 閉じるボタン（横画面内の右上に常時配置・タップで確実に終了） */}
+      <style>{`
+        .saal-fs-stage {
+          width: 100dvw;
+          height: 100dvh;
+          transform: none;
+          transform-origin: center center;
+        }
+        @media (orientation: portrait) {
+          .saal-fs-stage {
+            width: 100dvh !important;
+            height: 100dvw !important;
+            transform: rotate(90deg) !important;
+            transform-origin: center center !important;
+          }
+        }
+      `}</style>
+
+      <div className="saal-fs-stage relative flex items-center justify-center shrink-0 overflow-hidden">
+        {/* 閉じるボタン（横画面ステージ内の右上に常時配置・タップで確実に終了） */}
         <button
           type="button"
           onClick={(e) => {
@@ -174,7 +135,7 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
             handleClose();
           }}
           aria-label="全画面表示を閉じる"
-          className="absolute top-3 right-3 z-50 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center backdrop-blur-md transition-colors border border-white/15 cursor-pointer shadow-lg"
+          className="absolute top-4 right-4 z-50 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center backdrop-blur-md transition-colors border border-white/15 cursor-pointer shadow-lg"
         >
           <Icon name="close" size={24} />
         </button>
@@ -184,10 +145,10 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
           ref={boardRef}
           style={{
             width: `${baseWidth}px`,
-            transform: `scale(${dimensions.scale})`,
+            transform: `scale(${scale})`,
             transformOrigin: 'center center',
           }}
-          className="shrink-0 flex items-center justify-center transition-transform duration-150"
+          className="shrink-0 flex items-center justify-center"
         >
           <StationBoard
             stationId={stationId}
