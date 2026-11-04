@@ -596,16 +596,56 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                         })()}
                       </div>
 
-                      {/* 3〜7マス目: 愛称・号数枠 / 中央余白（120ドット / 5文字幅、特急時は赤文字「ひたち 12号」等・上下2dot空き再現） */}
+                      {/* 3〜7マス目: 愛称・号数枠 / 中央余白（120ドット / 5文字幅、特急時は赤文字「ひたち 12号」等・実機ドット描画対応） */}
                       {isLimitedExpress ? (
-                        <div className={`col-span-5 h-full w-full grid grid-cols-5 items-center text-center text-[20px] font-bold leading-none py-[2px] ${LED_COLOR_CLASSES.red}`}>
-                          <span className="h-[20px] flex items-center justify-center">ひ</span>
-                          <span className="h-[20px] flex items-center justify-center">た</span>
-                          <span className="h-[20px] flex items-center justify-center">ち</span>
-                          <span className="col-span-2 text-center tracking-tight h-[20px] flex items-center justify-center">
-                            {train.departureTime === '8:48' ? '12号' : train.departureTime === '14:16' ? '22号' : '30号'}
-                          </span>
-                        </div>
+                        (() => {
+                          const gousu =
+                            train.departureTime === '8:48'
+                              ? '12号'
+                              : train.departureTime === '14:16'
+                              ? '22号'
+                              : '30号';
+                          const hitachiDots = getDestinationDots('sendai', 'ひたち');
+                          const gousuDots = getDestinationDots('sendai', gousu);
+
+                          return (
+                            <div className={`col-span-5 h-full w-full grid grid-cols-5 items-center p-0 overflow-hidden ${LED_COLOR_CLASSES.red}`}>
+                              {/* 3〜5マス目: 愛称「ひたち」（72dot / 3文字幅） */}
+                              <div className="col-span-3 h-full w-full flex items-center justify-center p-0 overflow-hidden">
+                                {hitachiDots ? (
+                                  <DotLedBitmap
+                                    dots={hitachiDots}
+                                    className="h-full w-full block"
+                                    preserveAspectRatio="xMidYMid meet"
+                                    ariaLabel="ひたち"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full grid grid-cols-3 items-center text-center text-[20px] font-bold leading-none py-[2px]">
+                                    <span className="h-[20px] flex items-center justify-center">ひ</span>
+                                    <span className="h-[20px] flex items-center justify-center">た</span>
+                                    <span className="h-[20px] flex items-center justify-center">ち</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* 6〜7マス目: 号数「12号 / 22号 / 30号」（48dot / 2文字幅） */}
+                              <div className="col-span-2 h-full w-full flex items-center justify-center p-0 overflow-hidden">
+                                {gousuDots ? (
+                                  <DotLedBitmap
+                                    dots={gousuDots}
+                                    className="h-full w-full block"
+                                    preserveAspectRatio="xMidYMid meet"
+                                    ariaLabel={gousu}
+                                  />
+                                ) : (
+                                  <span className="text-center tracking-tight text-[20px] font-bold leading-none h-[20px] flex items-center justify-center py-[2px]">
+                                    {gousu}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()
                       ) : (
                         <span className="col-span-5 h-full" />
                       )}
