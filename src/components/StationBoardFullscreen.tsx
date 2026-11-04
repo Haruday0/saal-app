@@ -17,10 +17,8 @@ export interface StationBoardFullscreenProps {
 }
 
 /**
- * 電光掲示板 専用全画面・横画面コンポーネント
- * YouTube同様、Fullscreen API + screen.orientation.lock('landscape') により
- * 端末の持ち方に関わらずOSレベルで強制的に横画面全画面表示。
- * CSS回転を使わないため、画面の点滅や縦横フリップループは一切発生しない。
+ * 電光掲示板 専用全画面表示コンポーネント
+ * 画面の向きの強制固定は行わず、端末の自然な向きに合わせて全画面最大表示。
  */
 export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   isOpen,
@@ -36,13 +34,8 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   const boardRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState<number>(1);
 
-  // 安全に全画面を終了するハンドラー（横画面ロック解除＆全画面解除）
+  // 安全に全画面を終了するハンドラー
   const handleClose = useCallback(() => {
-    try {
-      if (screen.orientation && 'unlock' in screen.orientation) {
-        (screen.orientation as any).unlock();
-      }
-    } catch (_) {}
     try {
       if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
@@ -54,13 +47,6 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    // マウント時にも念のため画面ロックを再試行
-    try {
-      if (screen.orientation && 'lock' in screen.orientation) {
-        (screen.orientation as any).lock('landscape').catch(() => {});
-      }
-    } catch (_) {}
-
     const updateScale = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -71,9 +57,9 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
         bHeight = boardRef.current.offsetHeight;
       }
 
-      // 上下左右に安全マージン（横8%、縦14%）を確保して相似拡大
+      // 上下左右に安全マージン（横8%、縦14%）を確保して画面いっぱいに相似拡大
       const scaleW = (w * 0.92) / baseWidth;
-      const scaleH = (h * 0.84) / bHeight;
+      const scaleH = (h * 0.86) / bHeight;
       const target = Math.min(scaleW, scaleH);
       const rounded = Math.round(Math.max(target, 0.4) * 100) / 100;
 
@@ -81,7 +67,7 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
     };
 
     updateScale();
-    const timer = setTimeout(updateScale, 100);
+    const timer = setTimeout(updateScale, 80);
 
     window.addEventListener('resize', updateScale);
     window.addEventListener('orientationchange', updateScale);
@@ -99,12 +85,6 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
       window.removeEventListener('resize', updateScale);
       window.removeEventListener('orientationchange', updateScale);
       window.removeEventListener('keydown', handleKeyDown);
-
-      try {
-        if (screen.orientation && 'unlock' in screen.orientation) {
-          (screen.orientation as any).unlock();
-        }
-      } catch (_) {}
     };
   }, [isOpen, stationId, handleClose]);
 
@@ -133,7 +113,7 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
         <Icon name="close" size={24} />
       </button>
 
-      {/* 電光掲示板ボード本体（最大スケール表示） */}
+      {/* 電光掲示板ボード本体（画面サイズに合わせて最大フィット） */}
       <div
         ref={boardRef}
         style={{

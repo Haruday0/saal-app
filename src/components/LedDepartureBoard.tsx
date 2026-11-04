@@ -42,18 +42,13 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
   const [isFullTimetableOpen, setIsFullTimetableOpen] = useState(false);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
-  const handleOpenFullscreen = async () => {
-    setIsFullscreenOpen(true);
+  const handleOpenFullscreen = () => {
     try {
       if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
+        document.documentElement.requestFullscreen().catch(() => {});
       }
     } catch (_) {}
-    try {
-      if (screen.orientation && 'lock' in screen.orientation) {
-        await (screen.orientation as any).lock('landscape');
-      }
-    } catch (_) {}
+    setIsFullscreenOpen(true);
   };
 
   // 鉄道時刻分計算 (4:00〜翌3:59、深夜0〜3時は24〜27時)
@@ -332,7 +327,7 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
           selectedTrain={selectedTrain}
           onSelectTrain={onSelectTrain}
         />
-        {/* 電光掲示板の下部バー: 全画面表示（横画面）ボタン ＆ 現在時刻 */}
+        {/* 電光掲示板の下部バー: 全画面表示ボタン ＆ 現在時刻 */}
         <div className="flex items-center justify-between px-2 pt-2">
           <ActionIcon
             variant="subtle"
@@ -340,8 +335,8 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
             size="sm"
             radius="md"
             onClick={handleOpenFullscreen}
-            title="全画面表示（横画面）"
-            aria-label="電光掲示板を横画面で全画面表示"
+            title="全画面表示"
+            aria-label="電光掲示板を全画面表示"
           >
             <Icon name="fullscreen" size={19} />
           </ActionIcon>
