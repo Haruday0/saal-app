@@ -63,6 +63,13 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    // マウント時にも確実に横画面ロックを試行
+    try {
+      if (screen.orientation && 'lock' in screen.orientation) {
+        (screen.orientation as any).lock('landscape').catch(() => {});
+      }
+    } catch (_) {}
+
     const updateLayout = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -107,16 +114,9 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    // ブラウザのネイティブ全画面解除（Android戻るボタンやジェスチャー）との連動
-    let hasEnteredFullscreen = !!document.fullscreenElement;
+    // フルスクリーン切り替え時のレイアウト再計算のみ行う（勝手に閉じる処理は排除）
     const handleFullscreenChange = () => {
-      if (document.fullscreenElement) {
-        hasEnteredFullscreen = true;
-        updateLayout();
-      } else if (hasEnteredFullscreen) {
-        // ネイティブ全画面から抜けた場合は閉じる
-        handleClose();
-      }
+      updateLayout();
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
