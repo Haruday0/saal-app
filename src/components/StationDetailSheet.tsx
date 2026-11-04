@@ -124,6 +124,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
   // 閉じるフラグを ref で管理し、アニメーション中の React 再レンダリング（メインスレッド占有）を完全ゼロ化
   const isClosingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -160,17 +161,22 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
       isClosingRef.current = false;
       setActiveStation(station);
+      if (containerRef.current) {
+        containerRef.current.style.removeProperty('pointer-events');
+      }
       if (sheetRef.current) {
         sheetRef.current.classList.add('m3-sheet-enter');
         sheetRef.current.style.removeProperty('transform');
         sheetRef.current.style.removeProperty('transition');
         sheetRef.current.style.removeProperty('animation');
+        sheetRef.current.style.removeProperty('pointer-events');
       }
       if (scrimRef.current) {
         scrimRef.current.classList.add('m3-scrim-enter');
         scrimRef.current.style.removeProperty('opacity');
         scrimRef.current.style.removeProperty('transition');
         scrimRef.current.style.removeProperty('animation');
+        scrimRef.current.style.removeProperty('pointer-events');
       }
       // 駅を開いた時は初期選択を null にし、各駅の現在時刻以降の直近列車を自動反映
       setSelectedTrain(null);
@@ -186,6 +192,12 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
   const handleClose = useCallback((fromSwipe = false) => {
     if (isClosingRef.current) return;
     isClosingRef.current = true;
+
+    // 閉じるアニメーション開始と同時にタッチイベントの遮断を即座に解除
+    // （背後の路線図や別駅ボタンへの1タップ目がアニメーション中に吸収されるのを完全に防止）
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('pointer-events', 'none', 'important');
+    }
 
     const sheet = sheetRef.current;
     const scrim = scrimRef.current;
@@ -203,12 +215,14 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       sheet.classList.remove('m3-sheet-enter');
       sheet.style.setProperty('transition', `transform ${duration}ms ${easing}`, 'important');
       sheet.style.setProperty('transform', 'translate3d(0, 100%, 0)', 'important');
+      sheet.style.setProperty('pointer-events', 'none', 'important');
     }
     if (scrim) {
       scrim.style.animation = 'none';
       scrim.classList.remove('m3-scrim-enter');
       scrim.style.setProperty('transition', `opacity ${scrimDuration}ms ${easing}`, 'important');
       scrim.style.setProperty('opacity', '0', 'important');
+      scrim.style.setProperty('pointer-events', 'none', 'important');
     }
 
     let cleanedUp = false;
@@ -606,7 +620,10 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
   if (!activeStation) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden">
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden"
+    >
       {/* 背景オーバーレイ（背後の路線図はぼかさず、ボトムシート自身のすりガラス効果で屈折させる） */}
       <div
         ref={scrimRef}

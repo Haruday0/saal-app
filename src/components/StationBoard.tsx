@@ -485,37 +485,38 @@ export const StationBoard: React.FC<StationBoardProps> = ({
                 </div>
               </>
             ) : activeSendaiLine === 'saal' ? (
-              /* 仙台空港アクセス線 */
+              /* 仙台空港アクセス線（実機看板比率・文字サイズ完全再現） */
               <>
-                <div className="w-[44%] flex items-end justify-between self-end pb-[4.5px] shrink-0">
+                <div className="w-[41.5%] flex items-end justify-between self-end pb-[4.5px] shrink-0 pl-1">
                   <div className="flex items-center gap-1.5 flex-1">
-                    {/* 日本語表記上端〜英語表記下端の高さに完全一致する角丸なしの正方形青バッジ */}
-                    <div className="w-[23px] h-[23px] aspect-square rounded-none flex items-center justify-center shrink-0 p-[1.5px]" style={{ backgroundColor: LINE_COLORS.saal }}>
+                    {/* 日本語表記上端〜英語表記下端の高さに揃う角丸なしの正方形青バッジ */}
+                    <div className="w-[22px] h-[22px] aspect-square rounded-none flex items-center justify-center shrink-0 p-[1.5px]" style={{ backgroundColor: LINE_COLORS.saal }}>
                       <JisAirplane tight className="w-full h-full" color="#ffffff" />
                     </div>
-                    {/* 正方形バッジと上下端がぴったり揃う日本語＋英語テキストブロック */}
-                    <div className="h-[23px] flex flex-col justify-between items-start leading-none">
-                      <span className="text-[11px] font-bold leading-none tracking-tight whitespace-nowrap" style={{ color: LINE_COLORS.saal }}>
+                    {/* 実機通り看板幅いっぱいに広がる「仙台空港アクセス線」日本語＋英語テキストブロック */}
+                    <div className="h-[23px] flex flex-col justify-between items-start leading-none flex-1 min-w-0 pr-1">
+                      <span className="text-[13.5px] font-bold leading-none tracking-tight whitespace-nowrap" style={{ color: LINE_COLORS.saal }}>
                         仙台空港アクセス線
                       </span>
-                      <span className="text-[7px] font-semibold leading-none font-english tracking-tight whitespace-nowrap" style={{ color: LINE_COLORS.saal }}>
+                      <span className="text-[8px] font-semibold leading-none font-english tracking-tight whitespace-nowrap" style={{ color: LINE_COLORS.saal }}>
                         Sendai Airport Access Line
                       </span>
                     </div>
                   </div>
-                  <div className="w-2.5 self-stretch -mb-[4.5px] shrink-0 shadow-2xs ml-1" style={{ backgroundColor: LINE_COLORS.saal }} />
+                  {/* 看板下端に接地する公式ブルーの縦カラーバー */}
+                  <div className="w-2.5 h-[28px] self-end -mb-[4.5px] shrink-0 shadow-2xs" style={{ backgroundColor: LINE_COLORS.saal }} />
                 </div>
 
                 <div className="flex-1 flex flex-col justify-center items-center text-center pl-2 h-full pt-[1px]">
                   <div className="leading-none flex items-baseline justify-center whitespace-nowrap">
-                    <span className="text-[15px] font-bold text-slate-900 tracking-tight">
+                    <span className="text-[15.5px] font-bold text-slate-900 tracking-tight">
                       名取・仙台空港
                     </span>
                     <span className="text-[10.5px] font-semibold text-slate-900 ml-1">
                       方面
                     </span>
                   </div>
-                  <span className="text-[8px] text-slate-900 font-medium leading-none mt-[2px] font-english whitespace-nowrap">
+                  <span className="text-[8.5px] text-slate-900 font-medium leading-none mt-[2px] font-english whitespace-nowrap">
                     for Natori &amp; Sendai Airport
                   </span>
                 </div>
