@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { SegmentedControl, Button, Paper, Box, Text } from '@mantine/core';
+import { SegmentedControl, Button, Paper, Box, Text, ActionIcon } from '@mantine/core';
 import { DepartureTrain, DirectionType } from '../types';
 import { MOCK_DEPARTURES } from '../data/mockData';
 import { StationBoard } from './StationBoard';
+import { StationBoardFullscreen } from './StationBoardFullscreen';
 import { Icon } from './Icon';
 import { TimetableModal } from './TimetableModal';
 import { isWeekendHolidayOrYearEnd } from '../utils/calendar';
@@ -39,6 +40,7 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
     isNagamachiTaishido ? 'down' : 'up'
   );
   const [isFullTimetableOpen, setIsFullTimetableOpen] = useState(false);
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
   // 鉄道時刻分計算 (4:00〜翌3:59、深夜0〜3時は24〜27時)
   const toRailwayMinutes = (t: string) => {
@@ -316,14 +318,39 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
           selectedTrain={selectedTrain}
           onSelectTrain={onSelectTrain}
         />
-        {/* 電光掲示板の右下に現在時刻を表示 */}
-        <Text fz={10.5} c="dimmed" ta="right" px={4} pt={6} className="font-english tabular-nums">
-          <span>
-            {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
-          </span>
-          <span className="ml-0.5">現在</span>
-        </Text>
+        {/* 電光掲示板の下部バー: 全画面表示（横画面）ボタン ＆ 現在時刻 */}
+        <div className="flex items-center justify-between px-2 pt-2">
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            radius="md"
+            onClick={() => setIsFullscreenOpen(true)}
+            title="全画面表示（横画面）"
+            aria-label="電光掲示板を横画面で全画面表示"
+          >
+            <Icon name="fullscreen" size={19} />
+          </ActionIcon>
+          <Text fz={10.5} c="dimmed" ta="right" className="font-english tabular-nums">
+            <span>
+              {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
+            </span>
+            <span className="ml-0.5">現在</span>
+          </Text>
+        </div>
       </div>
+
+      {/* 電光掲示板 専用全画面・横画面モーダル */}
+      <StationBoardFullscreen
+        isOpen={isFullscreenOpen}
+        onClose={() => setIsFullscreenOpen(false)}
+        stationId={stationId}
+        direction={effectiveDirection}
+        track={effectiveTrack}
+        trains={upcomingTrains}
+        selectedTrain={selectedTrain}
+        onSelectTrain={onSelectTrain}
+      />
 
       {/* 臨時運行・増結運転のお知らせリンク（告知期間中のみ表示） */}
       {activeNotices.length > 0 && (
