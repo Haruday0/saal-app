@@ -43,3 +43,6 @@ venv/
 data-raw/
 scripts/
 
+# Agent / Spec Docs
+AGENTS.md
+

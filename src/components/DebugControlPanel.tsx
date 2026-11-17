@@ -1,33 +1,20 @@
 import React from 'react';
 import {
-  Paper,
-  Group,
-  Stack,
-  Text,
+  Card,
+  Chip,
   Button,
-  TextInput,
   Slider,
-  Badge,
-  Collapse,
-  UnstyledButton,
-  Divider,
-  Box,
-} from '@mantine/core';
+  Separator,
+  Input,
+  Disclosure,
+} from '@heroui/react';
 import { useDebug } from '../context/DebugContext';
-import { Icon } from './Icon';
 
 interface DebugControlPanelProps {
   /** 電光掲示板の直上に埋め込むモードか、ヘッダー直下のバーモードか */
   variant?: 'sheet' | 'header';
   /** 仙台駅（3段表示）かどうか */
   isSendai?: boolean;
-}
-
-function formatMinutesToHHMM(mins: number): string {
-  const normalized = ((Math.round(mins) % 1440) + 1440) % 1440;
-  const h = Math.floor(normalized / 60);
-  const m = normalized % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
@@ -80,243 +67,201 @@ export const DebugControlPanel: React.FC<DebugControlPanelProps> = ({
   const rowIndices: (0 | 1 | 2)[] = isSendai ? [0, 1, 2] : [0, 1];
 
   return (
-    <Paper
+    <Card
       data-scrollable="true"
-      withBorder={variant === 'sheet'}
-      radius={variant === 'sheet' ? 'md' : 0}
-      p={8}
-      mb={variant === 'sheet' ? 8 : 0}
-      className={variant === 'header' ? 'shrink-0 z-20 shadow-sm' : ''}
-      style={{
-        backgroundColor: 'var(--mantine-color-body)',
-        borderColor:
-          isTimeOverridden || hasRowOverrides
-            ? '#f59e0b'
-            : 'var(--mantine-color-default-border)',
-        borderBottom:
-          variant === 'header' ? '1px solid var(--mantine-color-default-border)' : undefined,
-      }}
+      className={`gap-0 p-2 transition-colors ${
+        variant === 'sheet'
+          ? 'rounded-xl mb-2 border shadow-none bg-surface'
+          : 'rounded-none border-b shrink-0 z-20 shadow-sm bg-surface'
+      } ${
+        isTimeOverridden || hasRowOverrides
+          ? 'border-amber-500'
+          : 'border-border'
+      }`}
     >
-      <Box maw={variant === 'header' ? 448 : undefined} mx={variant === 'header' ? 'auto' : undefined}>
+      <div className={variant === 'header' ? 'max-w-md mx-auto w-full' : 'w-full'}>
         {/* パネルヘッダー（折りたたみトグルバー） */}
-        <UnstyledButton onClick={toggleOpen} w="100%">
-          <Group justify="space-between" wrap="nowrap" gap={6}>
-            <Group gap={6} wrap="nowrap">
-              <Badge size="xs" color="yellow" variant="filled" radius="sm" tt="none">
-                DEBUG
-              </Badge>
-              <Text fz={11.5} fw={800}>
-                {variant === 'header' ? 'シミュレーション設定' : 'デバッグ設定'}
-              </Text>
-              <Badge
-                size="xs"
-                color={isTimeOverridden ? 'yellow' : 'gray'}
-                variant="light"
-                radius="sm"
-                tt="none"
-                className="font-english tabular-nums"
-              >
-                {currentYMD}({dayOfWeekStr}) {currentHHMM} {isTimeOverridden ? '(仮想)' : '(実日時)'}
-              </Badge>
-              {hasRowOverrides && (
-                <Badge size="xs" color="orange" variant="light" radius="sm" tt="none">
-                  LED入力中
-                </Badge>
+        <Disclosure isExpanded={isOpen} onExpandedChange={toggleOpen}>
+          <Disclosure.Heading>
+            <Disclosure.Trigger className="w-full flex items-center justify-between gap-1.5 py-1 text-left cursor-pointer transition-opacity hover:opacity-80">
+              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                <Chip size="sm" color="warning" variant="primary" className="text-[10px] font-bold px-1.5 h-5 leading-none">
+                  DEBUG
+                </Chip>
+                <span className="text-[11.5px] font-extrabold text-foreground">
+                  {variant === 'header' ? 'シミュレーション設定' : 'デバッグ設定'}
+                </span>
+                <Chip
+                  size="sm"
+                  color={isTimeOverridden ? 'warning' : 'default'}
+                  variant="soft"
+                  className="font-english tabular-nums text-[10px] px-1.5 h-5 leading-none"
+                >
+                  {currentYMD}({dayOfWeekStr}) {currentHHMM} {isTimeOverridden ? '(仮想)' : '(実日時)'}
+                </Chip>
+                {hasRowOverrides && (
+                  <Chip size="sm" color="warning" variant="soft" className="text-[10px] px-1.5 h-5 leading-none">
+                    LED入力中
+                  </Chip>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0 text-muted">
+                <span className="text-[10.5px] font-semibold">
+                  {isOpen ? '閉じる' : '開く'}
+                </span>
+                <Disclosure.Indicator className="text-muted transition-transform duration-200" />
+              </div>
+            </Disclosure.Trigger>
+          </Disclosure.Heading>
+
+          <Disclosure.Content>
+            <Disclosure.Body className="space-y-2.5 pt-2 pb-1.5">
+              {/* 日付・時刻の設定行 */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-muted">
+                    日付
+                  </span>
+                  <input
+                    type="date"
+                    value={currentYMD}
+                    onChange={(e) => setOverrideDateString(e.target.value)}
+                    aria-label="シミュレーション日付入力"
+                    className="text-[11.5px] font-bold font-english tabular-nums px-2 py-0.5 rounded border border-border bg-transparent text-foreground cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-muted">
+                    時刻
+                  </span>
+                  <input
+                    type="time"
+                    value={currentHHMM}
+                    onChange={(e) => setOverrideTimeString(e.target.value)}
+                    aria-label="シミュレーション時刻入力"
+                    className="text-[11.5px] font-bold font-english tabular-nums px-2 py-0.5 rounded border border-border bg-transparent text-foreground cursor-pointer"
+                  />
+                </div>
+
+                <Button
+                  size="sm"
+                  variant={isTimeOverridden ? 'primary' : 'tertiary'}
+                  onPress={resetAll}
+                  isDisabled={!isTimeOverridden}
+                  className="text-[10.5px] h-7 px-2.5"
+                >
+                  実日時に戻す
+                </Button>
+              </div>
+
+              {/* 時刻スライダー (05:00〜02:00) */}
+              <div className="px-2 pt-1 pb-3">
+                <Slider
+                  value={sliderValue}
+                  minValue={300}
+                  maxValue={1560}
+                  step={1}
+                  onChange={(val) => {
+                    const num = typeof val === 'number' ? val : val[0];
+                    setOverrideMinutes(num % 1440);
+                  }}
+                  aria-label="シミュレーション時刻"
+                  className="w-full"
+                >
+                  <Slider.Track className="h-1.5 bg-surface-secondary rounded-full">
+                    <Slider.Fill className="bg-amber-500 rounded-full" />
+                    <Slider.Thumb className="size-4 bg-surface border-2 border-amber-500 rounded-full shadow cursor-grab active:cursor-grabbing focus-visible:outline-none" />
+                  </Slider.Track>
+                  <Slider.Marks className="mt-1 text-[9.5px] text-muted">
+                    <Slider.Mark value={300}>5:00</Slider.Mark>
+                    <Slider.Mark value={540}>9:00</Slider.Mark>
+                    <Slider.Mark value={720}>12:00</Slider.Mark>
+                    <Slider.Mark value={900}>15:00</Slider.Mark>
+                    <Slider.Mark value={1080}>18:00</Slider.Mark>
+                    <Slider.Mark value={1260}>21:00</Slider.Mark>
+                    <Slider.Mark value={1440}>0:00</Slider.Mark>
+                    <Slider.Mark value={1560}>2:00</Slider.Mark>
+                  </Slider.Marks>
+                </Slider>
+              </div>
+
+              {/* 駅詳細シート内のみ: 電光掲示板LEDの直接書き換え */}
+              {variant === 'sheet' && (
+                <>
+                  <Separator className="my-2 border-border" />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-muted">
+                        LED表示テスト
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="tertiary"
+                          className="text-[10px] h-6 px-1.5"
+                          onPress={() => applyDigitPreset(1)}
+                        >
+                          0-9テストA
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="tertiary"
+                          className="text-[10px] h-6 px-1.5"
+                          onPress={() => applyDigitPreset(2)}
+                        >
+                          0-9テストB
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="tertiary"
+                          className="text-[10px] h-6 px-1.5"
+                          isDisabled={!hasRowOverrides}
+                          onPress={clearRowOverrides}
+                        >
+                          クリア
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 pt-1">
+                      {rowIndices.map((idx) => (
+                        <div key={idx} className="flex items-center gap-1.5">
+                          <span className="text-[10.5px] font-bold text-muted w-8 shrink-0">
+                            {idx + 1}段目
+                          </span>
+                          <Input
+                            placeholder="時刻 (例 12:34)"
+                            value={rowOverrides[idx].departureTime}
+                            onChange={(e) =>
+                              setRowOverride(idx, { departureTime: e.target.value })
+                            }
+                            className="flex-[1.2] h-6 min-h-6 text-[11px] px-1.5 font-mono border rounded border-border bg-transparent text-foreground"
+                          />
+                          <Input
+                            placeholder="行先 (任意)"
+                            value={rowOverrides[idx].destination}
+                            onChange={(e) =>
+                              setRowOverride(idx, { destination: e.target.value })
+                            }
+                            className="flex-1 h-6 min-h-6 text-[11px] px-1.5 border rounded border-border bg-transparent text-foreground"
+                          />
+                          <Input
+                            placeholder="両"
+                            value={rowOverrides[idx].cars}
+                            onChange={(e) => setRowOverride(idx, { cars: e.target.value })}
+                            className="w-10 h-6 min-h-6 text-[11px] px-1 text-center border rounded border-border bg-transparent text-foreground"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
-            </Group>
-            <Group gap={4} wrap="nowrap">
-              <Text fz={10.5} c="dimmed" fw={600}>
-                {isOpen ? '閉じる' : '開く'}
-              </Text>
-              <Icon
-                name="expand_more"
-                size={16}
-                className={`text-slate-400 transition-transform duration-200 ${
-                  isOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </Group>
-          </Group>
-        </UnstyledButton>
-
-        <Collapse expanded={isOpen}>
-          <Stack gap={10} pt={8} pb={6}>
-            {/* 日付・時刻の設定行 */}
-            <Group justify="space-between" align="center" wrap="wrap" gap={8}>
-              <Group gap={6} align="center">
-                <Text fz={11} fw={700} c="dimmed">
-                  日付
-                </Text>
-                <input
-                  type="date"
-                  value={currentYMD}
-                  onChange={(e) => setOverrideDateString(e.target.value)}
-                  aria-label="シミュレーション日付入力"
-                  className="text-[11.5px] font-bold font-english tabular-nums px-2 py-0.5 rounded border border-[var(--mantine-color-default-border)] bg-transparent text-[var(--mantine-color-text)] cursor-pointer"
-                />
-              </Group>
-
-              <Group gap={6} align="center">
-                <Text fz={11} fw={700} c="dimmed">
-                  時刻
-                </Text>
-                <input
-                  type="time"
-                  value={currentHHMM}
-                  onChange={(e) => setOverrideTimeString(e.target.value)}
-                  aria-label="シミュレーション時刻入力"
-                  className="text-[11.5px] font-bold font-english tabular-nums px-2 py-0.5 rounded border border-[var(--mantine-color-default-border)] bg-transparent text-[var(--mantine-color-text)] cursor-pointer"
-                />
-              </Group>
-
-              <Button
-                size="compact-xs"
-                variant={isTimeOverridden ? 'light' : 'default'}
-                color={isTimeOverridden ? 'yellow' : 'gray'}
-                onClick={resetAll}
-                fz={10.5}
-                disabled={!isTimeOverridden}
-              >
-                実日時に戻す
-              </Button>
-            </Group>
-
-            {/* 時刻スライダー (05:00〜02:00) */}
-            <Box px={12} pt={4} pb={16}>
-              <Slider
-                min={300}
-                max={1560}
-                step={1}
-                value={sliderValue}
-                onChange={(val) => setOverrideMinutes(val % 1440)}
-                label={formatMinutesToHHMM}
-                color="yellow"
-                size="sm"
-                marks={[
-                  { value: 300, label: '5:00' },
-                  { value: 720, label: '12:00' },
-                  { value: 1080, label: '18:00' },
-                  { value: 1440, label: '0:00' },
-                  { value: 1560, label: '2:00' },
-                ]}
-                styles={{
-                  markLabel: { fontSize: 9.5, marginTop: 4 },
-                }}
-              />
-            </Box>
-
-            {/* 駅詳細シート内のみ: 電光掲示板LEDの直接書き換え */}
-            {variant === 'sheet' && (
-              <>
-                <Divider my={2} />
-                <Stack gap={5}>
-                  <Group justify="space-between" align="center" wrap="nowrap">
-                    <Text fz={11} fw={700} c="dimmed">
-                      LED表示テスト
-                    </Text>
-                    <Group gap={4}>
-                      <Button
-                        size="compact-xs"
-                        variant="light"
-                        color="yellow"
-                        fz={10}
-                        px={4}
-                        onClick={() => applyDigitPreset(1)}
-                      >
-                        0-9テストA
-                      </Button>
-                      <Button
-                        size="compact-xs"
-                        variant="light"
-                        color="yellow"
-                        fz={10}
-                        px={4}
-                        onClick={() => applyDigitPreset(2)}
-                      >
-                        0-9テストB
-                      </Button>
-                      <Button
-                        size="compact-xs"
-                        variant={hasRowOverrides ? 'light' : 'default'}
-                        color={hasRowOverrides ? 'red' : 'gray'}
-                        onClick={clearRowOverrides}
-                        fz={10}
-                        disabled={!hasRowOverrides}
-                      >
-                        クリア
-                      </Button>
-                    </Group>
-                  </Group>
-
-                  <Stack gap={4} mt={2}>
-                    {rowIndices.map((idx) => (
-                      <Group key={idx} gap={4} wrap="nowrap" align="center">
-                        <Text fz={10.5} fw={700} c="dimmed" w={32} className="shrink-0">
-                          {idx + 1}段目
-                        </Text>
-                        <TextInput
-                          size="xs"
-                          placeholder="時刻 (例 12:34)"
-                          value={rowOverrides[idx].departureTime}
-                          onChange={(e) =>
-                            setRowOverride(idx, { departureTime: e.currentTarget.value })
-                          }
-                          style={{ flex: 1.2 }}
-                          styles={{
-                            input: {
-                              height: 24,
-                              minHeight: 24,
-                              fontSize: 11,
-                              paddingLeft: 6,
-                              paddingRight: 6,
-                              fontFamily: 'monospace',
-                            },
-                          }}
-                        />
-                        <TextInput
-                          size="xs"
-                          placeholder="行先 (任意)"
-                          value={rowOverrides[idx].destination}
-                          onChange={(e) =>
-                            setRowOverride(idx, { destination: e.currentTarget.value })
-                          }
-                          style={{ flex: 1 }}
-                          styles={{
-                            input: {
-                              height: 24,
-                              minHeight: 24,
-                              fontSize: 11,
-                              paddingLeft: 6,
-                              paddingRight: 6,
-                            },
-                          }}
-                        />
-                        <TextInput
-                          size="xs"
-                          placeholder="両"
-                          value={rowOverrides[idx].cars}
-                          onChange={(e) => setRowOverride(idx, { cars: e.currentTarget.value })}
-                          w={36}
-                          styles={{
-                            input: {
-                              height: 24,
-                              minHeight: 24,
-                              fontSize: 11,
-                              paddingLeft: 4,
-                              paddingRight: 4,
-                              textAlign: 'center',
-                            },
-                          }}
-                        />
-                      </Group>
-                    ))}
-                  </Stack>
-                </Stack>
-              </>
-            )}
-          </Stack>
-        </Collapse>
-      </Box>
-    </Paper>
+            </Disclosure.Body>
+          </Disclosure.Content>
+        </Disclosure>
+      </div>
+    </Card>
   );
 };

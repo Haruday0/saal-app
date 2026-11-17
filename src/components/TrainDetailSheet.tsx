@@ -1,18 +1,8 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import {
-  Group,
-  Stack,
-  Text,
-  Title,
-  Badge,
-  Box,
-  Timeline,
-  UnstyledButton,
-  CloseButton,
-} from '@mantine/core';
+import { Chip, CloseButton, Link, ScrollShadow, Separator } from '@heroui/react';
 import { Station } from '../types';
 import { STATIONS } from '../data/mockData';
-import { getLineColor, getMantineLineColor } from '../config/trainLineRules';
+import { getLineColor } from '../config/trainLineRules';
 import {
   getScheduledTrainById,
   getCurrentRailwaySeconds,
@@ -22,6 +12,7 @@ import {
 } from '../utils/trainPosition';
 import { useDebug } from '../context/DebugContext';
 import { Icon } from './Icon';
+import { RouteTimeline, PentagonIcon } from './RouteTimeline';
 import {
   getTrainNoticeInfo,
   applySpecialOverrides,
@@ -88,7 +79,10 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   onSelectStation,
 }) => {
   const { now } = useDebug();
-  const [activeTrain, setActiveTrain] = useState<ScheduledTrain | null>(null);
+  const [activeTrain, setActiveTrain] = useState<ScheduledTrain | null>(() =>
+    trainId ? getScheduledTrainById(trainId, now) : null
+  );
+  const [isEntering, setIsEntering] = useState(true);
 
   // 閉じるフラグと DOM ref（StationDetailSheet と完全同一のGPU高速アニメーション）
   const isClosingRef = useRef(false);
@@ -112,14 +106,24 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     onSelectStationRef.current = onSelectStation;
   });
 
+  // 進入アニメーション（450ms）完了後に isEntering を確実に false にリセット
+  useEffect(() => {
+    if (isEntering) {
+      const timer = setTimeout(() => {
+        setIsEntering(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isEntering]);
+
   // 10秒ごとに現在時刻を更新
-  const [nowSec, setNowSec] = useState(() => getCurrentRailwaySeconds());
+  const [nowSec, setNowSec] = useState(() => getCurrentRailwaySeconds(now));
   useEffect(() => {
     if (!trainId) return;
-    setNowSec(getCurrentRailwaySeconds());
-    const timer = setInterval(() => setNowSec(getCurrentRailwaySeconds()), 10000);
+    setNowSec(getCurrentRailwaySeconds(now));
+    const timer = setInterval(() => setNowSec(getCurrentRailwaySeconds(now)), 10000);
     return () => clearInterval(timer);
-  }, [trainId]);
+  }, [trainId, now]);
 
   useEffect(() => {
     return () => {
@@ -147,18 +151,17 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       }
       isClosingRef.current = false;
       setActiveTrain(t);
+      setIsEntering(true);
       if (containerRef.current) {
         containerRef.current.style.removeProperty('pointer-events');
       }
       if (sheetRef.current) {
-        sheetRef.current.classList.add('m3-sheet-enter');
         sheetRef.current.style.removeProperty('transform');
         sheetRef.current.style.removeProperty('transition');
         sheetRef.current.style.removeProperty('animation');
         sheetRef.current.style.removeProperty('pointer-events');
       }
       if (scrimRef.current) {
-        scrimRef.current.classList.add('m3-scrim-enter');
         scrimRef.current.style.removeProperty('opacity');
         scrimRef.current.style.removeProperty('transition');
         scrimRef.current.style.removeProperty('animation');
@@ -197,6 +200,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       ? 'cubic-bezier(0.16, 1, 0.3, 1)'
       : 'cubic-bezier(0.3, 0.0, 0.8, 0.15)';
 
+    setIsEntering(false);
     if (sheet) {
       sheet.style.animation = 'none';
       sheet.classList.remove('m3-sheet-enter');
@@ -229,7 +233,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     };
 
     const onTransitionEnd = (e: TransitionEvent) => {
-      if (e.target === sheet && e.propertyName === 'transform') {
+      if (e.target === sheet && e.currentTarget === sheet && e.propertyName === 'transform') {
         cleanup();
       }
     };
@@ -313,6 +317,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
 
     // シートのインライン変位を即座にドラッグ状態にセット
     const prepareSheetForDrag = () => {
+      setIsEntering(false);
       sheet.style.animation = 'none';
       sheet.classList.remove('m3-sheet-enter');
       sheet.style.setProperty('transition', 'none', 'important');
@@ -370,6 +375,7 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     // スマホ・タッチ: Touch Events（コンテンツ領域と完全統一）
     // ====================================================
     const onPointerDown = (e: PointerEvent) => {
+      // タッチ・ペン操作は TouchEvent で処理するため完全にスキップ（setPointerCapture によるタップ抑制バグを防止）
       if (e.pointerType !== 'mouse') return;
       if (isClosingRef.current || e.button !== 0) return;
       if ((e.target as HTMLElement).closest('button')) return;
@@ -621,18 +627,23 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   }, [train?.trainNumber, now]);
 
   // 停車駅リスト: 始発〜終着の全駅（allStops）を使用
-  const stopsToShow = useMemo(() => {
+  const stopsToShow: ScheduledFullStop[] = useMemo(() => {
     if (!train) return [];
     if (train.allStops && train.allStops.length > 0) {
       return train.allStops;
     }
-    return train.stops;
+    return train.stops.map((s) => ({
+      stationId: s.stationId,
+      stationName: s.stationName,
+      arr: s.arr,
+      dep: s.dep,
+      track: s.track,
+    }));
   }, [train]);
 
-  const status = useMemo(
-    () => (train ? getTrainStatus(nowSec, stopsToShow) : ({ kind: 'before' } as TrainStatus)),
-    [train, nowSec, stopsToShow]
-  );
+  const status = useMemo(() => {
+    return train ? getTrainStatus(nowSec, stopsToShow) : ({ kind: 'before' } as TrainStatus);
+  }, [train, nowSec, stopsToShow]);
 
   const handleStopClick = (stationId?: string) => {
     if (!stationId) return;
@@ -643,7 +654,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
     }
   };
 
-  // Mantine Timeline の到達済みアクティブインデックス
   const activeIndex = useMemo(() => {
     return status.kind === 'before'
       ? -1
@@ -720,8 +730,6 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
   if (!train) return null;
 
   const lineColor = getLineColor(train.line);
-  const mantineColor = getMantineLineColor(train.line);
-
   const cleanDestination = cleanStationName(train.destination);
 
   return (
@@ -733,11 +741,11 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       <div
         ref={scrimRef}
         onAnimationEnd={(e) => {
-          if (e.animationName === 'm3ScrimEnter' && scrimRef.current) {
-            scrimRef.current.classList.remove('m3-scrim-enter');
+          if (e.target === scrimRef.current && e.animationName === 'm3ScrimEnter') {
+            setIsEntering(false);
           }
         }}
-        className="fixed inset-0 bg-slate-900/15 dark:bg-black/40 m3-scrim m3-scrim-enter"
+        className={`fixed inset-0 bg-backdrop m3-scrim ${isEntering ? 'm3-scrim-enter' : ''}`}
         onClick={() => handleClose(false)}
       />
 
@@ -745,147 +753,188 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
       <div
         ref={sheetRef}
         onAnimationEnd={(e) => {
-          if (e.animationName === 'm3SheetEnter' && sheetRef.current) {
-            sheetRef.current.classList.remove('m3-sheet-enter');
+          if (e.target === sheetRef.current && e.animationName === 'm3SheetEnter') {
+            setIsEntering(false);
           }
         }}
-        className="relative z-[70] w-full max-w-md mx-auto glass-surface-strong rounded-t-3xl shadow-glass-lg flex flex-col h-[78vh] h-[calc(100dvh-5.5rem)] border-t border-white/80 dark:border-slate-700/80 m3-bottom-sheet m3-sheet-enter"
+        className={`relative z-[70] w-full max-w-md mx-auto bg-overlay text-overlay-foreground shadow-overlay border-t border-border rounded-t-3xl flex flex-col h-[78vh] h-[calc(100dvh-5.5rem)] m3-bottom-sheet ${isEntering ? 'm3-sheet-enter' : ''}`}
       >
         {/* シートヘッダー */}
         <div
           ref={headerRef}
-          className="pt-2 pb-2.5 px-4 bg-transparent rounded-t-3xl border-b border-[var(--mantine-color-default-border)] shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
+          className="pt-2 pb-2.5 px-4 bg-transparent rounded-t-3xl shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
         >
           {/* ドラッグハンドルバー */}
-          <div
-            className="w-12 h-1.5 rounded-full mx-auto mb-2 pointer-events-none"
-            style={{ backgroundColor: 'var(--mantine-color-default-border)' }}
-          />
+          <div className="w-12 h-1.5 rounded-full mx-auto mb-2 pointer-events-none bg-muted/30" />
 
-          <Group justify="space-between" align="center" wrap="nowrap">
-            <Stack gap={3} style={{ minWidth: 0, flex: 1 }} className="pointer-events-none">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1 pointer-events-none">
               {/* 1行目: 路線カラーバー + 路線名 + 列車番号 (+ 土休日運休) */}
-              <Group gap={6} align="center" wrap="nowrap">
-                <Box w={3.5} h={14} style={{ backgroundColor: lineColor, borderRadius: 2, flexShrink: 0 }} />
-                <Text fz="xs" fw={800} c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+              <div className="flex items-center gap-1.5 flex-nowrap">
+                <span
+                  className="w-[3.5px] h-[14px] rounded-[2px] shrink-0"
+                  style={{ backgroundColor: lineColor }}
+                />
+                <span className="text-xs font-extrabold text-muted whitespace-nowrap">
                   {train.lineName ?? '列車詳細'}
-                </Text>
-                <Text fz="xs" c="dimmed" fw={700} style={{ whiteSpace: 'nowrap' }}>
+                </span>
+                <span className="text-xs font-bold text-muted whitespace-nowrap">
                   {train.trainNumber}
-                </Text>
+                </span>
                 {train.calendar === 'weekday' && (
-                  <Badge size="xs" radius="xs" color="gray" variant="light" tt="none">
+                  <Chip size="sm" variant="soft" color="default" className="text-[10px] px-1.5 py-0 h-4">
                     土休日運休
-                  </Badge>
+                  </Chip>
                 )}
-              </Group>
+              </div>
 
               {/* 2行目: 種別 + 行先 + 右に両数 */}
-              <Group gap={8} align="center" wrap="nowrap">
-                <Badge size="md" radius="sm" color={mantineColor} variant="filled" tt="none" style={{ flexShrink: 0 }}>
+              <div className="flex items-center gap-2 flex-nowrap">
+                <Chip
+                  size="sm"
+                  variant="primary"
+                  className="shrink-0 text-white font-bold text-xs px-2 py-0.5"
+                  style={{ backgroundColor: lineColor }}
+                >
                   {train.trainType ?? '普通'}
-                </Badge>
-                <Title order={2} fz={19} fw={800} style={{ whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                </Chip>
+                <h2 className="text-[19px] font-extrabold whitespace-nowrap leading-[1.2] text-foreground">
                   {cleanDestination}
-                  <Text component="span" fz="xs" fw={700} ml={3} c="dimmed">
+                  <span className="text-xs font-bold ml-1 text-muted">
                     行
-                  </Text>
-                </Title>
-                <Badge size="sm" radius="sm" variant="default" fw={700} style={{ flexShrink: 0 }}>
+                  </span>
+                </h2>
+                <Chip size="sm" variant="secondary" className="shrink-0 font-bold text-xs">
                   {train.cars}両
-                </Badge>
+                </Chip>
                 {trainNotice && (
-                  <Badge size="xs" radius="xs" color="saal" variant="light" tt="none" style={{ flexShrink: 0 }}>
-                    増結対象
-                  </Badge>
+                  <Chip
+                    size="sm"
+                    variant="soft"
+                    color="accent"
+                    className="shrink-0 text-[10px] px-1.5 py-0 h-4 font-bold"
+                  >
+                    {trainNotice.cars ? '増結対象' : '番線変更'}
+                  </Chip>
                 )}
-              </Group>
-            </Stack>
+              </div>
+            </div>
 
             <CloseButton
-              size="lg"
-              radius="xl"
-              variant="default"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClose(false);
-              }}
+              onPress={() => handleClose(false)}
               aria-label="閉じる"
-              className="pointer-events-auto"
-              style={{ flexShrink: 0 }}
+              className="pointer-events-auto shrink-0"
             />
-          </Group>
+          </div>
         </div>
 
+        <Separator />
+
         {/* コンテンツ領域 */}
-        <div ref={contentRef} className="relative flex-1 min-h-0 p-4 pb-8 overflow-y-auto space-y-4 overscroll-contain">
-          <Stack gap="md">
-            {/* 臨時ダイヤ・増結運転のお知らせバナー（対象便かつ告知期間中のみ表示） */}
+        <ScrollShadow ref={contentRef} className="relative flex-1 min-h-0 p-4 pb-8 overflow-y-auto space-y-4 overscroll-contain">
+          <div className="flex flex-col gap-4">
+            {/* 臨時ダイヤ・増結運転のお知らせバナー（HeroUI Link） */}
             {trainNotice && (
-              <Box>
-                <a
+              <div>
+                <Link
                   href={trainNotice.event.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group block p-3 rounded-2xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/25 hover:bg-blue-50/90 dark:hover:bg-blue-950/45 transition-colors shadow-sm"
-                  style={{ textDecoration: 'none' }}
+                  className="group block p-3 rounded-2xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/25 hover:bg-blue-50/90 dark:hover:bg-blue-950/45 transition-colors shadow-xs no-underline w-full"
                 >
-                  <div className="flex items-start gap-2.5">
-                    <span className="shrink-0 mt-0.5 text-saal-600 dark:text-saal-400">
+                  <div className="flex items-start gap-2.5 w-full">
+                    <span className="shrink-0 mt-0.5 text-accent">
                       <Icon name="campaign" size={18} />
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1.5 mb-1">
-                        <Group gap={6} align="center" wrap="nowrap">
-                          <Badge size="xs" color="saal" variant="filled" radius="sm">
-                            増結運転のお知らせ
-                          </Badge>
-                          <Text fz={11} fw={700} c="dimmed">
+                        <div className="flex items-center gap-1.5 flex-nowrap">
+                          <Chip
+                            size="sm"
+                            variant="primary"
+                            className="text-[10px] font-bold text-white px-1.5 py-0 h-4"
+                            style={{ backgroundColor: lineColor }}
+                          >
+                            {trainNotice.cars ? '増結運転のお知らせ' : '発着番線変更のお知らせ'}
+                          </Chip>
+                          <span className="text-[11px] font-bold text-muted">
                             {trainNotice.note}
-                          </Text>
-                        </Group>
-                        <span className="shrink-0 text-slate-400 group-hover:text-saal transition-colors">
+                          </span>
+                        </div>
+                        <span className="shrink-0 text-muted group-hover:text-accent transition-colors">
                           <Icon name="open_in_new" size={15} />
                         </span>
                       </div>
-                      <Text fz={12.5} fw={700} c="saal" className="leading-snug underline-offset-2 group-hover:underline">
+                      <div className="text-[12.5px] font-bold text-accent leading-snug underline-offset-2 group-hover:underline">
                         {trainNotice.event.title}
-                      </Text>
+                      </div>
                       {trainNotice.event.description && (
-                        <Text fz={11} c="dimmed" className="mt-1 leading-snug">
+                        <p className="text-[11px] text-muted mt-1 leading-snug">
                           {trainNotice.event.description}
-                        </Text>
+                        </p>
                       )}
                     </div>
                   </div>
-                </a>
-              </Box>
+                </Link>
+              </div>
             )}
 
-            {/* Mantine Timeline による洗練された全区間時刻表 */}
-            <Box>
-              <Group justify="space-between" align="baseline" mb={12} wrap="nowrap">
-                <Text fz="xs" fw={700} c="dimmed">
+            {/* 全区間時刻表タイムライン */}
+            <div>
+              <div className="flex items-baseline justify-between mb-3">
+                <span className="text-xs font-bold text-muted">
                   停車駅・時刻（全区間）
-                </Text>
-                <Text fz={10.5} c="dimmed" fw={600}>
+                </span>
+                <span className="text-[10.5px] font-semibold text-muted">
                   {stopsToShow.length}駅
-                </Text>
-              </Group>
+                </span>
+              </div>
 
-              <Timeline
-                active={-1}
-                bulletSize={18}
-                lineWidth={2.5}
-                color={mantineColor}
-              >
-                {stopsToShow.map((s, i) => {
+              <RouteTimeline
+                items={stopsToShow}
+                lineColor={lineColor}
+                getItemKey={(s, i) => `${s.stationName}-${i}`}
+                getDataAttributes={(_, i) => ({ 'data-stop-index': i })}
+                isPassed={(_, i) =>
+                  status.kind === 'arrived'
+                    ? true
+                    : status.kind === 'before'
+                    ? false
+                    : status.kind === 'stopped'
+                    ? i < status.index
+                    : i <= status.index
+                }
+                isVehiclePosition={(_, i) =>
+                  status.kind === 'stopped' && status.index === i
+                }
+                showPing={(_, i) =>
+                  status.kind === 'stopped' && status.index === i
+                }
+                renderAfterRow={(_, i) => {
+                  const isRunningAfterThis = status.kind === 'running' && status.index === i;
+                  if (!isRunningAfterThis) return null;
+                  return (
+                    <div className="relative flex items-center gap-2.5 px-2 py-1 z-10">
+                      <div className="relative shrink-0 w-5 flex items-center justify-center">
+                        <span
+                          className="absolute w-4 h-4 rounded-full animate-ping opacity-60 pointer-events-none"
+                          style={{ backgroundColor: lineColor }}
+                        />
+                        <PentagonIcon lineColor={lineColor} size={14} />
+                      </div>
+                      <span
+                        className="text-[11px] font-bold"
+                        style={{ color: lineColor }}
+                      >
+                        走行中
+                      </span>
+                    </div>
+                  );
+                }}
+                renderContent={(s, i) => {
                   const isFirst = i === 0;
                   const isLast = i === stopsToShow.length - 1;
                   const isStoppedHere = status.kind === 'stopped' && status.index === i;
-                  const isRunningAfterThis = status.kind === 'running' && status.index === i;
-
-                  // すでに発車・通過済みの駅かどうか
                   const passed =
                     status.kind === 'arrived'
                       ? true
@@ -894,211 +943,114 @@ export const TrainDetailSheet: React.FC<TrainDetailSheetProps> = ({
                       : status.kind === 'stopped'
                       ? i < status.index
                       : i <= status.index;
-
-                  // この駅から次の駅へ向かう区間（下の線）がすでに通過済みかどうか
-                  // 駅間走行中（status.kind === 'running'）の status.index → status.index + 1 区間は現在走行中のため路線カラー実線とする
-                  const linePassed =
-                    status.kind === 'arrived'
-                      ? true
-                      : status.kind === 'before'
-                      ? false
-                      : i < status.index;
-
                   const isSelectable = !!s.stationId;
 
-                  // 駅の bullet（停車中は五角形電車アイコン、それ以外は標準）
-                  const customBullet = isStoppedHere ? (
-                    <PentagonIcon lineColor={lineColor} size={14} />
-                  ) : undefined;
-
                   return (
-                    <Timeline.Item
-                      key={`${s.stationName}-${i}`}
-                      bullet={customBullet}
-                      lineVariant="solid"
-                      style={
-                        !linePassed
-                          ? ({ '--item-border-color': 'var(--tl-color)' } as React.CSSProperties)
-                          : undefined
-                      }
-                      styles={
-                        !passed
-                          ? {
-                              itemBullet: {
-                                borderColor: 'var(--tl-color)',
-                                backgroundColor: 'var(--mantine-color-body)',
-                              },
-                            }
-                          : undefined
-                      }
+                    <button
+                      type="button"
+                      onClick={() => handleStopClick(s.stationId)}
+                      disabled={!isSelectable}
+                      className={`w-full flex items-center justify-between text-left transition-colors rounded-lg px-2 py-1 -my-1 ${
+                        isSelectable
+                          ? 'hover:bg-surface-secondary cursor-pointer'
+                          : 'cursor-default'
+                      }`}
                     >
-                      <UnstyledButton
-                        data-stop-index={i}
-                        onClick={() => handleStopClick(s.stationId)}
-                        style={{
-                          cursor: isSelectable ? 'pointer' : 'default',
-                          width: '100%',
-                        }}
-                      >
-                        <Group justify="space-between" wrap="nowrap" gap="xs">
-                          {/* 駅名 */}
-                          <Group gap={6} wrap="nowrap" align="center" className="min-w-0" style={{ flex: 1 }}>
-                            <Text
-                              fz={isSelectable ? 'sm' : 'xs'}
-                              fw={isStoppedHere ? 800 : isSelectable ? 700 : 500}
-                              c={passed ? 'dimmed' : undefined}
-                              style={{ whiteSpace: 'nowrap' }}
-                            >
-                              {cleanStationName(s.stationName)}
-                            </Text>
-                          </Group>
-
-                          {/* 到着時刻・発車時刻 ＆ 番線（全駅で縦一直線に揃う固定幅カラム設計） */}
-                          <Group gap={6} wrap="nowrap" align="center" justify="flex-end" style={{ flexShrink: 0 }}>
-                            {/* 到着・出発時刻スタック（全駅で着時刻と発時刻を明瞭に表示） */}
-                            <Stack gap={1} align="flex-end" justify="center" style={{ minWidth: 54 }}>
-                              {isFirst ? (
-                                <Text
-                                  fz="xs"
-                                  fw={isStoppedHere ? 800 : 700}
-                                  c={passed ? 'dimmed' : undefined}
-                                  className="tabular-nums"
-                                  style={{ whiteSpace: 'nowrap' }}
-                                >
-                                  {formatStopTime(s.dep)} 発
-                                </Text>
-                              ) : isLast ? (
-                                <Text
-                                  fz="xs"
-                                  fw={isStoppedHere ? 800 : 700}
-                                  c={passed ? 'dimmed' : undefined}
-                                  className="tabular-nums"
-                                  style={{ whiteSpace: 'nowrap' }}
-                                >
-                                  {formatStopTime(s.arr)} 着
-                                </Text>
-                              ) : (
-                                <>
-                                  <Text
-                                    fz={11}
-                                    fw={500}
-                                    c="dimmed"
-                                    className="tabular-nums"
-                                    lh={1.2}
-                                    style={{ whiteSpace: 'nowrap' }}
-                                  >
-                                    {formatStopTime(s.arr)} 着
-                                  </Text>
-                                  <Text
-                                    fz="xs"
-                                    fw={isStoppedHere ? 800 : 700}
-                                    c={passed ? 'dimmed' : undefined}
-                                    className="tabular-nums"
-                                    lh={1.2}
-                                    style={{ whiteSpace: 'nowrap' }}
-                                  >
-                                    {formatStopTime(s.dep)} 発
-                                  </Text>
-                                </>
-                              )}
-                            </Stack>
-
-                            {/* 番線カラム（固定幅42pxで必ず保持し、番線がない駅でも右端ラインを崩さない） */}
-                            <Box w={42} style={{ flexShrink: 0, textAlign: 'right' }}>
-                              {s.track ? (
-                                <Text fz="xs" c="dimmed" fw={600} style={{ whiteSpace: 'nowrap' }}>
-                                  {s.track}番線
-                                </Text>
-                              ) : null}
-                            </Box>
-                          </Group>
-                        </Group>
-                      </UnstyledButton>
-
-                      {/* 駅間を走行中の場合: 左のレール線上に五角形電車アイコンを配置 */}
-                      {isRunningAfterThis && (
-                        <Box
-                          mt={6}
-                          mb={2}
-                          style={{
-                            position: 'relative',
-                            display: 'flex',
-                            alignItems: 'center',
-                            minHeight: 18,
-                          }}
+                      {/* 駅名 */}
+                      <div className="min-w-0 flex-1 pr-2">
+                        <span
+                          className={`block truncate ${
+                            isSelectable ? 'text-sm' : 'text-xs'
+                          } ${
+                            isStoppedHere
+                              ? 'font-extrabold text-foreground'
+                              : isSelectable
+                              ? 'font-bold'
+                              : 'font-medium'
+                          } ${
+                            passed
+                              ? 'text-muted'
+                              : 'text-foreground'
+                          }`}
                         >
-                          {/* 左のレール線上に重なる五角形電車アイコン */}
-                          <Box
-                            style={{
-                              position: 'absolute',
-                              left: 'calc(-1 * (var(--tl-bullet-size, 18px) + var(--tl-line-width, 2.5px) * 1.5))',
-                              top: '50%',
-                              transform: 'translate(-50%, -50%)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              zIndex: 1,
-                            }}
-                          >
-                            <PentagonIcon lineColor={lineColor} size={14} />
-                          </Box>
+                          {cleanStationName(s.stationName)}
+                        </span>
+                      </div>
 
-                          {/* 案内テキスト */}
-                          <Text fz={11} fw={700} style={{ color: lineColor }}>
-                            走行中
-                          </Text>
-                        </Box>
-                      )}
-                    </Timeline.Item>
+                      {/* 到着時刻・発車時刻 ＆ 番線 */}
+                      <div className="flex items-center gap-1.5 shrink-0 justify-end">
+                        <div className="flex flex-col items-end justify-center min-w-[54px]">
+                          {isFirst ? (
+                            <span
+                              className={`text-xs tabular-nums whitespace-nowrap ${
+                                isStoppedHere
+                                  ? 'font-extrabold text-foreground'
+                                  : 'font-bold'
+                              } ${
+                                passed
+                                  ? 'text-muted'
+                                  : 'text-foreground'
+                              }`}
+                            >
+                              {formatStopTime(s.dep)} 発
+                            </span>
+                          ) : isLast ? (
+                            <span
+                              className={`text-xs tabular-nums whitespace-nowrap ${
+                                isStoppedHere
+                                  ? 'font-extrabold text-foreground'
+                                  : 'font-bold'
+                              } ${
+                                passed
+                                  ? 'text-muted'
+                                  : 'text-foreground'
+                              }`}
+                            >
+                              {formatStopTime(s.arr)} 着
+                            </span>
+                          ) : (
+                            <>
+                              <span className="text-[11px] font-medium text-muted tabular-nums whitespace-nowrap leading-[1.2]">
+                                {formatStopTime(s.arr)} 着
+                              </span>
+                              <span
+                                className={`text-xs tabular-nums whitespace-nowrap leading-[1.2] ${
+                                  isStoppedHere
+                                    ? 'font-extrabold text-foreground'
+                                    : 'font-bold'
+                                } ${
+                                  passed
+                                    ? 'text-muted'
+                                    : 'text-foreground'
+                                }`}
+                              >
+                                {formatStopTime(s.dep)} 発
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* 番線カラム */}
+                        <div className="w-[42px] shrink-0 text-right">
+                          {s.track ? (
+                            <span className="text-xs font-semibold text-muted whitespace-nowrap">
+                              {s.track}番線
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </button>
                   );
-                })}
-              </Timeline>
-            </Box>
-          </Stack>
+                }}
+              />
+            </div>
+          </div>
 
-          {/* 最下部スクロール時の余白 */}
           <div className="h-4 pb-safe" />
-        </div>
+        </ScrollShadow>
 
-        {/* シート引き上げ時の下端隙間防止エクステンション */}
-        <div className="absolute top-full inset-x-0 h-[120px] pointer-events-none glass-surface-strong" aria-hidden="true" />
+        <div className="absolute top-full inset-x-0 h-[120px] pointer-events-none bg-overlay" aria-hidden="true" />
       </div>
-    </div>
-  );
-};
-
-/** 静止した五角形トレインアイコン（下向き進行方向三角ノーズ ＋ 四角形車体） */
-const PentagonIcon: React.FC<{ lineColor: string; size?: number }> = ({ lineColor, size = 14 }) => {
-  const w = size;
-  const bodyH = Math.round(size * 0.6);
-  const noseH = Math.round(size * 0.4);
-
-  return (
-    <div
-      style={{
-        display: 'inline-flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          width: w,
-          height: bodyH,
-          backgroundColor: lineColor,
-          borderRadius: '2px 2px 0 0',
-        }}
-      />
-      <div
-        style={{
-          width: 0,
-          height: 0,
-          borderLeft: `${w / 2}px solid transparent`,
-          borderRight: `${w / 2}px solid transparent`,
-          borderTop: `${noseH}px solid ${lineColor}`,
-        }}
-      />
     </div>
   );
 };

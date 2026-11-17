@@ -5,9 +5,9 @@ import { TrainVision } from './TrainVision';
 import { TransferGuide } from './TransferGuide';
 import { FareTable } from './FareTable';
 import { JisStairs } from './icons';
-import { Icon } from './Icon';
 import { DebugControlPanel } from './DebugControlPanel';
-import { Group, Text, Title, CloseButton, Paper, UnstyledButton, Collapse, Box } from '@mantine/core';
+import { SectionHeader } from './common/SectionHeader';
+import { CloseButton, Card, Disclosure, Separator, ScrollShadow } from '@heroui/react';
 
 interface StationDetailSheetProps {
   station: Station | null;
@@ -20,7 +20,7 @@ interface StationSheetContentProps {
   onSelectTrain: (train: DepartureTrain) => void;
 }
 
-// コンテンツ部分を memo 化して、アニメーション中やヘッダー操作時の不要な仮想DOM再計算を完全防止
+// コンテンツ部分を memo 化して不要な再レンダリングを防止
 const StationSheetContent = React.memo<StationSheetContentProps>(({
   station,
   selectedTrain,
@@ -36,9 +36,10 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
     <>
       {/* 1. 発車案内 */}
       <section>
-        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
-          発車案内
-        </Text>
+        <SectionHeader
+          title="発車案内"
+          indicatorColor="#2A5CAA"
+        />
         {/* デバッグモード（?debug=1）時のみ表示される電光掲示板直上操作パネル */}
         <DebugControlPanel variant="sheet" isSendai={station.id === 'sendai'} />
         <LedDepartureBoard
@@ -48,66 +49,62 @@ const StationSheetContent = React.memo<StationSheetContentProps>(({
         />
       </section>
 
+      <Separator className="my-1 border-border" />
+
       {/* 2. 乗り換え案内 */}
       <section>
-        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
-          接続路線・バス
-        </Text>
+        <SectionHeader
+          title="接続路線・バス"
+          indicatorColor="#3CB371"
+        />
         <TransferGuide station={station} />
       </section>
 
+      <Separator className="my-1 border-border" />
+
       {/* 3. 運賃一覧 */}
       <section>
-        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
-          きっぷ・IC運賃表
-        </Text>
+        <SectionHeader
+          title="きっぷ・IC運賃表"
+          indicatorColor="#0067C0"
+        />
         <FareTable currentStation={station} />
       </section>
 
+      <Separator className="my-1 border-border" />
+
       {/* 4. 階段・改札口案内（折りたたみ式・初期状態は閉） */}
       <section className="pb-4">
-        <Text fz="xs" fw={700} c="dimmed" mb={6} px={2}>
-          階段・改札口案内
-        </Text>
-        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
-          <UnstyledButton
-            onClick={() => setIsTrainVisionOpen((prev) => !prev)}
-            w="100%"
-            px={14}
-            py={10}
-            aria-expanded={isTrainVisionOpen}
-          >
-            <Group justify="space-between" wrap="nowrap" gap="xs">
-              <Group gap="xs" wrap="nowrap">
-                <JisStairs size={16} />
-                <Text fw={800} fz="xs">
-                  {station.name}駅の階段・改札口・設備位置
-                </Text>
-              </Group>
-              <Icon
-                name="expand_more"
-                size={18}
-                className={`text-slate-400 transition-transform duration-200 ${
-                  isTrainVisionOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </Group>
-          </UnstyledButton>
-          <Collapse expanded={isTrainVisionOpen}>
-            <Box
-              p="xs"
-              style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
-            >
-              <TrainVision
-                station={station}
-                selectedTrain={selectedTrain}
-              />
-            </Box>
-          </Collapse>
-        </Paper>
+        <SectionHeader
+          title="階段・改札口案内"
+          indicatorColor="var(--muted)"
+        />
+        <Card className="gap-0 p-0 overflow-hidden border border-border rounded-2xl bg-surface">
+          <Disclosure isExpanded={isTrainVisionOpen} onExpandedChange={setIsTrainVisionOpen}>
+            <Disclosure.Heading>
+              <Disclosure.Trigger className="w-full flex items-center justify-between px-3.5 py-2.5 text-left transition-colors hover:bg-surface-secondary cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <JisStairs size={16} />
+                  <span className="text-xs font-extrabold text-foreground">
+                    {station.name}駅の階段・改札口・設備位置
+                  </span>
+                </div>
+                <Disclosure.Indicator className="text-muted transition-transform duration-200" />
+              </Disclosure.Trigger>
+            </Disclosure.Heading>
+            <Disclosure.Content>
+              <Disclosure.Body className="p-2.5 border-t border-border">
+                <TrainVision
+                  station={station}
+                  selectedTrain={selectedTrain}
+                />
+              </Disclosure.Body>
+            </Disclosure.Content>
+          </Disclosure>
+        </Card>
       </section>
 
-      {/* 最下部スクロール時の余白（最下部までスクロールして上に引っ張ったときは同色背景が自然に追従） */}
+      {/* 最下部スクロール時の余白 */}
       <div className="h-4 pb-safe" />
     </>
   );
@@ -121,6 +118,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 }) => {
   const [activeStation, setActiveStation] = useState<Station | null>(station);
   const [selectedTrain, setSelectedTrain] = useState<DepartureTrain | null>(null);
+  const [isEntering, setIsEntering] = useState(true);
 
   // 閉じるフラグを ref で管理し、アニメーション中の React 再レンダリング（メインスレッド占有）を完全ゼロ化
   const isClosingRef = useRef(false);
@@ -142,6 +140,16 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
   const handleSelectTrain = useCallback((train: DepartureTrain) => {
     setSelectedTrain(train);
   }, []);
+
+  // 進入アニメーション（450ms）完了後に isEntering を確実に false にリセット
+  useEffect(() => {
+    if (isEntering) {
+      const timer = setTimeout(() => {
+        setIsEntering(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isEntering]);
 
   // コンポーネント破棄時にタイマーおよびリスナーをクリーンアップ
   useEffect(() => {
@@ -170,18 +178,17 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       }
       isClosingRef.current = false;
       setActiveStation(station);
+      setIsEntering(true);
       if (containerRef.current) {
         containerRef.current.style.removeProperty('pointer-events');
       }
       if (sheetRef.current) {
-        sheetRef.current.classList.add('m3-sheet-enter');
         sheetRef.current.style.removeProperty('transform');
         sheetRef.current.style.removeProperty('transition');
         sheetRef.current.style.removeProperty('animation');
         sheetRef.current.style.removeProperty('pointer-events');
       }
       if (scrimRef.current) {
-        scrimRef.current.classList.add('m3-scrim-enter');
         scrimRef.current.style.removeProperty('opacity');
         scrimRef.current.style.removeProperty('transition');
         scrimRef.current.style.removeProperty('animation');
@@ -228,6 +235,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       ? 'cubic-bezier(0.16, 1, 0.3, 1)'
       : 'cubic-bezier(0.3, 0.0, 0.8, 0.15)';
 
+    setIsEntering(false);
     if (sheet) {
       sheet.style.animation = 'none';
       sheet.classList.remove('m3-sheet-enter');
@@ -261,7 +269,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
     // transitionend イベントによるアニメーション完了検知
     const onTransitionEnd = (e: TransitionEvent) => {
-      if (e.target === sheet && e.propertyName === 'transform') {
+      if (e.target === sheet && e.currentTarget === sheet && e.propertyName === 'transform') {
         cleanup();
       }
     };
@@ -346,6 +354,7 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
 
     // シートのインライン変位を即座にドラッグ状態にセット
     const prepareSheetForDrag = () => {
+      setIsEntering(false);
       sheet.style.animation = 'none';
       sheet.classList.remove('m3-sheet-enter');
       sheet.style.setProperty('transition', 'none', 'important');
@@ -650,81 +659,79 @@ export const StationDetailSheet: React.FC<StationDetailSheetProps> = ({
       ref={containerRef}
       className="fixed inset-0 z-40 flex flex-col justify-end pt-[calc(env(safe-area-inset-top,0px)+3.5rem)] overflow-hidden"
     >
-      {/* 背景オーバーレイ（背後の路線図はぼかさず、ボトムシート自身のすりガラス効果で屈折させる） */}
+      {/* 背景オーバーレイ */}
       <div
         ref={scrimRef}
         onAnimationEnd={(e) => {
-          if (e.animationName === 'm3ScrimEnter' && scrimRef.current) {
-            scrimRef.current.classList.remove('m3-scrim-enter');
+          if (e.target === scrimRef.current && e.animationName === 'm3ScrimEnter') {
+            setIsEntering(false);
           }
         }}
-        className="fixed inset-0 bg-slate-900/15 dark:bg-black/40 m3-scrim m3-scrim-enter"
+        className={`fixed inset-0 bg-backdrop m3-scrim ${isEntering ? 'm3-scrim-enter' : ''}`}
         onClick={() => handleClose(false)}
       />
 
-      {/* ボトムシート（sendai-bus-map-v2 #bottom-panel 準拠のガラスサーフェス仕様） */}
+      {/* ボトムシート */}
       <div
         ref={sheetRef}
         onAnimationEnd={(e) => {
-          if (e.animationName === 'm3SheetEnter' && sheetRef.current) {
-            sheetRef.current.classList.remove('m3-sheet-enter');
+          if (e.target === sheetRef.current && e.animationName === 'm3SheetEnter') {
+            setIsEntering(false);
           }
         }}
-        className="relative z-50 w-full max-w-md mx-auto glass-surface-strong rounded-t-3xl shadow-glass-lg flex flex-col h-[78vh] h-[calc(100dvh-5.5rem)] border-t border-white/80 dark:border-slate-700/80 m3-bottom-sheet m3-sheet-enter"
+        className={`relative z-50 w-full max-w-md mx-auto bg-overlay text-overlay-foreground shadow-overlay border-t border-border rounded-t-3xl flex flex-col h-[78vh] h-[calc(100dvh-5.5rem)] m3-bottom-sheet ${isEntering ? 'm3-sheet-enter' : ''}`}
       >
         {/* シートヘッダー（ドラッグ／下スワイプで閉じられる領域） */}
         <div
           ref={headerRef}
-          className="pt-2.5 pb-3 px-4 bg-transparent rounded-t-3xl border-b border-[var(--mantine-color-default-border)] shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
+          className="pt-2.5 pb-3 px-4 bg-transparent rounded-t-3xl shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
         >
           {/* ドラッグハンドルバー */}
-          <div
-            className="w-12 h-1.5 rounded-full mx-auto mb-2.5 pointer-events-none"
-            style={{ backgroundColor: 'var(--mantine-color-default-border)' }}
-          />
+          <div className="w-12 h-1.5 rounded-full mx-auto mb-2.5 pointer-events-none bg-muted/30" />
 
-          <Group justify="space-between" align="center" wrap="nowrap">
-            <div className="pointer-events-none" style={{ minWidth: 0, flex: 1 }}>
-              <Group gap={8} align="baseline" wrap="nowrap">
-                <Title order={2} fz={20} fw={800} className="tracking-tight">
+          <div className="flex items-center justify-between gap-2">
+            <div className="pointer-events-none min-w-0 flex-1">
+              <div className="flex items-baseline gap-2">
+                <h2 className="text-xl font-extrabold tracking-tight text-foreground">
                   {activeStation.name}駅
-                </Title>
-                <Text fz="xs" c="dimmed">
+                </h2>
+                <span className="text-xs text-muted">
                   {activeStation.nameKana}
-                </Text>
-              </Group>
-              <Text fz={11} c="dimmed" className="font-english">
+                </span>
+              </div>
+              <p className="text-[11px] text-muted font-english">
                 {activeStation.nameEn} Station
-              </Text>
+              </p>
             </div>
 
-            {/* 閉じるボタン（Mantine CloseButton） */}
+            {/* 閉じるボタン（HeroUI CloseButton） */}
             <CloseButton
-              size="lg"
-              radius="xl"
-              variant="default"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClose(false);
-              }}
+              onPress={() => handleClose(false)}
               aria-label="閉じる"
-              className="pointer-events-auto"
+              className="pointer-events-auto shrink-0"
             />
-          </Group>
+          </div>
         </div>
 
+        <Separator />
+
         {/* コンテンツ領域 */}
-        <div ref={contentRef} className="flex-1 min-h-0 p-3.5 pb-8 overflow-y-auto space-y-4 overscroll-contain">
+        <ScrollShadow
+          ref={contentRef}
+          className="flex-1 min-h-0 p-3.5 pb-8 overflow-y-auto space-y-4 overscroll-contain"
+        >
           <StationSheetContent
             station={activeStation}
             selectedTrain={selectedTrain}
             onSelectTrain={handleSelectTrain}
           />
-        </div>
+        </ScrollShadow>
 
         {/* シート引き上げ時の下端隙間防止エクステンション */}
-        <div className="absolute top-full inset-x-0 h-[120px] pointer-events-none glass-surface-strong" aria-hidden="true" />
+        <div className="absolute top-full inset-x-0 h-[120px] pointer-events-none bg-overlay" aria-hidden="true" />
       </div>
     </div>
   );
 };
+
+export default StationDetailSheet;

@@ -1,20 +1,17 @@
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   Modal,
-  SegmentedControl,
-  ScrollArea,
-  Badge,
-  Group,
-  Text,
-  Stack,
-  Timeline,
+  Tabs,
   Button,
-  Box,
-  Title,
+  Chip,
+  CloseButton,
+  Spinner,
   Skeleton,
-  Loader,
-  Center,
-} from '@mantine/core';
+  ScrollShadow,
+  ListBox,
+  EmptyState,
+  Separator,
+} from '@heroui/react';
 import { getCurrentRailwaySeconds } from '../utils/trainPosition';
 import {
   SENDAI_BUS_COLOR,
@@ -30,10 +27,10 @@ import { JisBus } from './icons';
 import { Icon } from './Icon';
 import { BusRouteBadge } from './BusRouteBadge';
 import {
-  BusDepartureRow,
   BusDepartureRowSkeleton,
   formatHeadsign,
 } from './BusDepartureRow';
+import { RouteTimeline } from './RouteTimeline';
 
 interface SendaiBusTimetableModalProps {
   isOpen: boolean;
@@ -45,45 +42,6 @@ interface SendaiBusTimetableModalProps {
   initialFilterKey?: string | null;
   now: Date;
 }
-
-/** 静止した五角形バスアイコン（下向き進行方向ノーズ ＋ 四角形車体） */
-const PentagonIcon: React.FC<{ lineColor: string; size?: number }> = ({
-  lineColor,
-  size = 14,
-}) => {
-  const w = size;
-  const bodyH = Math.round(size * 0.6);
-  const noseH = Math.round(size * 0.4);
-
-  return (
-    <div
-      style={{
-        display: 'inline-flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          width: w,
-          height: bodyH,
-          backgroundColor: lineColor,
-          borderRadius: '2px 2px 0 0',
-        }}
-      />
-      <div
-        style={{
-          width: 0,
-          height: 0,
-          borderLeft: `${w / 2}px solid transparent`,
-          borderRight: `${w / 2}px solid transparent`,
-          borderTop: `${noseH}px solid ${lineColor}`,
-        }}
-      />
-    </div>
-  );
-};
 
 const DAY_TYPE_LABELS: Record<SendaiBusDayType, string> = {
   weekday: '平日ダイヤ',
@@ -118,9 +76,11 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
   // バス停ごとのリアルタイム遅延秒数マップ (stopId -> delaySec)
   const [stopDelays, setStopDelays] = useState<Record<string, number>>({});
 
-  // モーダルが開いたときに初期状態を同期
+  const prevOpenRef = useRef(false);
+
+  // モーダルが開いた瞬間（false -> true）のみ初期状態を同期
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevOpenRef.current) {
       setDayType(getSendaiBusDayType(now));
       setSelectedFilterKey(initialFilterKey || null);
       if (initialDepartureId) {
@@ -131,7 +91,8 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
         setOpenedFromList(false);
       }
     }
-  }, [isOpen, stationSchedule?.stationId, initialFilterKey, initialDepartureId]);
+    prevOpenRef.current = isOpen;
+  }, [isOpen, stationSchedule?.stationId, initialFilterKey, initialDepartureId, now]);
 
   // 現在時刻（4:00基準の鉄道秒・分）
   const currentSec = useMemo(() => getCurrentRailwaySeconds(now), [now]);
@@ -193,6 +154,13 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
       cancelled = true;
     };
   }, [selectedDeparture?.routeId, selectedDeparture?.tripId, isTodayCal]);
+
+  // ダイヤ種別変更時は便選択をリセット
+  const handleDayTypeChange = (newDay: SendaiBusDayType) => {
+    setSelectedDepartureId(null);
+    setOpenedFromList(false);
+    setDayType(newDay);
+  };
 
   // スケルトンローダーのチラつき・フラッシュ防止用の最低表示時間管理
   const rawLoading = Boolean(isLoading || !stationSchedule);
@@ -258,7 +226,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
   const isScheduleLoaded = Boolean(stationSchedule);
 
   const listViewportRef = useRef<HTMLDivElement>(null);
-  const timelineViewportRef = useRef<HTMLDivElement>(null);
+  const detailViewportRef = useRef<HTMLDivElement>(null);
 
   // 初期スクロール完了フラグ（初期スクロール前に上端トリガーが暴発するのを防止）
   const hasInitialScrolledRef = useRef(false);
@@ -340,17 +308,16 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
   }, [filteredDepartures.length]);
 
   // スクロール監視：上端・下端に近づいたら自動読み込み（インフィニットスクロール）
-  const handleScrollPositionChange = useCallback(
-    ({ y }: { x: number; y: number }) => {
-      const vp = listViewportRef.current;
-      if (!vp) return;
+  const handleListScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
 
       // 初期スクロール完了前は上端トリガーを抑制
       if (!hasInitialScrolledRef.current) return;
 
-      const scrollTop = y;
-      const clientHeight = vp.clientHeight;
-      const scrollHeight = vp.scrollHeight;
+      const scrollTop = el.scrollTop;
+      const clientHeight = el.clientHeight;
+      const scrollHeight = el.scrollHeight;
 
       // 下端に近づいた（残り150px以内）
       if (scrollTop + clientHeight >= scrollHeight - 150) {
@@ -425,7 +392,7 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
     if (!isOpen || !selectedDeparture) return;
 
     const scrollToBoardingStop = () => {
-      const viewport = timelineViewportRef.current;
+      const viewport = detailViewportRef.current;
       if (!viewport) return;
 
       const targetIdx = selectedDeparture.boardingStopIndex;
@@ -464,300 +431,224 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
 
   return (
     <Modal
-      opened={isOpen}
-      onClose={onClose}
-      title={
-        <Group gap={8} wrap="nowrap" align="center">
-          <JisBus size={18} color={SENDAI_BUS_COLOR} />
-          <Text fw={900} fz={15}>
-            {titleStationName ? `${titleStationName}駅 ` : ''}
-            {isTripDetail
-              ? '仙台市営バス運行詳細'
-              : '仙台市営バス時刻表'}
-          </Text>
-        </Group>
-      }
-      centered
-      size="md"
-      radius="lg"
-      padding={0}
-      zIndex={1000}
-      overlayProps={{ backgroundOpacity: 0.55, blur: 3 }}
-      styles={{
-        content: {
-          height: 'calc(100dvh - 4rem)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        },
-        header: {
-          borderBottom: '1px solid var(--mantine-color-default-border)',
-          paddingInline: 14,
-          minHeight: 50,
-        },
-        title: { fontWeight: 900, fontSize: 15 },
-        body: {
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-        },
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
       }}
     >
-      {isModalLoading ? (
-        /* ========== 読み込み中スケルトンローダー（最低高さ360px・CLS防止） ========== */
-        <>
-          <Stack
-            gap={6}
-            p="sm"
-            style={{
-              flexShrink: 0,
-              borderBottom: '1px solid var(--mantine-color-default-border)',
-              backgroundColor: 'var(--mantine-color-default-hover)',
-            }}
+      <Modal.Backdrop>
+        <Modal.Container size="md" placement="center" scroll="inside">
+          <Modal.Dialog
+            aria-label="仙台市営バス時刻表"
+            className="p-0 gap-0 overflow-hidden flex flex-col h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] w-full max-w-md rounded-2xl bg-surface text-foreground border border-border shadow-2xl"
           >
-            {/* 平日 / 土曜 / 日祝 ダイヤ切り替えスケルトン */}
-            <Skeleton height={28} radius="sm" />
+            {/* モーダルヘッダー */}
+            <div className="flex items-center justify-between px-4 py-3 bg-surface shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <JisBus size={18} color={SENDAI_BUS_COLOR} />
+                <h2 className="text-[15px] font-black truncate text-foreground">
+                  {titleStationName ? `${titleStationName}駅 ` : ''}
+                  {isTripDetail
+                    ? '仙台市営バス運行詳細'
+                    : '仙台市営バス時刻表'}
+                </h2>
+              </div>
+              <CloseButton onPress={onClose} aria-label="閉じる" />
+            </div>
+            <Separator />
 
-            {/* のりば選択ピルスケルトン */}
-            <Box pt={4} pb={2}>
-              <Group gap={6} wrap="nowrap">
-                <Skeleton width={80} height={24} radius="xl" />
-                <Skeleton width={64} height={24} radius="xl" />
-                <Skeleton width={64} height={24} radius="xl" />
-                <Skeleton width={64} height={24} radius="xl" />
-              </Group>
-            </Box>
-          </Stack>
+            {isModalLoading ? (
+              /* ========== 読み込み中スケルトンローダー（最低高さ360px・CLS防止） ========== */
+              <>
+                <div className="p-3 shrink-0 bg-surface-secondary flex flex-col gap-1.5">
+                  {/* 平日 / 土曜 / 日祝 ダイヤ切り替えスケルトン */}
+                  <Skeleton className="h-7 w-full rounded-md" />
 
-          {/* 時刻表一覧スクロール領域（最低高さ360px確保、実寸行と完全一致） */}
-          <ScrollArea
-            type="auto"
-            data-scrollable="true"
-            style={{ flex: 1, minHeight: 360 }}
-            viewportProps={{
-              style: { overscrollBehavior: 'contain' },
-            }}
-          >
-            <Stack gap={0} pb="xl">
-              {Array.from({ length: 8 }).map((_, idx) => (
-                <BusDepartureRowSkeleton
-                  key={idx}
-                  isLast={idx === 7}
-                />
-              ))}
-            </Stack>
-          </ScrollArea>
-        </>
-      ) : selectedDeparture ? (
-        /* ========== 機能2：全停車バス停タイムライン表示 ========== */
-        <>
-          <Stack
-            gap={8}
-            p="sm"
-            style={{
-              flexShrink: 0,
-              borderBottom: '1px solid var(--mantine-color-default-border)',
-              backgroundColor: 'var(--mantine-color-default-hover)',
-            }}
-          >
-            <Group justify="space-between" align="center" wrap="wrap" gap={8}>
-              {openedFromList ? (
-                <Button
-                  size="compact-xs"
-                  variant="default"
-                  radius="md"
-                  leftSection={<Icon name="arrow_back" size={14} />}
-                  onClick={() => {
-                    setSelectedDepartureId(null);
-                    setOpenedFromList(false);
-                  }}
-                  fw={700}
-                >
-                  時刻表に戻る
-                </Button>
-              ) : (
-                <Text fz={12} fw={700} c="dimmed">
-                  運行状況・全停車バス停
-                </Text>
-              )}
-              <Group gap={6} wrap="nowrap">
-                <Badge
-                  size="xs"
-                  radius="sm"
-                  color={
-                    dayType === 'holiday'
-                      ? 'red'
-                      : dayType === 'saturday'
-                        ? 'blue'
-                        : 'gray'
-                  }
-                  variant="light"
-                  tt="none"
-                >
-                  {DAY_TYPE_LABELS[dayType]}
-                </Badge>
-                <Badge size="xs" radius="sm" variant="default" fw={700} tt="none">
-                  {selectedDeparture.stopName}
-                  {selectedDeparture.platform
-                    ? ` (${selectedDeparture.platform})`
-                    : ''}
-                </Badge>
-              </Group>
-            </Group>
+                  {/* のりば選択ピルスケルトン */}
+                  <div className="pt-1 pb-0.5 flex gap-1.5 overflow-x-hidden">
+                    <Skeleton className="h-6 w-20 rounded-full shrink-0" />
+                    <Skeleton className="h-6 w-16 rounded-full shrink-0" />
+                    <Skeleton className="h-6 w-16 rounded-full shrink-0" />
+                    <Skeleton className="h-6 w-16 rounded-full shrink-0" />
+                  </div>
+                </div>
+                <Separator />
 
-            <Group justify="space-between" align="center" wrap="nowrap" pt={2}>
-              <Group gap={8} align="center" wrap="nowrap" className="min-w-0">
-                <Box
-                  w={4}
-                  h={36}
-                  style={{
-                    backgroundColor: selectedDeparture.routeColor,
-                    borderRadius: 2,
-                    flexShrink: 0,
-                  }}
-                />
-                <Stack gap={2} className="min-w-0">
-                  <Group gap={6} align="center" wrap="nowrap">
-                    <BusRouteBadge
-                      routeCode={selectedDeparture.routeCode}
-                      color={selectedDeparture.routeColor}
-                      textColor={selectedDeparture.routeTextColor}
-                      size="sm"
-                    />
-                    {selectedDeparture.via && (
-                      <Text fz="xs" fw={700} c="dimmed" className="truncate">
-                        {selectedDeparture.via}経由
-                      </Text>
+                {/* 時刻表一覧スクロール領域（最低高さ360px確保、実寸行と完全一致） */}
+                <ScrollShadow className="flex-1 min-h-[360px] overflow-y-auto overscroll-contain">
+                  <div className="flex flex-col pb-6">
+                    {Array.from({ length: 8 }).map((_, idx) => (
+                      <BusDepartureRowSkeleton
+                        key={idx}
+                        isLast={idx === 7}
+                      />
+                    ))}
+                  </div>
+                </ScrollShadow>
+              </>
+            ) : selectedDeparture ? (
+              /* ========== 機能2：全停車バス停タイムライン表示 ========== */
+              <>
+                <div className="p-3 shrink-0 bg-surface-secondary flex flex-col gap-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    {openedFromList ? (
+                      <Button
+                        size="sm"
+                        variant="tertiary"
+                        onPress={() => {
+                          setSelectedDepartureId(null);
+                          setOpenedFromList(false);
+                        }}
+                        className="font-bold text-xs h-7 px-2.5 rounded-md flex items-center gap-1"
+                      >
+                        <Icon name="arrow_back" size={14} />
+                        <span>時刻表に戻る</span>
+                      </Button>
+                    ) : (
+                      <span className="text-xs font-bold text-muted">
+                        運行状況・全停車バス停
+                      </span>
                     )}
-                  </Group>
-                  <Title order={3} fz={16} fw={800} lh={1.2} className="truncate">
-                    {formatHeadsign(selectedDeparture.headsign)}
-                  </Title>
-                </Stack>
-              </Group>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Chip
+                        size="sm"
+                        variant="soft"
+                        color={
+                          dayType === 'holiday'
+                            ? 'danger'
+                            : dayType === 'saturday'
+                              ? 'accent'
+                              : 'default'
+                        }
+                        className="font-bold text-[11px]"
+                      >
+                        {DAY_TYPE_LABELS[dayType]}
+                      </Chip>
+                      <Chip
+                        size="sm"
+                        variant="secondary"
+                        className="font-bold text-[11px]"
+                      >
+                        {selectedDeparture.stopName}
+                        {selectedDeparture.platform
+                          ? ` (${selectedDeparture.platform})`
+                          : ''}
+                      </Chip>
+                    </div>
+                  </div>
 
-              <Stack gap={2} align="flex-end" style={{ flexShrink: 0 }}>
-                {isTodayCal && selectedDeparture.isDelayed && selectedDeparture.expectedTime ? (
-                  <Group gap={6} align="baseline" wrap="nowrap" justify="flex-end">
-                    <del
-                      style={{
-                        color: 'var(--mantine-color-dimmed)',
-                        fontWeight: 500,
-                        fontSize: 12,
-                      }}
-                      className="font-english tabular-nums"
-                    >
-                      {selectedDeparture.departureTime}
-                    </del>
-                    <span
-                      style={{ color: 'var(--mantine-color-text)', fontWeight: 800, fontSize: 16 }}
-                      className="font-english tabular-nums"
-                    >
-                      {selectedDeparture.expectedTime}発
-                    </span>
-                  </Group>
-                ) : (
-                  <Text fz={16} fw={800} className="font-english tabular-nums">
-                    {selectedDeparture.departureTime}発
-                  </Text>
-                )}
-                <Text fz={11} c="dimmed" fw={600} className="font-english tabular-nums">
-                  終着 {selectedDeparture.terminalArrivalTime}着
-                </Text>
-              </Stack>
-            </Group>
-          </Stack>
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-1 h-9 rounded-sm shrink-0"
+                        style={{ backgroundColor: selectedDeparture.routeColor }}
+                      />
+                      <div className="flex flex-col min-w-0 gap-0.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <BusRouteBadge
+                            routeCode={selectedDeparture.routeCode}
+                            color={selectedDeparture.routeColor}
+                            textColor={selectedDeparture.routeTextColor}
+                            size="sm"
+                          />
+                          {selectedDeparture.via && (
+                            <span className="text-xs font-bold text-muted truncate">
+                              {selectedDeparture.via}経由
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-base font-extrabold leading-tight truncate text-foreground">
+                          {formatHeadsign(selectedDeparture.headsign)}
+                        </h3>
+                      </div>
+                    </div>
 
-          <ScrollArea
-            viewportRef={timelineViewportRef}
-            type="auto"
-            data-scrollable="true"
-            style={{ flex: 1, minHeight: 0 }}
-            viewportProps={{
-              style: { overscrollBehavior: 'contain' },
-            }}
-          >
-            <Box p="md" pb="xl">
-              <Group justify="space-between" align="baseline" mb={12} wrap="nowrap">
-                <Text fz="xs" fw={700} c="dimmed">
-                  全停車バス停・発着時刻タイムライン
-                </Text>
-                <Text fz={10.5} c="dimmed" fw={600}>
-                  全{selectedDeparture.stops.length}停留所
-                </Text>
-              </Group>
+                    <div className="flex flex-col items-end shrink-0 gap-0.5">
+                      {isTodayCal && selectedDeparture.isDelayed && selectedDeparture.expectedTime ? (
+                        <div className="flex items-baseline justify-end gap-1.5 whitespace-nowrap">
+                          <del className="text-xs font-medium text-muted font-english tabular-nums">
+                            {selectedDeparture.departureTime}
+                          </del>
+                          <span className="text-base font-extrabold text-foreground font-english tabular-nums">
+                            {selectedDeparture.expectedTime}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-base font-extrabold text-foreground font-english tabular-nums">
+                          {selectedDeparture.departureTime}
+                        </span>
+                      )}
+                      <span className="text-[11px] font-semibold text-muted font-english tabular-nums">
+                        終着 {selectedDeparture.terminalArrivalTime}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
 
-              {(() => {
-                const stops = selectedDeparture.stops;
-                const delayMin = isTodayCal ? selectedDeparture.delayMinutes : 0;
-                const firstMin = (stops[0]?.scheduledMinutes ?? 0) + delayMin;
-                const lastMin =
-                  (stops[stops.length - 1]?.scheduledMinutes ?? 0) + delayMin;
-                const isCurrentlyRunning =
-                  isTodayCal &&
-                  currentMinutes >= firstMin &&
-                  currentMinutes <= lastMin;
+                <ScrollShadow
+                  ref={detailViewportRef}
+                  data-scrollable="true"
+                  className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+                >
+                  <div className="p-4 pb-8">
+                    <div className="flex items-baseline justify-between mb-3">
+                      <span className="text-xs font-bold text-muted">
+                        全停車バス停・時刻タイムライン
+                      </span>
+                      <span className="text-[10.5px] font-semibold text-muted">
+                        全{selectedDeparture.stops.length}停留所
+                      </span>
+                    </div>
 
-                let currentStopIdx = -1;
-                if (isCurrentlyRunning) {
-                  for (let i = 0; i < stops.length; i++) {
-                    if (currentMinutes >= stops[i].scheduledMinutes + delayMin) {
-                      currentStopIdx = i;
-                    }
-                  }
-                }
+                    {(() => {
+                      const stops = selectedDeparture.stops;
+                      const delayMin = isTodayCal ? selectedDeparture.delayMinutes : 0;
+                      const firstMin = (stops[0]?.scheduledMinutes ?? 0) + delayMin;
+                      const lastMin =
+                        (stops[stops.length - 1]?.scheduledMinutes ?? 0) + delayMin;
+                      const isCurrentlyRunning =
+                        isTodayCal &&
+                        currentMinutes >= firstMin &&
+                        currentMinutes <= lastMin;
 
-                const boardingIdx = selectedDeparture.boardingStopIndex;
+                      let currentStopIdx = -1;
+                      if (isCurrentlyRunning) {
+                        for (let i = 0; i < stops.length; i++) {
+                          if (currentMinutes >= stops[i].scheduledMinutes + delayMin) {
+                            currentStopIdx = i;
+                          }
+                        }
+                      }
 
-                return (
-                  <Timeline active={-1} bulletSize={18} lineWidth={2.5}>
-                    {stops.map((st, i) => {
-                      const isLast = i === stops.length - 1;
-                      const isBoarding = i === boardingIdx;
-                      const isCurrentPos =
-                        isCurrentlyRunning && i === currentStopIdx;
-
-                      // 乗車バス停より前のバス停、または本日運行中で既に通過済みのバス停は控えめなグレーにする
-                      const passed =
-                        i < boardingIdx ||
-                        (isCurrentlyRunning && i < currentStopIdx);
-                      const linePassed =
-                        i < boardingIdx ||
-                        (isCurrentlyRunning && i < currentStopIdx);
-
-                      const customBullet = isCurrentPos ? (
-                        <PentagonIcon lineColor={selectedDeparture.routeColor} size={14} />
-                      ) : undefined;
+                      const boardingIdx = selectedDeparture.boardingStopIndex;
 
                       return (
-                        <Timeline.Item
-                          key={`${st.stopId}-${st.stopSequence}`}
-                          bullet={customBullet}
-                          lineVariant="solid"
-                          style={
-                            !linePassed
-                              ? ({
-                                  '--item-border-color': selectedDeparture.routeColor,
-                                } as React.CSSProperties)
-                              : undefined
+                        <RouteTimeline
+                          items={stops}
+                          lineColor={selectedDeparture.routeColor}
+                          getItemKey={(st) => `${st.stopId}-${st.stopSequence}`}
+                          getDataAttributes={(_, i) => ({ 'data-sendai-bus-stop-index': i })}
+                          isPassed={(_, i) =>
+                            i < boardingIdx || (isCurrentlyRunning && i < currentStopIdx)
                           }
-                          styles={
-                            !passed
-                              ? {
-                                  itemBullet: {
-                                    borderColor: selectedDeparture.routeColor,
-                                    backgroundColor: isBoarding
-                                      ? selectedDeparture.routeColor
-                                      : 'var(--mantine-color-body)',
-                                  },
-                                }
-                              : undefined
+                          isCurrent={(_, i) => i === boardingIdx}
+                          isVehiclePosition={(_, i) =>
+                            isCurrentlyRunning && i === currentStopIdx
                           }
-                        >
-                          {(() => {
-                            // バス停ごとのリアルタイム遅延秒数（APIの遅延秒数マップ、なければ便全体の遅延）
+                          getRowStyle={(_, i) => ({
+                            backgroundColor:
+                              i === boardingIdx
+                                ? `${selectedDeparture.routeColor}1A`
+                                : undefined,
+                          })}
+                          renderContent={(st, i) => {
+                            const isLast = i === stops.length - 1;
+                            const isBoarding = i === boardingIdx;
+                            const passed =
+                              i < boardingIdx ||
+                              (isCurrentlyRunning && i < currentStopIdx);
+
                             const stopDelaySec = isTodayCal
                               ? (stopDelays[st.stopId] ?? selectedDeparture.delaySec ?? 0)
                               : 0;
@@ -766,297 +657,260 @@ export const SendaiBusTimetableModal: React.FC<SendaiBusTimetableModalProps> = (
                               ? calcExpectedTime(st.time, stopDelaySec)
                               : null;
 
-                            const timeSuffix = i <= boardingIdx && !isLast ? '発' : '着';
-
                             return (
-                              <Box
-                                data-sendai-bus-stop-index={i}
-                                py={4}
-                                px={6}
-                                style={{
-                                  borderRadius: 'var(--mantine-radius-sm)',
-                                  backgroundColor: isBoarding
-                                    ? `${selectedDeparture.routeColor}1F`
-                                    : undefined,
-                                }}
-                              >
-                                <Group justify="space-between" wrap="nowrap" align="center" gap="sm">
-                                  {/* 左側: バス停名 ＋ のりば番号 */}
-                                  <Group gap={6} wrap="nowrap" align="center" style={{ flex: 1, minWidth: 0 }}>
-                                    <Text
-                                      fz="sm"
-                                      fw={
-                                        isBoarding || isLast
-                                          ? 800
-                                          : passed
-                                            ? 500
-                                            : 700
-                                      }
-                                      c={passed && !isBoarding ? 'dimmed' : undefined}
-                                      style={{
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        lineHeight: 1.3,
-                                      }}
-                                    >
-                                      {st.stopName}
-                                    </Text>
-
-                                    {st.platform && (
-                                      <Badge
-                                        size="xs"
-                                        radius="xs"
-                                        variant="default"
-                                        fw={600}
-                                        tt="none"
-                                        className="shrink-0"
-                                      >
-                                        {st.platform}番のりば
-                                      </Badge>
-                                    )}
-                                  </Group>
-
-                                  {/* 右側: 発着時刻（定時取消線＋予想時刻） */}
-                                  <Group
-                                    gap={6}
-                                    wrap="nowrap"
-                                    align="center"
-                                    justify="flex-end"
-                                    style={{ flexShrink: 0 }}
+                              <div className="flex items-center justify-between min-w-0 flex-1 gap-2.5 py-0.5">
+                                {/* 左側: バス停名 ＋ のりば番号 */}
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                  <span
+                                    className={`text-sm truncate leading-snug ${
+                                      isBoarding || isLast
+                                        ? 'font-extrabold text-foreground'
+                                        : passed
+                                          ? 'font-medium text-muted'
+                                          : 'font-bold text-foreground'
+                                    }`}
                                   >
-                                    {hasStopDelay ? (
-                                      <Group
-                                        gap={4}
-                                        align="baseline"
-                                        wrap="nowrap"
-                                        justify="flex-end"
-                                        style={{ whiteSpace: 'nowrap' }}
-                                      >
-                                        <del
-                                          style={{
-                                            color: 'var(--mantine-color-dimmed)',
-                                            fontWeight: 500,
-                                            fontSize: 12,
-                                          }}
-                                          className="font-english tabular-nums"
-                                        >
-                                          {st.time}
-                                        </del>
-                                        <span
-                                          style={{
-                                            color: 'var(--mantine-color-text)',
-                                            fontWeight: 800,
-                                            fontSize: 14,
-                                          }}
-                                          className="font-english tabular-nums"
-                                        >
-                                          {stopExpectedTime}
-                                        </span>
-                                        <span
-                                          style={{
-                                            fontSize: 12,
-                                            fontWeight: isBoarding || isLast ? 800 : 700,
-                                            color: 'var(--mantine-color-text)',
-                                          }}
-                                        >
-                                          {timeSuffix}
-                                        </span>
-                                      </Group>
-                                    ) : (
-                                      <Text
-                                        fz="xs"
-                                        fw={isBoarding || isLast ? 800 : 700}
-                                        c={passed && !isBoarding ? 'dimmed' : undefined}
-                                        className="font-english tabular-nums"
-                                        style={{
-                                          whiteSpace: 'nowrap',
-                                          minWidth: 52,
-                                          textAlign: 'right',
-                                        }}
-                                      >
-                                        {st.time} {timeSuffix}
-                                      </Text>
-                                    )}
-                                  </Group>
-                                </Group>
-                              </Box>
-                            );
-                          })()}
-                        </Timeline.Item>
-                      );
-                    })}
-                  </Timeline>
-                );
-              })()}
-            </Box>
-          </ScrollArea>
-        </>
-      ) : (
-        /* ========== 機能1：全のりば統合・ダイヤ別・のりば選択付き時刻表一覧 ========== */
-        <>
-          <Stack
-            gap={6}
-            p="sm"
-            style={{
-              flexShrink: 0,
-              borderBottom: '1px solid var(--mantine-color-default-border)',
-              backgroundColor: 'var(--mantine-color-default-hover)',
-            }}
-          >
-            {/* 平日 / 土曜 / 日祝 ダイヤ切り替え */}
-            <SegmentedControl
-              size="xs"
-              fullWidth
-              radius="md"
-              value={dayType}
-              onChange={(val) => setDayType(val as SendaiBusDayType)}
-              data={[
-                {
-                  label: `平日${todayDayType === 'weekday' ? '（本日）' : ''}`,
-                  value: 'weekday',
-                },
-                {
-                  label: `土曜${todayDayType === 'saturday' ? '（本日）' : ''}`,
-                  value: 'saturday',
-                },
-                {
-                  label: `日祝${todayDayType === 'holiday' ? '（本日）' : ''}`,
-                  value: 'holiday',
-                },
-              ]}
-            />
+                                    {st.stopName}
+                                  </span>
 
-            {/* sendai-bus-map-v2 準拠ののりば選択ピル（全のりば / 個別のりば切り替え） */}
-            {showSubFilter && (
-              <Box
-                style={{
-                  overflowX: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                }}
-                pt={4}
-                pb={2}
-              >
-                <Group gap={6} wrap="nowrap" align="center">
-                  <Button
-                    size="compact-xs"
-                    radius="xl"
-                    variant={selectedFilterKey === null ? 'filled' : 'default'}
-                    style={
-                      selectedFilterKey === null
-                        ? {
-                            backgroundColor: SENDAI_BUS_COLOR,
-                            color: '#ffffff',
-                          }
-                        : undefined
-                    }
-                    onClick={() => setSelectedFilterKey(null)}
-                    fw={700}
-                    className="shrink-0"
+                                  {st.platform && (
+                                    <span className="shrink-0 text-[10px] font-semibold px-1 py-0.5 rounded border border-border bg-surface-secondary text-foreground leading-none">
+                                      {st.platform}番のりば
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* 右側: 時刻 */}
+                                <div className="flex items-center justify-end shrink-0">
+                                  {hasStopDelay ? (
+                                    <div className="flex items-baseline justify-end gap-1 whitespace-nowrap">
+                                      <del className="text-xs font-medium text-muted font-english tabular-nums">
+                                        {st.time}
+                                      </del>
+                                      <span className="text-sm font-extrabold text-foreground font-english tabular-nums">
+                                        {stopExpectedTime}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span
+                                      className={`text-xs font-english tabular-nums whitespace-nowrap text-right min-w-[52px] ${
+                                        isBoarding || isLast
+                                          ? 'font-extrabold text-foreground'
+                                          : passed
+                                            ? 'font-medium text-muted'
+                                            : 'font-bold text-foreground'
+                                      }`}
+                                    >
+                                      {st.time}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                </ScrollShadow>
+              </>
+            ) : (
+              /* ========== 機能1：全のりば統合・ダイヤ別・のりば選択付き時刻表一覧 ========== */
+              <>
+                <div className="p-3 shrink-0 bg-surface-secondary flex flex-col gap-2">
+                  {/* 平日 / 土曜 / 日祝 ダイヤ切り替え */}
+                  <Tabs
+                    key="sendai-bus-daytype-tabs"
+                    selectedKey={dayType}
+                    onSelectionChange={(key) => handleDayTypeChange(String(key) as SendaiBusDayType)}
+                    className="w-full"
                   >
-                    すべて
-                  </Button>
-                  {availableFilterOptions.map((opt) => {
-                    const isSelected = selectedFilterKey === opt.key;
-                    return (
+                    <Tabs.ListContainer>
+                      <Tabs.List aria-label="ダイヤ種別" className="w-full">
+                        <Tabs.Tab id="weekday" className="flex-1 h-7 text-xs font-bold px-2">
+                          平日{todayDayType === 'weekday' ? '（本日）' : ''}
+                          <Tabs.Indicator />
+                        </Tabs.Tab>
+                        <Tabs.Tab id="saturday" className="flex-1 h-7 text-xs font-bold px-2">
+                          土曜{todayDayType === 'saturday' ? '（本日）' : ''}
+                          <Tabs.Indicator />
+                        </Tabs.Tab>
+                        <Tabs.Tab id="holiday" className="flex-1 h-7 text-xs font-bold px-2">
+                          日祝{todayDayType === 'holiday' ? '（本日）' : ''}
+                          <Tabs.Indicator />
+                        </Tabs.Tab>
+                      </Tabs.List>
+                    </Tabs.ListContainer>
+                  </Tabs>
+
+                  {/* sendai-bus-map-v2 準拠ののりば選択ピル（全のりば / 個別のりば切り替え） */}
+                  {showSubFilter && (
+                    <div className="overflow-x-auto pt-1 pb-0.5 flex gap-1.5 items-center">
                       <Button
-                        key={opt.key}
-                        size="compact-xs"
-                        radius="xl"
-                        variant={isSelected ? 'filled' : 'default'}
+                        size="sm"
+                        variant={selectedFilterKey === null ? 'primary' : 'tertiary'}
                         style={
-                          isSelected
+                          selectedFilterKey === null
                             ? {
                                 backgroundColor: SENDAI_BUS_COLOR,
+                                borderColor: SENDAI_BUS_COLOR,
                                 color: '#ffffff',
                               }
                             : undefined
                         }
-                        onClick={() =>
-                          setSelectedFilterKey(isSelected ? null : opt.key)
-                        }
-                        fw={700}
-                        className="shrink-0"
+                        onPress={() => setSelectedFilterKey(null)}
+                        className="rounded-full text-xs font-bold px-3 h-7 shrink-0"
                       >
-                        {opt.label}
+                        すべて
                       </Button>
-                    );
-                  })}
-                </Group>
-              </Box>
-            )}
-          </Stack>
-
-          {/* 時刻表一覧スクロール領域 */}
-          <ScrollArea
-            viewportRef={listViewportRef}
-            type="auto"
-            data-scrollable="true"
-            style={{ flex: 1, minHeight: 0 }}
-            viewportProps={{
-              style: { overscrollBehavior: 'contain' },
-            }}
-            onScrollPositionChange={handleScrollPositionChange}
-            onBottomReached={() => {
-              if (endIndex < filteredDepartures.length) {
-                handleLoadLater();
-              }
-            }}
-          >
-            {filteredDepartures.length === 0 ? (
-              <Text py="xl" ta="center" fz="xs" c="dimmed">
-                該当するバスはありません
-              </Text>
-            ) : (
-              <Stack gap={0} pb="xl">
-                {startIndex > 0 && (
-                  <Center py="sm">
-                    <Loader size="xs" color="gray" type="dots" />
-                  </Center>
-                )}
-
-                {visibleDepartures.map((dep, vIdx) => {
-                  const effectiveSec = dep.scheduledSec;
-                  const isPast = isTodayCal ? effectiveSec < currentMinuteFloorSec : false;
-                  const isNext = dep.id === nextDepartureId;
-                  const globalIdx = startIndex + vIdx;
-
-                  return (
-                    <div key={dep.id} data-sendai-bus-dep-id={dep.id}>
-                      <BusDepartureRow
-                        routeCode={dep.routeCode}
-                        routeColor={dep.routeColor}
-                        routeTextColor={dep.routeTextColor}
-                        headsign={dep.headsign}
-                        via={dep.via}
-                        platform={dep.platform}
-                        departureTime={dep.departureTime}
-                        isDelayed={false}
-                        delayMinutes={0}
-                        expectedTime={undefined}
-                        showDelay={false}
-                        isNext={isNext}
-                        isPast={isPast && !isNext}
-                        onClick={() => {
-                          setSelectedDepartureId(dep.id);
-                          setOpenedFromList(true);
-                        }}
-                        isLast={globalIdx === filteredDepartures.length - 1}
-                      />
+                      {availableFilterOptions.map((opt) => {
+                        const isSelected = selectedFilterKey === opt.key;
+                        return (
+                          <Button
+                            key={opt.key}
+                            size="sm"
+                            variant={isSelected ? 'primary' : 'tertiary'}
+                            style={
+                              isSelected
+                                ? {
+                                    backgroundColor: SENDAI_BUS_COLOR,
+                                    borderColor: SENDAI_BUS_COLOR,
+                                    color: '#ffffff',
+                                  }
+                                : undefined
+                            }
+                            onPress={() =>
+                              setSelectedFilterKey(isSelected ? null : opt.key)
+                            }
+                            className="rounded-full text-xs font-bold px-3 h-7 shrink-0"
+                          >
+                            {opt.label}
+                          </Button>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+                <Separator />
 
-                {endIndex < filteredDepartures.length && (
-                  <Center py="sm">
-                    <Loader size="xs" color="gray" type="dots" />
-                  </Center>
-                )}
-              </Stack>
+                {/* 時刻表一覧スクロール領域 */}
+                <ScrollShadow
+                  ref={listViewportRef}
+                  data-scrollable="true"
+                  className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+                  onScroll={handleListScroll}
+                >
+                  {filteredDepartures.length === 0 ? (
+                    <EmptyState className="py-8 text-center text-xs text-muted">
+                      該当するバスはありません
+                    </EmptyState>
+                  ) : (
+                    <div className="flex flex-col pb-8">
+                      {startIndex > 0 && (
+                        <div className="flex justify-center py-2">
+                          <Spinner size="sm" className="text-muted" />
+                        </div>
+                      )}
+
+                      <ListBox
+                        key={`sendai-bus-list-${stationName}-${dayType}-${selectedFilterKey ?? 'all'}`}
+                        aria-label="発車便一覧"
+                        selectionMode="none"
+                        className="gap-0 p-0 w-full"
+                      >
+                        {visibleDepartures.map((dep, vIdx) => {
+                          const effectiveSec = dep.scheduledSec;
+                          const isPast = isTodayCal ? effectiveSec < currentMinuteFloorSec : false;
+                          const isNext = dep.id === nextDepartureId;
+                          const globalIdx = startIndex + vIdx;
+                          const isLast = globalIdx === filteredDepartures.length - 1;
+
+                          return (
+                            <ListBox.Item
+                              key={dep.id}
+                              id={dep.id}
+                              textValue={`${dep.departureTime}発 [${dep.routeCode}] ${formatHeadsign(dep.headsign)}`}
+                              data-sendai-bus-dep-id={dep.id}
+                              data-dep-id={dep.id}
+                              onAction={() => {
+                                setSelectedDepartureId(dep.id);
+                                setOpenedFromList(true);
+                              }}
+                              className={`rounded-none px-3.5 py-2.5 w-full flex items-center justify-between gap-2.5 cursor-pointer font-inherit text-foreground select-none relative data-[hovered=true]:bg-surface-secondary/60 data-[pressed=true]:bg-surface-tertiary transition-colors ${
+                                isNext
+                                  ? 'bg-accent/15 border border-accent/40 font-bold'
+                                  : isLast
+                                    ? ''
+                                    : 'border-b border-border'
+                              }`}
+                              style={{
+                                opacity: isPast && !isNext ? 0.55 : 1,
+                              }}
+                            >
+                              <div className="flex items-center justify-between gap-2.5 w-full">
+                                {/* 左カラム: 発車時刻 */}
+                                <div className="font-english tabular-nums shrink-0 w-[58px] min-w-[58px] flex flex-col items-center justify-center text-center min-h-[46px]">
+                                  <span className="text-lg font-bold text-foreground tracking-tight">
+                                    {dep.departureTime}
+                                  </span>
+                                </div>
+
+                                {/* 中央カラム: 経由・系統バッジ・行先・のりば情報 */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                  {dep.via && (
+                                    <div className="truncate text-xs text-muted mb-0.5 leading-tight">
+                                      {dep.via} 経由
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1.5 w-full min-w-0">
+                                    <BusRouteBadge
+                                      routeCode={dep.routeCode}
+                                      color={dep.routeColor}
+                                      textColor={dep.routeTextColor}
+                                      size="sm"
+                                    />
+                                    <span className="truncate text-[15px] font-bold text-foreground leading-snug">
+                                      {formatHeadsign(dep.headsign)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-0.5 flex-nowrap overflow-hidden">
+                                    {dep.platform && (
+                                      <span className="shrink-0 text-[11px] font-medium text-muted">
+                                        {dep.platform.includes('のりば') || dep.platform.includes('口') || dep.platform.includes('方面')
+                                          ? dep.platform
+                                          : `${dep.platform}番のりば`}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* 右端: 詳細遷移アフォーダンスアイコン */}
+                                <div className="flex items-center justify-center pl-1 shrink-0">
+                                  <Icon
+                                    name="chevron_right"
+                                    size={16}
+                                    className="text-muted shrink-0"
+                                  />
+                                </div>
+                              </div>
+                            </ListBox.Item>
+                          );
+                        })}
+                      </ListBox>
+
+                      {endIndex < filteredDepartures.length && (
+                        <div className="flex justify-center py-2">
+                          <Spinner size="sm" className="text-muted" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </ScrollShadow>
+              </>
             )}
-          </ScrollArea>
-        </>
-      )}
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
     </Modal>
   );
 };

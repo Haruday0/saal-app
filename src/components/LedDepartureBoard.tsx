@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { SegmentedControl, Button, Paper, Box, Text, ActionIcon } from '@mantine/core';
+import { Button, Card, Link, Tabs } from '@heroui/react';
 import { DepartureTrain, DirectionType } from '../types';
 import { MOCK_DEPARTURES } from '../data/mockData';
 import { StationBoard } from './StationBoard';
@@ -37,7 +37,7 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
   const [sendaiLine, setSendaiLine] = useState<'tohoku' | 'joban' | 'saal'>('tohoku');
   const [selectedTrack, setSelectedTrack] = useState<'1' | '2' | '3'>('1');
   const [direction, setDirection] = useState<DirectionType>(
-    isNagamachiTaishido ? 'down' : 'up'
+    isNagamachiTaishido ? 'down' : (stationId === 'sendai-airport' ? 'down' : 'up')
   );
   const [isFullTimetableOpen, setIsFullTimetableOpen] = useState(false);
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
@@ -67,19 +67,25 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
     return h * 60 + m;
   }, [now]);
 
+  const prevStationIdRef = useRef(stationId);
+
+  // 駅が切り替わったときのみ初期タブ設定
   useEffect(() => {
-    if (isSendai) {
-      setSendaiLine('tohoku');
-      setDirection('up');
-    } else if (isSatStation) {
-      setSelectedTrack('1');
-      setDirection(stationId === 'sendai-airport' ? 'down' : 'up');
-    } else if (isNagamachiTaishido) {
-      setSelectedTrack('1');
-      setDirection('down');
-    } else if (isNatoriMinamiSendai) {
-      setSelectedTrack('1');
-      setDirection('up');
+    if (prevStationIdRef.current !== stationId) {
+      prevStationIdRef.current = stationId;
+      if (isSendai) {
+        setSendaiLine('tohoku');
+        setDirection('up');
+      } else if (isSatStation) {
+        setSelectedTrack('1');
+        setDirection(stationId === 'sendai-airport' ? 'down' : 'up');
+      } else if (isNagamachiTaishido) {
+        setSelectedTrack('1');
+        setDirection('down');
+      } else if (isNatoriMinamiSendai) {
+        setSelectedTrack('1');
+        setDirection('up');
+      }
     }
   }, [stationId, isSendai, isSatStation, isNagamachiTaishido, isNatoriMinamiSendai]);
 
@@ -103,27 +109,27 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
   // 全便（平日専用便含む、時刻表モーダル送信用、期間内上書き適用）
   const allStationTrainsRaw = useMemo(() => {
     const list = [...(rawDepartures.up || []), ...(rawDepartures.down || [])].map((t) =>
-      applySpecialOverrides(t, now)
+      applySpecialOverrides(t, now, stationId)
     );
     return list.sort((a, b) => toRailwayMinutes(a.departureTime) - toRailwayMinutes(b.departureTime));
-  }, [rawDepartures, now]);
+  }, [rawDepartures, now, stationId]);
 
-  // 電光掲示板（StationBoard）用：今日が運休日（土曜・休日・12/30〜1/3）なら平日専用便（1428M, 1425M等）を除外＆特別ダイヤ適用
+  // 電光掲示板（StationBoard）用：今日が運休日なら平日専用便を除外
   const departures = useMemo(() => {
     const filterByDay = (list: DepartureTrain[]) => {
       let result = list;
       if (isTodayHoliday) {
         result = result.filter((t) => t.calendar !== 'weekday');
       }
-      return result.map((t) => applySpecialOverrides(t, now));
+      return result.map((t) => applySpecialOverrides(t, now, stationId));
     };
     return {
       up: filterByDay(rawDepartures.up || []),
       down: filterByDay(rawDepartures.down || []),
     };
-  }, [rawDepartures, isTodayHoliday, now]);
+  }, [rawDepartures, isTodayHoliday, now, stationId]);
 
-  // 臨時運行・お知らせ（告知期間中のみ取得）
+  // 臨時運行・お知らせ
   const activeNotices = useMemo(() => getActiveNoticeEvents(now), [now]);
 
   const allStationTrains = useMemo(() => {
@@ -158,14 +164,14 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
     direction,
   ]);
 
-  // ★ 現在時刻以降に発車する直近の列車（先発・次発・次々発）
+  // 現在時刻以降に発車する直近の列車（先発・次発・次々発）
   const upcomingTrains = useMemo(() => {
     return allTabTrains.filter(
       (t) => toRailwayMinutes(t.departureTime) >= currentMinutes
     );
   }, [allTabTrains, currentMinutes]);
 
-  // 駅を開いた初回のみ、先発列車を選択（循環レンダリングループを完全防止）
+  // 駅を開いた初回のみ、先発列車を選択
   const hasInitializedRef = useRef(false);
   useEffect(() => {
     hasInitializedRef.current = false;
@@ -249,76 +255,119 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
     if (target) onSelectTrain(target);
   };
 
+  // レンダリング中の安全なタブキーのフォールバック計算
+  const validSendaiLine = (['tohoku', 'joban', 'saal'] as const).includes(sendaiLine) ? sendaiLine : 'tohoku';
+  const validSatTrack = (selectedTrack === '1' || selectedTrack === '2') ? selectedTrack : '1';
+  const validNatoriTrack = (['1', '2', '3'] as const).includes(selectedTrack as any) ? selectedTrack : '1';
+  const validNagamachiDir = (direction === 'up' || direction === 'down') ? direction : 'down';
+
   return (
-    <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
-      {/* のりば・方面切り替えタブ（Mantine SegmentedControl） */}
-      <Box p={6} style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
+    <Card className="gap-0 p-0 overflow-hidden border border-border rounded-2xl shadow-xs bg-surface text-foreground">
+      {/* のりば・方面切り替えセグメントタブ（HeroUI Tabs） */}
+      <div className="p-2 border-b border-border bg-surface-secondary/40">
         {isSendai ? (
           /* 仙台駅: 3 tabs (東北本線 上り, 常磐線, 仙台空港アクセス線) */
-          <SegmentedControl
-            size="xs"
-            fullWidth
-            value={sendaiLine}
-            onChange={(val) => handleSendaiLineClick(val as 'tohoku' | 'joban' | 'saal')}
-            data={[
-              { label: '東北本線 上り', value: 'tohoku' },
-              { label: '常磐線', value: 'joban' },
-              { label: '仙台空港アクセス線', value: 'saal' },
-            ]}
-            radius="md"
-          />
+          <Tabs
+            key={`tabs-sendai-${stationId}`}
+            selectedKey={validSendaiLine}
+            onSelectionChange={(key) => handleSendaiLineClick(key as 'tohoku' | 'joban' | 'saal')}
+            className="w-full"
+          >
+            <Tabs.ListContainer>
+              <Tabs.List aria-label="のりば切り替え" className="w-full">
+                <Tabs.Tab id="tohoku" className="flex-1 h-7 text-xs font-bold px-2">
+                  東北本線 上り
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab id="joban" className="flex-1 h-7 text-xs font-bold px-2">
+                  常磐線
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab id="saal" className="flex-1 h-7 text-xs font-bold px-2">
+                  仙台空港アクセス線
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs.ListContainer>
+          </Tabs>
         ) : isMorisekinoshita ? (
-          /* 杜せきのした駅: 1面1線棒線駅のため 1番線 のみ */
-          <div className="flex justify-center p-0.5">
-            <Button fullWidth size="compact-sm" radius="md" color="saal" fz="xs">
-              1番線
-            </Button>
-          </div>
+          /* 杜せきのした駅: 1番線 のみ */
+          <Tabs key={`tabs-morisekinoshita-${stationId}`} selectedKey="1" className="w-full">
+            <Tabs.ListContainer>
+              <Tabs.List aria-label="のりば" className="w-full">
+                <Tabs.Tab id="1" className="flex-1 h-7 text-xs font-bold">
+                  1番線
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs.ListContainer>
+          </Tabs>
         ) : isSatStation ? (
           /* 美田園駅・仙台空港駅: 2 tabs (1番線, 2番線) */
-          <SegmentedControl
-            size="xs"
-            fullWidth
-            value={selectedTrack}
-            onChange={(val) => handleSatTrackClick(val as '1' | '2')}
-            data={[
-              { label: '1番線', value: '1' },
-              { label: '2番線', value: '2' },
-            ]}
-            radius="md"
-          />
+          <Tabs
+            key={`tabs-sat-${stationId}`}
+            selectedKey={validSatTrack}
+            onSelectionChange={(key) => handleSatTrackClick(key as '1' | '2')}
+            className="w-full"
+          >
+            <Tabs.ListContainer>
+              <Tabs.List aria-label="のりば切り替え" className="w-full">
+                <Tabs.Tab id="1" className="flex-1 h-7 text-xs font-bold px-2">
+                  1番線
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab id="2" className="flex-1 h-7 text-xs font-bold px-2">
+                  2番線
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs.ListContainer>
+          </Tabs>
         ) : isNatoriMinamiSendai ? (
           /* 名取駅・南仙台駅: 3 tabs (1番線, 2番線, 3番線) */
-          <SegmentedControl
-            size="xs"
-            fullWidth
-            value={selectedTrack}
-            onChange={(val) => handleNatoriMinamiSendaiTrackClick(val as '1' | '2' | '3')}
-            data={[
-              { label: '1番線', value: '1' },
-              { label: '2番線', value: '2' },
-              { label: '3番線', value: '3' },
-            ]}
-            radius="md"
-          />
+          <Tabs
+            key={`tabs-natori-${stationId}`}
+            selectedKey={validNatoriTrack}
+            onSelectionChange={(key) => handleNatoriMinamiSendaiTrackClick(key as '1' | '2' | '3')}
+            className="w-full"
+          >
+            <Tabs.ListContainer>
+              <Tabs.List aria-label="のりば切り替え" className="w-full">
+                {(['1', '2', '3'] as const).map((trackNum) => (
+                  <Tabs.Tab key={trackNum} id={trackNum} className="flex-1 h-7 text-xs font-bold px-2">
+                    {trackNum}番線
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                ))}
+              </Tabs.List>
+            </Tabs.ListContainer>
+          </Tabs>
         ) : (
-          /* 長町駅・太子堂駅: 2 tabs (1番線 下り, 2番線 上り) */
-          <SegmentedControl
-            size="xs"
-            fullWidth
-            value={direction === 'down' ? '1' : '2'}
-            onChange={(val) => handleNagamachiTaishidoDirClick(val === '1' ? 'down' : 'up')}
-            data={[
-              { label: '1番線', value: '1' },
-              { label: '2番線', value: '2' },
-            ]}
-            radius="md"
-          />
+          /* 長町駅・太子堂駅: 2 tabs (1番線 [下り・仙台方面], 2番線 [上り・白石/空港方面]) */
+          <Tabs
+            key={`tabs-nagamachi-${stationId}`}
+            selectedKey={validNagamachiDir}
+            onSelectionChange={(key) => handleNagamachiTaishidoDirClick(key as DirectionType)}
+            className="w-full"
+          >
+            <Tabs.ListContainer>
+              <Tabs.List aria-label="のりば切り替え" className="w-full">
+                <Tabs.Tab id="down" className="flex-1 h-7 text-xs font-bold px-2">
+                  1番線
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+                <Tabs.Tab id="up" className="flex-1 h-7 text-xs font-bold px-2">
+                  2番線
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              </Tabs.List>
+            </Tabs.ListContainer>
+          </Tabs>
         )}
-      </Box>
+      </div>
 
-      {/* LED盤面 — 直近の先発・次発・次々発 (upcomingTrains) を美しく表示 */}
-      <div className="bg-transparent px-1.5 pt-2 pb-1.5">
+      {/* 電光掲示板 */}
+      <div className="bg-transparent px-2 pt-2.5 pb-2">
         <StationBoard
           stationId={stationId}
           direction={effectiveDirection}
@@ -327,29 +376,28 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
           selectedTrain={selectedTrain}
           onSelectTrain={onSelectTrain}
         />
-        {/* 電光掲示板の下部バー: 全画面表示ボタン ＆ 現在時刻 */}
-        <div className="flex items-center justify-between px-2 pt-2">
-          <ActionIcon
-            variant="subtle"
-            color="gray"
+        {/* 電光掲示板の下部バー */}
+        <div className="flex items-center justify-between px-1.5 pt-2">
+          <Button
+            isIconOnly
+            variant="ghost"
             size="sm"
-            radius="md"
-            onClick={handleOpenFullscreen}
-            title="全画面表示"
+            onPress={handleOpenFullscreen}
             aria-label="電光掲示板を全画面表示"
+            className="text-muted hover:text-foreground"
           >
             <Icon name="fullscreen" size={19} />
-          </ActionIcon>
-          <Text fz={10.5} c="dimmed" ta="right" className="font-english tabular-nums">
+          </Button>
+          <div className="text-[10.5px] text-muted text-right font-english tabular-nums">
             <span>
               {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
             </span>
             <span className="ml-0.5">現在</span>
-          </Text>
+          </div>
         </div>
       </div>
 
-      {/* 電光掲示板 専用全画面・横画面モーダル */}
+      {/* 全画面表示モーダル */}
       <StationBoardFullscreen
         isOpen={isFullscreenOpen}
         onClose={() => setIsFullscreenOpen(false)}
@@ -361,59 +409,57 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
         onSelectTrain={onSelectTrain}
       />
 
-      {/* 臨時運行・増結運転のお知らせリンク（告知期間中のみ表示） */}
+      {/* 臨時運行・増結運転のお知らせリンク（HeroUI Link） */}
       {activeNotices.length > 0 && (
-        <Box px={10} py={7} style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
+        <div className="px-3 py-2 border-t border-border">
           {activeNotices.map((notice) => (
-            <a
+            <Link
               key={notice.id}
               href={notice.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group block p-2.5 rounded-xl border border-blue-200/70 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 transition-colors"
-              style={{ textDecoration: 'none' }}
+              className="group block py-1 no-underline w-full"
             >
-              <div className="flex items-start gap-2">
-                <span className="shrink-0 mt-0.5 text-saal-600 dark:text-saal-400">
+              <div className="flex items-start gap-2 w-full">
+                <span className="shrink-0 mt-0.5 text-accent">
                   <Icon name="campaign" size={16} />
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1.5">
-                    <Text fz={12} fw={700} c="saal" className="leading-snug underline-offset-2 group-hover:underline">
+                    <span className="text-xs font-bold text-accent leading-snug underline-offset-2 group-hover:underline">
                       {notice.title}
-                    </Text>
-                    <span className="shrink-0 text-slate-400 group-hover:text-saal transition-colors">
+                    </span>
+                    <span className="shrink-0 text-muted group-hover:text-accent transition-colors">
                       <Icon name="open_in_new" size={14} />
                     </span>
                   </div>
                   {notice.description && (
-                    <Text fz={11} c="dimmed" className="mt-0.5 leading-tight">
+                    <p className="text-[11px] text-muted mt-0.5 leading-tight">
                       {notice.description}
-                    </Text>
+                    </p>
                   )}
                 </div>
               </div>
-            </a>
+            </Link>
           ))}
-        </Box>
+        </div>
       )}
 
-      {/* 時刻表ボタン — 大きく押しやすい独立ボタン（Mantine Button） */}
-      <Box p={10} style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
+      {/* 時刻表ボタン — 大きく押しやすい独立ボタン */}
+      <div className="p-2.5 border-t border-border">
         <Button
           fullWidth
           size="md"
-          radius="xl"
-          variant="default"
-          onClick={() => setIsFullTimetableOpen(true)}
-          fw={800}
-          leftSection={<Icon name="schedule" size={18} />}
+          variant="tertiary"
+          onPress={() => setIsFullTimetableOpen(true)}
+          className="font-extrabold flex items-center justify-center gap-2 h-10 rounded-xl"
         >
-          時刻表
+          <Icon name="schedule" size={18} />
+          <span>時刻表</span>
         </Button>
-      </Box>
+      </div>
 
-      {/* Mantine Modalベースの時刻表ダイアログ */}
+      {/* 時刻表ダイアログ */}
       <TimetableModal
         isOpen={isFullTimetableOpen}
         onClose={() => setIsFullTimetableOpen(false)}
@@ -422,6 +468,8 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
         now={now}
         initialDirection={effectiveDirection}
       />
-    </Paper>
+    </Card>
   );
 };
+
+export default LedDepartureBoard;

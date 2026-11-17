@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Paper,
-  Stack,
-  Group,
-  Text,
-  Badge,
   Button,
-  UnstyledButton,
-  Box,
-  Loader,
-} from '@mantine/core';
+  Card,
+  Chip,
+  EmptyState,
+  ListBox,
+  Separator,
+  Spinner,
+  Surface,
+} from '@heroui/react';
 import { Station } from '../types';
 import { JisSubway, JisBus } from './icons';
 import { Icon } from './Icon';
@@ -58,32 +57,25 @@ const TransportSectionHeader: React.FC<TransportSectionHeaderProps> = ({
   badgeLabel,
   rightAction,
 }) => (
-  <Group
-    justify="space-between"
-    align="center"
-    wrap="nowrap"
-    px="sm"
-    py={8}
-    style={{
-      borderBottom: '1px solid var(--mantine-color-default-border)',
-      backgroundColor: 'var(--mantine-color-default-hover)',
-    }}
+  <Surface
+    variant="secondary"
+    className="flex items-center justify-between px-3 py-2 border-b border-border"
   >
-    <Group gap={8} wrap="nowrap" align="center">
-      <span className="text-black dark:text-white shrink-0 flex items-center">
+    <div className="flex items-center gap-2 flex-nowrap">
+      <span className="text-foreground shrink-0 flex items-center">
         {icon}
       </span>
-      <Text fw={800} fz="sm" c="var(--mantine-color-text)">
+      <span className="font-extrabold text-sm text-foreground">
         {title}
-      </Text>
+      </span>
       {badgeLabel && (
-        <Badge size="xs" variant="light" color="gray" radius="sm" fw={700}>
+        <Chip size="sm" variant="soft" color="default" className="text-[11px] font-bold">
           {badgeLabel}
-        </Badge>
+        </Chip>
       )}
-    </Group>
+    </div>
     {rightAction}
-  </Group>
+  </Surface>
 );
 
 export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
@@ -271,11 +263,11 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
   if (stationId === 'mitazono') {
     return (
-      <Paper withBorder p="md" radius="lg">
-        <Text fz="xs" c="dimmed" ta="center">
-          美田園駅にはバス・他社線の乗り換えはありません
-        </Text>
-      </Paper>
+      <Card className="gap-0 p-6 border border-border rounded-2xl shadow-xs">
+        <EmptyState className="p-0 text-center text-xs text-muted">
+          美田園駅には他の公共交通機関（地下鉄・路線バス）の乗り換えはありません。
+        </EmptyState>
+      </Card>
     );
   }
 
@@ -286,49 +278,42 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
   const natoringoStation = getNatoringoStationSchedule(stationId);
 
   return (
-    <Stack gap="sm">
+    <div className="flex flex-col gap-3">
       {/* 1. 仙台市地下鉄（南北線・東西線を1つのカード内で上品に区分け） */}
       {hasSubway && subwayStationName && (
-        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+        <Card className="gap-0 p-0 overflow-hidden border border-border rounded-2xl shadow-xs">
           <TransportSectionHeader
             icon={<JisSubway size={18} />}
             title="仙台市地下鉄"
             rightAction={
               <Button
-                size="compact-xs"
-                variant="default"
-                radius="xl"
-                fw={700}
-                leftSection={<Icon name="schedule" size={13} />}
-                onClick={() => openSubwayTimetable('namboku-north', null)}
+                size="sm"
+                variant="tertiary"
+                className="h-7 px-2.5 text-xs font-bold rounded-full gap-1"
+                onPress={() => openSubwayTimetable('namboku-north', null)}
               >
+                <Icon name="schedule" size={13} />
                 時刻表
               </Button>
             }
           />
 
-          <Stack gap={0}>
+          <div className="flex flex-col">
             {/* 南北線エリア */}
             {nambokuDirections.length > 0 && (
               <>
-                <Box
-                  px={12}
-                  py={6}
-                  style={{
-                    backgroundColor: 'var(--mantine-color-default-hover)',
-                    borderBottom: '1px solid var(--mantine-color-default-border)',
-                  }}
+                <Surface
+                  variant="secondary"
+                  className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border"
                 >
-                  <Group gap={6} align="center" wrap="nowrap">
-                    <SubwayStationMark line="namboku" code="N" size={18} />
-                    <Text fz={12} fw={800} c="var(--mantine-color-text)">
-                      南北線
-                    </Text>
-                    <Badge size="xs" variant="light" color="teal" radius="sm" fw={700}>
-                      1・2番線
-                    </Badge>
-                  </Group>
-                </Box>
+                  <SubwayStationMark line="namboku" code="N" size={18} />
+                  <span className="text-xs font-extrabold text-foreground">
+                    南北線
+                  </span>
+                  <Chip size="sm" variant="soft" color="success" className="text-[10px] font-bold px-1.5 py-0 h-4">
+                    1・2番線
+                  </Chip>
+                </Surface>
                 {nambokuDirections.map((dirKey, dIdx) => {
                   const meta = SUBWAY_DIRECTIONS[dirKey];
                   const upcoming = getUpcomingSubwayTrains(
@@ -339,70 +324,66 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                   );
 
                   return (
-                    <Box key={dirKey}>
+                    <div key={dirKey}>
+                      {dIdx > 0 && <Separator />}
                       {/* 方面サブヘッダー（どっち方面・何番線かを表示） */}
-                      <Box
-                        px={12}
-                        py={5}
-                        style={{
-                          backgroundColor: 'var(--mantine-color-default-hover)',
-                          borderTop:
-                            dIdx > 0
-                              ? '1px solid var(--mantine-color-default-border)'
-                              : undefined,
-                          borderBottom: '1px solid var(--mantine-color-default-border)',
-                        }}
+                      <Surface
+                        variant="secondary"
+                        className="flex items-center justify-between px-3 py-1.5 border-b border-border"
                       >
-                        <Group justify="space-between" align="center" wrap="nowrap">
-                          <Group gap={6} align="center" wrap="nowrap">
-                            <SubwayStationMark line="namboku" code={meta.destinationCode} size={18} />
-                            <Text fz={12.5} fw={700} c="var(--mantine-color-text)">
-                              {meta.directionLabel}
-                            </Text>
-                            <Badge size="xs" variant="light" color="teal" radius="sm" fw={700}>
-                              {meta.track}番線
-                            </Badge>
-                          </Group>
-                          <Button
-                            size="compact-xs"
-                            variant="subtle"
-                            color="gray"
-                            fz={11}
-                            fw={700}
-                            leftSection={<Icon name="schedule" size={12} />}
-                            onClick={() => openSubwayTimetable(dirKey, null)}
-                          >
-                            時刻表
-                          </Button>
-                        </Group>
-                      </Box>
+                        <div className="flex items-center gap-1.5 flex-nowrap">
+                          <SubwayStationMark line="namboku" code={meta.destinationCode} size={18} />
+                          <span className="text-[12.5px] font-bold text-foreground">
+                            {meta.directionLabel}
+                          </span>
+                          <Chip size="sm" variant="soft" color="success" className="text-[10px] font-bold px-1.5 py-0 h-4">
+                            {meta.track}番線
+                          </Chip>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[11px] font-bold text-muted gap-1"
+                          onPress={() => openSubwayTimetable(dirKey, null)}
+                        >
+                          <Icon name="schedule" size={12} />
+                          時刻表
+                        </Button>
+                      </Surface>
 
                       {upcoming.length > 0 ? (
-                        upcoming.map((item, idx) => (
-                          <SubwayDepartureRow
-                            key={`${item.train.id}-${item.departureTime}`}
-                            lineId="namboku"
-                            lineName="南北線"
-                            track={meta.track}
-                            destination={item.terminalStation}
-                            destinationCode={meta.destinationCode}
-                            departureTime={item.departureTime}
-                            onClick={() => openSubwayTimetable(dirKey, item.train.id)}
-                            isLast={
-                              tozaiDirections.length === 0 &&
-                              dIdx === nambokuDirections.length - 1 &&
-                              idx === upcoming.length - 1
-                            }
-                          />
-                        ))
+                        <ListBox
+                          key={`tg-subway-${dirKey}`}
+                          aria-label={`南北線 ${meta.directionLabel} 直近発車案内`}
+                          selectionMode="none"
+                          className="gap-0 p-0 divide-y divide-border"
+                        >
+                          {upcoming.map((item, idx) => (
+                            <SubwayDepartureRow
+                              key={`${item.train.id}-${item.departureTime}`}
+                              id={`${item.train.id}-${item.departureTime}`}
+                              textValue={`${item.departureTime}発 ${item.terminalStation}行`}
+                              lineId="namboku"
+                              lineName="南北線"
+                              track={meta.track}
+                              destination={item.terminalStation}
+                              destinationCode={meta.destinationCode}
+                              departureTime={item.departureTime}
+                              onClick={() => openSubwayTimetable(dirKey, item.train.id)}
+                              isLast={
+                                tozaiDirections.length === 0 &&
+                                dIdx === nambokuDirections.length - 1 &&
+                                idx === upcoming.length - 1
+                              }
+                            />
+                          ))}
+                        </ListBox>
                       ) : (
-                        <Box py="xs" px="sm">
-                          <Text fz={11} c="dimmed">
-                            {meta.destination}行の運行は終了しました
-                          </Text>
-                        </Box>
+                        <EmptyState className="py-3 px-3 text-center text-xs text-muted">
+                          {meta.destination}行の運行は終了しました
+                        </EmptyState>
                       )}
-                    </Box>
+                    </div>
                   );
                 })}
               </>
@@ -411,25 +392,19 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
             {/* 東西線エリア（仙台駅） */}
             {tozaiDirections.length > 0 && (
               <>
-                <Box
-                  px={12}
-                  py={6}
-                  style={{
-                    backgroundColor: 'var(--mantine-color-default-hover)',
-                    borderTop: '1px solid var(--mantine-color-default-border)',
-                    borderBottom: '1px solid var(--mantine-color-default-border)',
-                  }}
+                <Separator />
+                <Surface
+                  variant="secondary"
+                  className="flex items-center gap-1.5 px-3 py-1.5 border-b border-border"
                 >
-                  <Group gap={6} align="center" wrap="nowrap">
-                    <SubwayStationMark line="tozai" code="T" size={18} />
-                    <Text fz={12} fw={800} c="var(--mantine-color-text)">
-                      東西線
-                    </Text>
-                    <Badge size="xs" variant="light" color="cyan" radius="sm" fw={700}>
-                      3・4番線
-                    </Badge>
-                  </Group>
-                </Box>
+                  <SubwayStationMark line="tozai" code="T" size={18} />
+                  <span className="text-xs font-extrabold text-foreground">
+                    東西線
+                  </span>
+                  <Chip size="sm" variant="soft" color="accent" className="text-[10px] font-bold px-1.5 py-0 h-4">
+                    3・4番線
+                  </Chip>
+                </Surface>
                 {tozaiDirections.map((dirKey, dIdx) => {
                   const meta = SUBWAY_DIRECTIONS[dirKey];
                   const upcoming = getUpcomingSubwayTrains(
@@ -440,97 +415,92 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                   );
 
                   return (
-                    <Box key={dirKey}>
+                    <div key={dirKey}>
+                      {dIdx > 0 && <Separator />}
                       {/* 方面サブヘッダー（どっち方面・何番線かを表示） */}
-                      <Box
-                        px={12}
-                        py={5}
-                        style={{
-                          backgroundColor: 'var(--mantine-color-default-hover)',
-                          borderTop:
-                            dIdx > 0
-                              ? '1px solid var(--mantine-color-default-border)'
-                              : undefined,
-                          borderBottom: '1px solid var(--mantine-color-default-border)',
-                        }}
+                      <Surface
+                        variant="secondary"
+                        className="flex items-center justify-between px-3 py-1.5 border-b border-border"
                       >
-                        <Group justify="space-between" align="center" wrap="nowrap">
-                          <Group gap={6} align="center" wrap="nowrap">
-                            <SubwayStationMark line="tozai" code={meta.destinationCode} size={18} />
-                            <Text fz={12.5} fw={700} c="var(--mantine-color-text)">
-                              {meta.directionLabel}
-                            </Text>
-                            <Badge size="xs" variant="light" color="cyan" radius="sm" fw={700}>
-                              {meta.track}番線
-                            </Badge>
-                          </Group>
-                          <Button
-                            size="compact-xs"
-                            variant="subtle"
-                            color="gray"
-                            fz={11}
-                            fw={700}
-                            leftSection={<Icon name="schedule" size={12} />}
-                            onClick={() => openSubwayTimetable(dirKey, null)}
-                          >
-                            時刻表
-                          </Button>
-                        </Group>
-                      </Box>
+                        <div className="flex items-center gap-1.5 flex-nowrap">
+                          <SubwayStationMark line="tozai" code={meta.destinationCode} size={18} />
+                          <span className="text-[12.5px] font-bold text-foreground">
+                            {meta.directionLabel}
+                          </span>
+                          <Chip size="sm" variant="soft" color="accent" className="text-[10px] font-bold px-1.5 py-0 h-4">
+                            {meta.track}番線
+                          </Chip>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[11px] font-bold text-muted gap-1"
+                          onPress={() => openSubwayTimetable(dirKey, null)}
+                        >
+                          <Icon name="schedule" size={12} />
+                          時刻表
+                        </Button>
+                      </Surface>
 
                       {upcoming.length > 0 ? (
-                        upcoming.map((item, idx) => (
-                          <SubwayDepartureRow
-                            key={`${item.train.id}-${item.departureTime}`}
-                            lineId="tozai"
-                            lineName="東西線"
-                            track={meta.track}
-                            destination={item.terminalStation}
-                            destinationCode={meta.destinationCode}
-                            departureTime={item.departureTime}
-                            onClick={() => openSubwayTimetable(dirKey, item.train.id)}
-                            isLast={
-                              dIdx === tozaiDirections.length - 1 &&
-                              idx === upcoming.length - 1
-                            }
-                          />
-                        ))
+                        <ListBox
+                          key={`tg-subway-${dirKey}`}
+                          aria-label={`東西線 ${meta.directionLabel} 直近発車案内`}
+                          selectionMode="none"
+                          className="gap-0 p-0 divide-y divide-border"
+                        >
+                          {upcoming.map((item, idx) => (
+                            <SubwayDepartureRow
+                              key={`${item.train.id}-${item.departureTime}`}
+                              id={`${item.train.id}-${item.departureTime}`}
+                              textValue={`${item.departureTime}発 ${item.terminalStation}行`}
+                              lineId="tozai"
+                              lineName="東西線"
+                              track={meta.track}
+                              destination={item.terminalStation}
+                              destinationCode={meta.destinationCode}
+                              departureTime={item.departureTime}
+                              onClick={() => openSubwayTimetable(dirKey, item.train.id)}
+                              isLast={
+                                dIdx === tozaiDirections.length - 1 &&
+                                idx === upcoming.length - 1
+                              }
+                            />
+                          ))}
+                        </ListBox>
                       ) : (
-                        <Box py="xs" px="sm">
-                          <Text fz={11} c="dimmed">
-                            {meta.destination}行の運行は終了しました
-                          </Text>
-                        </Box>
+                        <EmptyState className="py-3 px-3 text-center text-xs text-muted">
+                          {meta.destination}行の運行は終了しました
+                        </EmptyState>
                       )}
-                    </Box>
+                    </div>
                   );
                 })}
               </>
             )}
-          </Stack>
-        </Paper>
+          </div>
+        </Card>
       )}
 
       {/* 2. 仙台市営バス */}
       {hasSendaiBus && (
-        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+        <Card className="gap-0 p-0 overflow-hidden border border-border rounded-2xl shadow-xs">
           <TransportSectionHeader
             icon={<JisBus size={18} color={SENDAI_BUS_COLOR} />}
             title="仙台市営バス"
             rightAction={
               <Button
-                size="compact-xs"
-                variant="default"
-                radius="xl"
-                fw={700}
-                leftSection={<Icon name="schedule" size={13} />}
-                onClick={() => {
+                size="sm"
+                variant="tertiary"
+                className="h-7 px-2.5 text-xs font-bold rounded-full gap-1"
+                onPress={() => {
                   if (!sendaiBusSchedule && !sendaiBusLoading) {
                     loadSendaiBusData(true, false);
                   }
                   openSendaiBusTimetable(null, selectedSendaiBusFilterKey);
                 }}
               >
+                <Icon name="schedule" size={13} />
                 時刻表
               </Button>
             }
@@ -538,21 +508,15 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
           {/* sendai-bus-map-v2 準拠ののりば選択ピル（全のりば / 各のりば切り替え） */}
           {sendaiBusSchedule && sendaiBusSchedule.filterOptions.length > 1 && (
-            <Box
-              px={12}
-              py={8}
-              style={{
-                backgroundColor: 'var(--mantine-color-default-hover)',
-                borderBottom: '1px solid var(--mantine-color-default-border)',
-                overflowX: 'auto',
-                WebkitOverflowScrolling: 'touch',
-              }}
+            <Surface
+              variant="secondary"
+              className="px-3 py-2 border-b border-border overflow-x-auto"
             >
-              <Group gap={6} wrap="nowrap">
+              <div className="flex items-center gap-1.5 flex-nowrap">
                 <Button
-                  size="compact-xs"
-                  radius="xl"
-                  variant={selectedSendaiBusFilterKey === null ? 'filled' : 'default'}
+                  size="sm"
+                  variant={selectedSendaiBusFilterKey === null ? 'primary' : 'tertiary'}
+                  className="h-6 px-2.5 text-xs font-bold rounded-full shrink-0"
                   style={
                     selectedSendaiBusFilterKey === null
                       ? {
@@ -561,9 +525,7 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                         }
                       : undefined
                   }
-                  onClick={() => setSelectedSendaiBusFilterKey(null)}
-                  fw={700}
-                  className="shrink-0"
+                  onPress={() => setSelectedSendaiBusFilterKey(null)}
                 >
                   すべて
                 </Button>
@@ -572,9 +534,9 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                   return (
                     <Button
                       key={opt.key}
-                      size="compact-xs"
-                      radius="xl"
-                      variant={isSelected ? 'filled' : 'default'}
+                      size="sm"
+                      variant={isSelected ? 'primary' : 'tertiary'}
+                      className="h-6 px-2.5 text-xs font-bold rounded-full shrink-0"
                       style={
                         isSelected
                           ? {
@@ -583,57 +545,46 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                             }
                           : undefined
                       }
-                      onClick={() =>
+                      onPress={() =>
                         setSelectedSendaiBusFilterKey(isSelected ? null : opt.key)
                       }
-                      fw={700}
-                      className="shrink-0"
                     >
                       {opt.label}
                     </Button>
                   );
                 })}
-              </Group>
-            </Box>
+              </div>
+            </Surface>
           )}
 
           {sendaiBusLoading && !sendaiBusSchedule ? (
-            <Stack gap={0} style={{ minHeight: 220 }}>
-              <Box
-                px="sm"
-                py={6}
-                style={{
-                  borderBottom: '1px solid var(--mantine-color-default-border)',
-                  backgroundColor: 'var(--mantine-color-default-hover)',
-                }}
+            <div className="flex flex-col min-h-[220px]">
+              <Surface
+                variant="secondary"
+                className="flex items-center gap-2 px-3 py-1.5 border-b border-border"
               >
-                <Group gap={8} align="center" wrap="nowrap">
-                  <Loader size="xs" color={SENDAI_BUS_COLOR} />
-                  <Text fz={12} fw={600} c="dimmed">
-                    市営バス直近発車・遅延情報を取得中...
-                  </Text>
-                </Group>
-              </Box>
+                <Spinner size="sm" />
+                <span className="text-xs font-semibold text-muted">
+                  市営バス直近発車・遅延情報を取得中...
+                </span>
+              </Surface>
               <BusDepartureRowSkeleton />
               <BusDepartureRowSkeleton />
               <BusDepartureRowSkeleton isLast />
-            </Stack>
+            </div>
           ) : sendaiBusError && !sendaiBusSchedule ? (
-            <Group justify="space-between" align="center" p="sm" wrap="nowrap">
-              <Text fz={12} c="dimmed">
-                市営バス情報の取得に失敗しました
-              </Text>
+            <EmptyState className="flex items-center justify-between p-3 flex-nowrap text-xs text-muted">
+              <span>市営バス情報の取得に失敗しました</span>
               <Button
-                size="compact-xs"
-                variant="default"
-                radius="md"
-                fw={700}
-                leftSection={<Icon name="refresh" size={13} />}
-                onClick={() => loadSendaiBusData(true, true)}
+                size="sm"
+                variant="tertiary"
+                className="h-7 px-2.5 text-xs font-bold rounded-lg gap-1"
+                onPress={() => loadSendaiBusData(true, true)}
               >
+                <Icon name="refresh" size={13} />
                 再試行
               </Button>
-            </Group>
+            </EmptyState>
           ) : sendaiBusSchedule ? (
             (() => {
               const upcoming = getUpcomingSendaiBusDepartures(
@@ -645,19 +596,24 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
 
               if (upcoming.length === 0) {
                 return (
-                  <Box py="md" px="sm">
-                    <Text fz={12} c="dimmed" ta="center">
-                      本日の運行は終了しました
-                    </Text>
-                  </Box>
+                  <EmptyState className="py-4 px-3 text-center text-xs text-muted">
+                    本日の運行は終了しました
+                  </EmptyState>
                 );
               }
 
               return (
-                <Stack gap={0}>
+                <ListBox
+                  key={`tg-sendai-bus-${stationId}`}
+                  aria-label="仙台市営バス 直近の発車便"
+                  selectionMode="none"
+                  className="gap-0 p-0 divide-y divide-border"
+                >
                   {upcoming.map((dep, dIdx) => (
                     <BusDepartureRow
                       key={dep.id}
+                      id={dep.id}
+                      textValue={`${dep.departureTime}発 [${dep.routeCode}] ${dep.headsign}行`}
                       routeCode={dep.routeCode}
                       routeColor={dep.routeColor}
                       routeTextColor={dep.routeTextColor}
@@ -676,39 +632,38 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                       isLast={dIdx === upcoming.length - 1}
                     />
                   ))}
-                </Stack>
+                </ListBox>
               );
             })()
           ) : null}
-        </Paper>
+        </Card>
       )}
 
       {/* 3. 名取市コミュニティバス「なとりん号」 */}
       {hasNatoringo && natoringoStation && (
-        <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+        <Card className="gap-0 p-0 overflow-hidden border border-border rounded-2xl shadow-xs">
           <TransportSectionHeader
             icon={<JisBus size={18} />}
             title="名取市 なとりん号"
             rightAction={
               <Button
-                size="compact-xs"
-                variant="default"
-                radius="xl"
-                fw={700}
-                leftSection={<Icon name="schedule" size={13} />}
-                onClick={() =>
+                size="sm"
+                variant="tertiary"
+                className="h-7 px-2.5 text-xs font-bold rounded-full gap-1"
+                onPress={() =>
                   openNatoringoTimetable(
                     natoringoStation.busStops[0]?.stopId ?? null,
                     null
                   )
                 }
               >
+                <Icon name="schedule" size={13} />
                 時刻表
               </Button>
             }
           />
 
-          <Stack gap={0}>
+          <div className="flex flex-col">
             {natoringoStation.busStops.map((busStop, sIdx) => {
               const limit = stationId === 'morisekinoshita' ? 4 : 3;
               const upcoming = getUpcomingNatoringoDepartures(
@@ -719,70 +674,56 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
               );
 
               return (
-                <Box key={busStop.stopId}>
+                <div key={busStop.stopId}>
+                  {sIdx > 0 && <Separator />}
                   {/* バス停サブヘッダー */}
-                  <Box
-                    py={4}
-                    px={12}
-                    style={{
-                      backgroundColor: 'var(--mantine-color-default-hover)',
-                      borderTop:
-                        sIdx > 0
-                          ? '1px solid var(--mantine-color-default-border)'
-                          : undefined,
-                      borderBottom:
-                        '1px solid var(--mantine-color-default-border)',
-                    }}
+                  <Surface
+                    variant="secondary"
+                    className="flex items-center justify-between px-3 py-1 border-b border-border"
                   >
-                    <Group justify="space-between" wrap="nowrap" align="center">
-                      <Group gap={6} wrap="nowrap" className="min-w-0">
-                        <Badge
-                          size="xs"
-                          radius="sm"
-                          variant="filled"
-                          color="gray"
-                          fw={700}
-                          tt="none"
-                          className="shrink-0"
-                        >
-                          {busStop.stopName}
-                        </Badge>
-                        <Text
-                          fz={11}
-                          fw={500}
-                          c="dimmed"
-                          className="truncate"
-                        >
-                          {busStop.lines.map((l) => l.lineName).join('・')}
-                        </Text>
-                      </Group>
-
-                      <UnstyledButton
-                        onClick={() =>
-                          openNatoringoTimetable(busStop.stopId, null)
-                        }
-                        className="shrink-0"
+                    <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+                      <Chip
+                        size="sm"
+                        variant="secondary"
+                        className="shrink-0 text-[10px] font-bold px-1.5 py-0 h-4"
                       >
-                        <Group gap={2} wrap="nowrap" align="center">
-                          <Text fz={10.5} c="dimmed" fw={600}>
-                            全便
-                          </Text>
-                          <Icon
-                            name="chevron_right"
-                            size={13}
-                            className="text-slate-400 dark:text-slate-500"
-                          />
-                        </Group>
-                      </UnstyledButton>
-                    </Group>
-                  </Box>
+                        {busStop.stopName}
+                      </Chip>
+                      <span className="text-[11px] font-medium text-muted truncate">
+                        {busStop.lines.map((l) => l.lineName).join('・')}
+                      </span>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-1.5 text-[10.5px] font-semibold text-muted gap-0.5 min-w-0"
+                      onPress={() =>
+                        openNatoringoTimetable(busStop.stopId, null)
+                      }
+                    >
+                      <span>全便</span>
+                      <Icon
+                        name="chevron_right"
+                        size={13}
+                        className="text-muted"
+                      />
+                    </Button>
+                  </Surface>
 
                   {/* 直近発車便リスト */}
                   {upcoming.length > 0 ? (
-                    <div>
+                    <ListBox
+                      key={`tg-natoringo-${busStop.stopId}`}
+                      aria-label={`なとりん号 ${busStop.stopName} 直近の発車便`}
+                      selectionMode="none"
+                      className="gap-0 p-0 divide-y divide-border"
+                    >
                       {upcoming.map((dep, dIdx) => (
                         <BusDepartureRow
                           key={dep.id}
+                          id={dep.id}
+                          textValue={`${dep.departureTime}発 [${dep.routeCode}] ${dep.headsign}行`}
                           routeCode={dep.routeCode}
                           routeColor={dep.routeColor}
                           headsign={dep.headsign}
@@ -799,39 +740,29 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
                           }
                         />
                       ))}
-                    </div>
+                    </ListBox>
                   ) : (
-                    <Box
-                      py={8}
-                      px={14}
-                      style={{
-                        borderBottom:
-                          sIdx === natoringoStation.busStops.length - 1
-                            ? 'none'
-                            : '1px solid var(--mantine-color-default-border)',
-                      }}
-                    >
-                      <Group justify="space-between" align="center">
-                        <Text fz={11.5} c="dimmed">
-                          本日の運行は終了しました
-                        </Text>
-                        <UnstyledButton
-                          onClick={() =>
-                            openNatoringoTimetable(busStop.stopId, null)
-                          }
-                        >
-                          <Text fz={11} fw={700} c="blue">
-                            時刻表を見る →
-                          </Text>
-                        </UnstyledButton>
-                      </Group>
-                    </Box>
+                    <EmptyState className="flex items-center justify-between py-2 px-3.5 text-xs text-muted">
+                      <span className="text-[11.5px] text-muted">
+                        本日の運行は終了しました
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[11px] font-bold text-accent hover:underline min-w-0"
+                        onPress={() =>
+                          openNatoringoTimetable(busStop.stopId, null)
+                        }
+                      >
+                        時刻表を見る →
+                      </Button>
+                    </EmptyState>
                   )}
-                </Box>
+                </div>
               );
             })}
-          </Stack>
-        </Paper>
+          </div>
+        </Card>
       )}
 
       {/* 仙台市地下鉄 時刻表＆全停車駅タイムラインモーダル */}
@@ -871,6 +802,6 @@ export const TransferGuide: React.FC<TransferGuideProps> = ({ station }) => {
           now={now}
         />
       )}
-    </Stack>
+    </div>
   );
 };

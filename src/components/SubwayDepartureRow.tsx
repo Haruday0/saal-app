@@ -1,5 +1,5 @@
 import React from 'react';
-import { UnstyledButton } from '@mantine/core';
+import { ListBox } from '@heroui/react';
 import { SubwayStationMark } from './SubwayStationMark';
 import { Icon } from './Icon';
 import { SubwayLineId } from '../utils/subwaySchedule';
@@ -21,11 +21,18 @@ export interface SubwayDepartureRowProps {
   onClick?: () => void;
   /** 最後の行かどうか (下線非表示用) */
   isLast?: boolean;
+  /** リストアイテムID */
+  id?: string;
+  /** アクセシビリティ・スクリーンリーダー用テキスト */
+  textValue?: string;
+  /** レンダリング要素（デフォルト: 'list-item'） */
+  as?: 'list-item' | 'button';
 }
 
 /**
  * 地下鉄発車行コンポーネント (1便 = 1行、市営バスや各駅発車案内と統一された文法)
  *
+ * - HeroUI の ListBox.Item を使用してリスト内で統一
  * - 左側: 発車時刻カラム (固定幅58px・黒文字・等幅欧文数字・18px太字)
  * - 中央: 行き先駅ナンバリングマーク + 行先「〇〇行」(「行」は小さく下揃え) + のりば「○番線」
  * - 右側: 詳細遷移シェブロンアイコン
@@ -39,115 +46,77 @@ export const SubwayDepartureRow: React.FC<SubwayDepartureRowProps> = ({
   departureTime,
   onClick,
   isLast = false,
+  id,
+  textValue,
+  as = 'list-item',
 }) => {
   const markCode = destinationCode || (lineId === 'namboku' ? 'N' : 'T');
+  const itemId = id || `${departureTime}-${destination}`;
+  const itemTextValue = textValue || `${departureTime}発 ${destination}行 (${track}番線)`;
+  const itemTitle = `${lineName} ${departureTime}発 ${destination}行 (${track}番線) の詳細を表示`;
 
-  return (
-    <UnstyledButton
-      onClick={onClick}
-      w="100%"
-      title={`${lineName} ${departureTime}発 ${destination}行 (${track}番線) の詳細を表示`}
-      className="transition-colors text-left select-none relative hover:bg-black/5 dark:hover:bg-white/5"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '8px 12px',
-        gap: 10,
-        borderBottom: isLast
-          ? 'none'
-          : '1px solid var(--mantine-color-default-border)',
-      }}
-    >
-      {/* 左カラム: 発車時刻（固定幅58px・中央揃え・等幅数字・黒文字18px太字） */}
-      <div
-        className="font-english tabular-nums shrink-0"
-        style={{
-          width: 58,
-          minWidth: 58,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-        }}
-      >
-        <span
-          style={{
-            fontSize: 18,
-            fontWeight: 700,
-            color: 'var(--mantine-color-text)',
-            letterSpacing: '-0.03em',
-            lineHeight: 1,
-          }}
-        >
+  const rowContent = (
+    <>
+      {/* 左カラム: 発車時刻（固定幅58px・中央揃え・等幅数字・18px太字） */}
+      <div className="font-english tabular-nums shrink-0 w-[58px] min-w-[58px] flex items-center justify-center text-center">
+        <span className="text-lg font-bold text-foreground tracking-tight leading-none">
           {departureTime}
         </span>
       </div>
 
       {/* 中央カラム: 行き先駅マーク ＋ 行先「〇〇行」(「行」は小さく下揃え) ＋ のりば */}
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-        }}
-      >
+      <div className="flex-1 min-w-0 flex items-center gap-1.5">
         <SubwayStationMark line={lineId} code={markCode} size={22} />
         
         {/* 行先表示（駅名は15px太字、「行」は0.72emでベースライン下揃え） */}
-        <span
-          className="truncate inline-flex items-baseline"
-          style={{
-            fontSize: 15,
-            fontWeight: 700,
-            lineHeight: 1.3,
-            color: 'var(--mantine-color-text)',
-          }}
-        >
+        <span className="truncate inline-flex items-baseline text-[15px] font-bold text-foreground leading-snug">
           <span>{destination}</span>
-          <span
-            style={{
-              fontSize: '0.72em',
-              marginLeft: 1.5,
-              fontWeight: 600,
-              color: 'var(--mantine-color-dimmed)',
-            }}
-          >
+          <span className="text-[0.72em] ml-0.5 font-semibold text-muted">
             行
           </span>
         </span>
 
         {/* のりば番号 */}
-        <span
-          className="shrink-0"
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: 'var(--mantine-color-dimmed)',
-            marginLeft: 2,
-          }}
-        >
+        <span className="shrink-0 text-[11px] font-semibold text-muted ml-0.5">
           {track}番線
         </span>
       </div>
 
       {/* 右端: 詳細・停車駅遷移アフォーダンスアイコン */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingLeft: 4,
-        }}
-      >
+      <div className="flex items-center justify-center pl-1 shrink-0">
         <Icon
           name="chevron_right"
           size={16}
-          className="text-slate-400 dark:text-slate-500 shrink-0"
+          className="text-muted shrink-0"
         />
       </div>
-    </UnstyledButton>
+    </>
+  );
+
+  if (as === 'button') {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        title={itemTitle}
+        className={`rounded-none px-3.5 py-2.5 w-full flex items-center justify-between gap-2.5 cursor-pointer font-inherit text-foreground select-none relative hover:bg-surface-secondary/60 text-left transition-colors ${
+          isLast ? '' : 'border-b border-border'
+        }`}
+      >
+        {rowContent}
+      </button>
+    );
+  }
+
+  return (
+    <ListBox.Item
+      id={itemId}
+      textValue={itemTextValue}
+      onAction={onClick}
+      className="rounded-none px-3.5 py-2.5 w-full flex items-center justify-between gap-2.5 cursor-pointer font-inherit text-foreground select-none relative data-[hovered=true]:bg-surface-secondary/60 data-[pressed=true]:bg-surface-tertiary transition-colors"
+    >
+      {rowContent}
+    </ListBox.Item>
   );
 };
 

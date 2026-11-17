@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface IconProps {
+interface IconProps extends React.HTMLAttributes<HTMLElement> {
   name: string;
   className?: string;
   filled?: boolean;
@@ -12,23 +12,31 @@ export const Icon: React.FC<IconProps> = ({
   className = '',
   filled = false,
   size,
+  style: propStyle,
+  ...rest
 }) => {
-  const style = size
-    ? {
-        fontSize: typeof size === 'number' ? `${size}px` : size,
-        width: typeof size === 'number' ? `${size}px` : size,
-        height: typeof size === 'number' ? `${size}px` : size,
-      }
-    : undefined;
+  const style: React.CSSProperties = {
+    ...(size
+      ? {
+          fontSize: typeof size === 'number' ? `${size}px` : size,
+          width: typeof size === 'number' ? `${size}px` : size,
+          height: typeof size === 'number' ? `${size}px` : size,
+        }
+      : {}),
+    ...propStyle,
+  };
 
   return (
     <span
+      data-slot="custom-icon"
       className={`material-symbols-rounded select-none inline-flex items-center justify-center ${
         filled ? 'filled' : ''
       } ${className}`}
-      style={style}
+      style={Object.keys(style).length > 0 ? style : undefined}
+      {...rest}
     >
       {name}
     </span>
   );
 };
+

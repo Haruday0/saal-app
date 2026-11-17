@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { CloseButton } from '@heroui/react';
 import { DepartureTrain, DirectionType } from '../types';
 import { StationBoard, STATION_BOARD_BASE_WIDTHS } from './StationBoard';
 import { Icon } from './Icon';
@@ -148,17 +149,18 @@ export const StationBoardFullscreen: React.FC<StationBoardFullscreenProps> = ({
         className="relative flex items-center justify-center shrink-0 overflow-hidden"
       >
         {/* 閉じるボタン（横画面ステージ内の右上に常時配置・タップで確実に終了） */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleClose();
-          }}
-          aria-label="全画面表示を閉じる"
-          className="absolute top-4 right-4 z-50 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center backdrop-blur-md transition-colors border border-white/15 cursor-pointer shadow-lg"
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-4 right-4 z-50"
         >
-          <Icon name="close" size={24} />
-        </button>
+          <CloseButton
+            onPress={handleClose}
+            aria-label="全画面表示を閉じる"
+            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center backdrop-blur-md transition-colors border border-white/15 cursor-pointer shadow-lg"
+          >
+            <Icon name="close" size={24} />
+          </CloseButton>
+        </div>
 
         {/* 電光掲示板ボード本体（最大スケール表示） */}
         <div

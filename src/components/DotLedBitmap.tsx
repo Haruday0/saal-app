@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import dotDestinationsData from '../data/dotDestinations.json';
 import stationLedData from '../data/stationLedData.json';
 
 export type DotBitmapObject = {
@@ -83,7 +82,7 @@ function findMatchingEntry(
 }
 
 /**
- * stationLedData.json または dotDestinations.json から
+ * stationLedData.json から
  * 対象駅・パーツ名に対応するドットデータを取得する
  *
  * 【重要・共通化厳禁ルール】
@@ -133,34 +132,6 @@ export function getDestinationDots(
   if (groupKey === 'natori' && unifiedData.nagamachi?.parts) {
     const entry = findMatchingEntry(unifiedData.nagamachi.parts, cleanDest);
     if (entry) return normalizeDotsArray(entry);
-  }
-
-  // 4. 従来データ dotDestinations.json から検索（互換用）
-  const groupsData = dotDestinationsData as unknown as Record<
-    string,
-    Record<string, DotBitmapInput>
-  >;
-  const groupMap = groupsData[groupKey] || (groupKey === 'natori' ? groupsData.nagamachi : {}) || {};
-
-  // 南仙台駅の場合、専用長体キー（南仙台_仙台空港 等）を最優先検索
-  if (sId === 'minami-sendai') {
-    const candidateKeys = [
-      `南仙台_${cleanDest}`,
-      `minami-sendai_${cleanDest}`,
-      `南仙台${cleanDest}`,
-    ];
-    for (const key of candidateKeys) {
-      const entry = findMatchingEntry(groupMap, key);
-      if (entry) {
-        return normalizeDotsArray(entry);
-      }
-    }
-  }
-
-  // 自グループ内の通常キーを検索
-  const directEntry = findMatchingEntry(groupMap, cleanDest);
-  if (directEntry) {
-    return normalizeDotsArray(directEntry);
   }
 
   return null;

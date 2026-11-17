@@ -12,10 +12,19 @@ export const App: React.FC = () => {
   const [selectedTrainId, setSelectedTrainId] = useState<string | null>(null);
   const { now } = useDebug();
 
+  const handleStationClick = (station: Station) => {
+    setSelectedStation(station);
+    setSelectedTrainId(null);
+  };
+
+  const handleTrainClick = (train: { id: string }) => {
+    setSelectedTrainId(train.id);
+    setSelectedStation(null);
+  };
+
   return (
     <div
-      className="fixed inset-0 w-full h-full flex flex-col font-sans overflow-hidden select-none overscroll-none"
-      style={{ backgroundColor: 'var(--mantine-color-body)', color: 'var(--mantine-color-text)' }}
+      className="fixed inset-0 w-full h-full flex flex-col font-sans overflow-hidden select-none overscroll-none bg-background text-foreground transition-colors"
     >
       {/* 上部固定ヘッダー */}
       <Header />
@@ -27,8 +36,8 @@ export const App: React.FC = () => {
       <main className="flex-1 min-h-0 w-full flex flex-col overflow-hidden">
         <RouteMap
           selectedStationId={selectedStation?.id || null}
-          onSelectStation={setSelectedStation}
-          onSelectTrain={(train) => setSelectedTrainId(train.id)}
+          onSelectStation={handleStationClick}
+          onSelectTrain={handleTrainClick}
           now={now}
         />
       </main>
@@ -39,7 +48,7 @@ export const App: React.FC = () => {
         onClose={() => setSelectedStation(null)}
       />
 
-      {/* 列車詳細パネル（電車タップで下から開くボトムシート） */}
+      {/* 列車詳細パネル（在線列車タップで下から開くボトムシート） */}
       <TrainDetailSheet
         trainId={selectedTrainId}
         onClose={() => setSelectedTrainId(null)}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Chip } from '@heroui/react';
 
 /**
  * YIQ 輝度計算によるコントラスト文字色判定
@@ -62,26 +63,31 @@ export const BusRouteBadge: React.FC<BusRouteBadgeProps> = ({
   const isMd = size === 'md';
 
   return (
-    <span
-      className={`route-badge select-none ${className}`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: isMd ? '3px 9px' : '2px 8px',
-        borderRadius: 999,
-        fontSize: isMd ? 14 : 13,
-        fontWeight: 700,
-        letterSpacing: '0.01em',
-        whiteSpace: 'nowrap',
-        lineHeight: 1.2,
-        backgroundColor: bg,
-        color: computedTextColor,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.14)',
-        flexShrink: 0,
-      }}
+    <Chip
+      size={size}
+      className={`route-badge select-none rounded-full ${className}`}
+      style={
+        {
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: isMd ? '3px 9px' : '2px 8px',
+          borderRadius: 999,
+          fontSize: isMd ? 14 : 13,
+          fontWeight: 700,
+          letterSpacing: '0.01em',
+          whiteSpace: 'nowrap',
+          lineHeight: 1.2,
+          backgroundColor: bg,
+          color: computedTextColor,
+          '--chip-bg': bg,
+          '--chip-fg': computedTextColor,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.14)',
+          flexShrink: 0,
+        } as React.CSSProperties
+      }
     >
       {routeCode}
-    </span>
+    </Chip>
   );
 };

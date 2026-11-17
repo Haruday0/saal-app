@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { DepartureTrain, DirectionType, LineType } from '../types';
 import { useDebug } from '../context/DebugContext';
 import {
@@ -104,11 +104,22 @@ export const STATION_BOARD_BASE_WIDTHS: Record<string, number> = {
   'sendai-airport': 424,
 };
 
+const getEstimatedScale = (baseWidth: number): number => {
+  if (typeof window === 'undefined') return 1;
+  // シートやカードの余白（左右合計約32px〜36px）を考慮した推定幅（最大448px）
+  const estimatedContainerWidth = Math.min(window.innerWidth - 32, 448 - 32);
+  if (estimatedContainerWidth > 0 && baseWidth > 0) {
+    return Math.min(1, estimatedContainerWidth / baseWidth);
+  }
+  return 1;
+};
+
 /**
  * 電光掲示板の形状を完全固定するスケーリングラッパー
  * 基準幅（baseWidth）で内部ボードを描画し、利用可能幅に応じて均等スケール（transform: scale）を適用。
  * ページズーム、ピンチズーム、端末幅変化でも縦横比（アスペクト比）が1ミリも狂わず、
  * 実機の形状プロポーションを常に100%完全に維持します。
+ * 初回レンダリング時から適切なスケールを即座に計算し、開く際のカクつきを完全防止します。
  */
 export const FixedRatioBoardWrapper: React.FC<{
   baseWidth: number;
@@ -116,10 +127,11 @@ export const FixedRatioBoardWrapper: React.FC<{
 }> = ({ baseWidth, children }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  const [scale, setScale] = useState<number>(() => getEstimatedScale(baseWidth));
   const [contentHeight, setContentHeight] = useState<number | null>(null);
 
-  useEffect(() => {
+  // useLayoutEffect により、ブラウザの描画（ペイント）前に正確なコンテナ幅へ同期調整
+  useLayoutEffect(() => {
     const container = containerRef.current;
     const content = contentRef.current;
     if (!container || !content) return;

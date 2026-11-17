@@ -1,41 +1,9 @@
 @import "tailwindcss";
+@import "@heroui/styles";
 @config "../tailwind.config.js";
 
-/* Tailwind の dark: バリアントを OS設定(prefers-color-scheme) ではなく
-   Mantine のカラースキーム属性に連動させる（ヘッダーのテーマ切替ボタンと完全同期） */
-@custom-variant dark (&:where([data-mantine-color-scheme="dark"], [data-mantine-color-scheme="dark"] *));
-
-@font-face {
-  font-family: 'EnkaDotGothic24';
-  src: url('/fonts/EnkaDotGothic24.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: '縁架ドットゴシック24';
-  src: url('/fonts/EnkaDotGothic24.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'JF-Dot-jiskan24h';
-  src: url('/fonts/JF-Dot-jiskan24h.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'JFドットjiskan24h';
-  src: url('/fonts/JF-Dot-jiskan24h.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
+/* Tailwind の dark: バリアントを .dark クラス, data-theme="dark", data-mantine-color-scheme="dark" に連動 */
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *, [data-mantine-color-scheme="dark"], [data-mantine-color-scheme="dark"] *));
 
 @theme {
   --color-saal-blue: #0085ca;
@@ -57,11 +25,6 @@
   --font-signboard: "BIZ UDPGothic", "M PLUS 1", "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
   --font-sans: "BIZ UDPGothic", "M PLUS 1", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
 
-  --shadow-glass: 0 10px 30px rgba(22, 49, 67, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.64);
-  --shadow-glass-lg: 0 20px 54px rgba(22, 49, 67, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.72);
-  --shadow-glass-card: 0 8px 24px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.65);
-  --shadow-glass-sm: 0 4px 14px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-
   --radius-sheet: 28px;
 }
 
@@ -77,9 +40,23 @@
 }
 
 /* ====================================================
-   仙台バスマップ v2 準拠 — Glassmorphism Design Tokens
+   HeroUI Design Tokens & Palette Configuration
    ==================================================== */
 :root {
+  /* --- HeroUI Theme Tokens --- */
+  --accent: #2A5CAA;
+  --accent-foreground: #ffffff;
+
+  /* --- Mantine Compatibility Tokens (HeroUI セマンティックトークンと連動) --- */
+  --mantine-color-body: var(--background);
+  --mantine-color-text: var(--foreground);
+  --mantine-color-dimmed: var(--muted);
+  --mantine-color-default-border: var(--border);
+  --mantine-color-default-hover: var(--surface-hover);
+  --mantine-color-saal-light: rgba(42, 92, 170, 0.1);
+  --mantine-color-gray-1: #f1f3f5;
+  --mantine-color-dark-6: #25262b;
+
   /* --- Brand Colors --- */
   --color-brand-50: hsl(221, 90%, 95%);
   --color-brand-100: hsl(221, 85%, 88%);
@@ -103,25 +80,8 @@
   --color-neutral-800: hsl(220, 14%, 14%);
   --color-neutral-900: hsl(220, 16%, 9%);
 
-  /* --- Glass / Surface --- */
+  /* --- Surface --- */
   --train-badge-bg: var(--mantine-color-gray-1, #f1f3f5);
-  --glass-bg: rgba(255, 255, 255, 0.58);
-  --glass-bg-strong: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.72);
-  --glass-border-subtle: rgba(255, 255, 255, 0.45);
-  --glass-shadow:
-    0 10px 30px rgba(22, 49, 67, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.64);
-  --glass-shadow-lg:
-    0 20px 54px rgba(22, 49, 67, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.68);
-  --glass-shadow-card:
-    0 8px 24px rgba(22, 49, 67, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
-
-  /* --- Backdrop --- */
-  --backdrop-blur: blur(20px) saturate(155%);
-  --backdrop-blur-sm: blur(12px) saturate(145%);
 
   /* --- Radius --- */
   --radius-sm: 8px;
@@ -140,28 +100,28 @@
   --transition-spring: 0.35s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-/* Mantine Dark Color Scheme Overrides（Mantine標準の無彩色ダークグレーに統一） */
+/* Dark Color Scheme Overrides（HeroUI 公式トークンと連動） */
+.dark,
+[data-theme="dark"],
 [data-mantine-color-scheme="dark"] {
-  --train-badge-bg: var(--mantine-color-dark-6, #25262b);
-  --glass-bg: rgba(26, 27, 30, 0.85);
-  --glass-bg-strong: rgba(26, 27, 30, 0.95);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-border-subtle: rgba(255, 255, 255, 0.08);
-  --glass-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --glass-shadow-lg:
-    0 20px 54px rgba(0, 0, 0, 0.65),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --glass-shadow-card:
-    0 8px 24px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --accent: #3b74c4;
+  --accent-foreground: #ffffff;
+  --mantine-color-body: var(--background);
+  --mantine-color-text: var(--foreground);
+  --mantine-color-dimmed: var(--muted);
+  --mantine-color-default-border: var(--border);
+  --mantine-color-default-hover: var(--surface-hover);
+  --mantine-color-saal-light: rgba(59, 116, 196, 0.2);
+  --mantine-color-gray-1: #f1f3f5;
+  --mantine-color-dark-6: #25262b;
+
+  --train-badge-bg: var(--surface);
 }
 
-[data-mantine-color-scheme="dark"] body,
-[data-mantine-color-scheme="dark"] #root {
-  background-color: var(--mantine-color-body);
-  color: var(--mantine-color-text);
+body,
+#root {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 html,
@@ -179,87 +139,6 @@ body,
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Glassmorphism surface utility classes */
-.glass-surface {
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: var(--backdrop-blur);
-  backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-}
-
-.glass-surface-strong {
-  background: var(--glass-bg-strong);
-  -webkit-backdrop-filter: var(--backdrop-blur);
-  backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow-lg);
-}
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.65);
-  -webkit-backdrop-filter: var(--backdrop-blur-sm);
-  backdrop-filter: var(--backdrop-blur-sm);
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  box-shadow: var(--glass-shadow-card);
-  border-radius: var(--radius-lg);
-}
-
-.glass-pill {
-  background: var(--glass-bg-strong);
-  -webkit-backdrop-filter: var(--backdrop-blur);
-  backdrop-filter: var(--backdrop-blur);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  border-radius: var(--radius-pill);
-}
-
-.glass-btn {
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 2px 8px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  border-radius: var(--radius-pill);
-  transition: all var(--transition-fast);
-}
-
-.glass-btn:hover {
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 4px 14px rgba(22, 49, 67, 0.14);
-  transform: translateY(-0.5px);
-}
-
-.glass-btn:active {
-  background: rgba(255, 255, 255, 0.65);
-  transform: translateY(0.5px);
-}
-
-/* 閉じるボタン（sendai-bus-map-v2 .close-btn 準拠） */
-.glass-close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.54);
-  border: 1px solid rgba(255, 255, 255, 0.68);
-  box-shadow: 0 2px 6px rgba(22, 49, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--color-neutral-600);
-  transition: all var(--transition-fast);
-}
-
-.glass-close-btn:hover {
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--color-neutral-800);
-  transform: scale(1.06);
-}
-
-.glass-close-btn:active {
-  background: rgba(255, 255, 255, 0.6);
-  transform: scale(0.95);
 }
 
 /* LED発車標用等幅フォント */
@@ -296,7 +175,7 @@ body,
    Material 3 (M3) Motion Tokens - Bottom Sheet Animations
    ========================================================================== */
 
-/* 常時GPUハードウェアアクセラレーション（開閉中・静止中問わずGPUレイヤーを維持して再アロケーションのjankを完全ゼロ化） */
+/* 常時GPUハードウェアアクセラレーション */
 .m3-bottom-sheet {
   will-change: transform;
   transform: translate3d(0, 0, 0);
@@ -352,7 +231,7 @@ body,
 }
 
 /* ====================================================
-   sendai-bus-map-v2 準拠 — バス発車案内・系統バッジスタイル
+   sendai-bus-map-v2 準拠 - バス発車案内・系統バッジスタイル
    ==================================================== */
 .route-badge {
   display: inline-flex;
@@ -369,6 +248,29 @@ body,
   flex-shrink: 0;
 }
 
+.dark .route-badge,
+[data-theme="dark"] .route-badge,
 [data-mantine-color-scheme="dark"] .route-badge {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
+
+/* ====================================================
+   HeroUI Button 内のカスタムアイコン保護（強制拡大・マージン上書き防止）
+   ==================================================== */
+.button svg[data-slot="custom-icon"],
+.button--sm svg[data-slot="custom-icon"],
+.button [data-slot="custom-icon"] svg,
+.button--sm [data-slot="custom-icon"] svg,
+button svg[data-slot="custom-icon"] {
+  margin: 0 !important;
+  width: revert !important;
+  height: revert !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.button [data-slot="custom-icon"],
+.button--sm [data-slot="custom-icon"] {
+  margin: 0;
+}
+

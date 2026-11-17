@@ -1,92 +1,75 @@
 import React from 'react';
-import {
-  ActionIcon,
-  Box,
-  Button,
-  Group,
-  Text,
-  Title,
-  useComputedColorScheme,
-  useMantineColorScheme,
-} from '@mantine/core';
+import { Button, Link } from '@heroui/react';
 import { Icon } from './Icon';
 import { LINE_COLORS } from '../config/trainLineRules';
 import { useDebug } from '../context/DebugContext';
+import { useTheme } from '../context/ThemeContext';
 
 export const Header: React.FC = () => {
-  const { setColorScheme } = useMantineColorScheme();
-  const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
-  const isDark = computedColorScheme === 'dark';
+  const { isDark, toggleTheme } = useTheme();
   const { isDebugMode, isHeaderPanelOpen, setIsHeaderPanelOpen, isTimeOverridden } = useDebug();
 
   return (
-    <Box
-      component="header"
-      className="shrink-0 sticky top-0 z-30"
-      style={{
-        backgroundColor: 'var(--mantine-color-body)',
-        borderBottom: '1px solid var(--mantine-color-default-border)',
-      }}
-    >
-      <Group justify="space-between" wrap="nowrap" h={48} px={14} maw={448} mx="auto">
+    <header className="shrink-0 sticky top-0 z-30 bg-surface border-b border-border transition-colors">
+      <div className="flex items-center justify-between h-12 px-3.5 max-w-[448px] mx-auto">
         {/* ロゴ・路線名 */}
-        <Group gap={8} wrap="nowrap">
-          <Box w={6} h={24} style={{ borderRadius: 999, backgroundColor: LINE_COLORS.saal }} />
+        <div className="flex items-center gap-2">
+          <div
+            className="w-1.5 h-6 rounded-full shrink-0"
+            style={{ backgroundColor: LINE_COLORS.saal }}
+          />
           <div>
-            <Title order={1} fz={14} fw={900} lh={1}>
+            <h1 className="text-sm font-black leading-none text-foreground">
               仙台空港アクセス線
-            </Title>
-            <Text fz={9} c="dimmed" tt="uppercase" mt={2} className="font-english tracking-wider">
+            </h1>
+            <p className="text-[9px] text-muted uppercase mt-0.5 font-english tracking-wider leading-none">
               Sendai Airport Access Line
-            </Text>
+            </p>
           </div>
-        </Group>
+        </div>
 
         {/* 右側アクションエリア */}
-        <Group gap={6} wrap="nowrap">
+        <div className="flex items-center gap-1.5">
           {/* デバッグモード（?debug=1）時のみ表示されるDEBUGトグルボタン */}
           {isDebugMode && (
             <Button
-              size="compact-sm"
-              radius="xl"
-              variant={isHeaderPanelOpen ? 'filled' : 'light'}
-              color={isTimeOverridden ? 'yellow' : 'gray'}
-              onClick={() => setIsHeaderPanelOpen((prev) => !prev)}
-              fz={10.5}
-              fw={800}
-              px={8}
+              size="sm"
+              variant={isHeaderPanelOpen ? 'primary' : 'secondary'}
+              className={`h-7 px-2 text-[10.5px] font-extrabold rounded-full ${
+                isTimeOverridden ? 'bg-amber-500 text-white' : ''
+              }`}
+              onPress={() => setIsHeaderPanelOpen((prev) => !prev)}
             >
               DEBUG
             </Button>
           )}
 
           {/* ライト / ダーク テーマ切り替え */}
-          <ActionIcon
-            onClick={() => setColorScheme(isDark ? 'light' : 'dark')}
-            variant="default"
-            size="md"
-            radius="xl"
+          <Button
+            isIconOnly
+            variant="tertiary"
+            size="sm"
+            className="rounded-full w-8 h-8 min-w-8 p-0 text-foreground"
+            onPress={toggleTheme}
             aria-label="テーマ切り替え"
           >
             <Icon name={isDark ? 'light_mode' : 'dark_mode'} size={16} />
-          </ActionIcon>
+          </Button>
 
-          {/* JR東日本「どこトレ」スマートフォン版 外部リンク */}
-          <Button
-            component="a"
+          {/* JR東日本「どこトレ」スマートフォン版 外部リンク（HeroUI Link） */}
+          <Link
             href="https://doko-train.jp/sp/index.html?area=sen"
             target="_blank"
             rel="noopener noreferrer"
-            variant="default"
-            size="compact-sm"
-            radius="xl"
-            fz={11}
-            rightSection={<Icon name="open_in_new" size={14} />}
+            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-bold border border-border bg-surface-secondary hover:bg-surface-tertiary text-foreground hover:no-underline transition-colors no-underline"
           >
-            どこトレ
-          </Button>
-        </Group>
-      </Group>
-    </Box>
+            <span>どこトレ</span>
+            <Icon name="open_in_new" size={14} />
+          </Link>
+        </div>
+      </div>
+    </header>
   );
 };
+
+export default Header;

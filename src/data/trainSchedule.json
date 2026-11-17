@@ -25450,7 +25450,7 @@
       ],
       "track": "3",
       "trainNumber": "1429M",
-      "calendar": "all",
+      "calendar": "weekday",
       "originStation": "岩沼",
       "originDepartureTime": "7:59",
       "allStops": [

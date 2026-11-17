@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { Station } from '../types';
 import { STATIONS } from '../data/mockData';
-import { Paper, Group, Text, Badge, Box, Stack, UnstyledButton } from '@mantine/core';
+import { Chip } from '@heroui/react';
 import { Icon } from './Icon';
 import { JisTrain, JisSubway } from './icons';
 import { getActiveMovingTrains, RealtimeMovingTrain } from '../utils/trainPosition';
-import { LINE_COLORS, getLineColor, getMantineLineColor } from '../config/trainLineRules';
+import { LINE_COLORS, getLineColor } from '../config/trainLineRules';
 import { useDebug } from '../context/DebugContext';
 
 interface RouteMapProps {
@@ -69,7 +69,6 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           </defs>
 
           {/* 1. 名取〜仙台間: 青と緑が極細の白い間を入れて1本の帯ストライプとして走る */}
-          {/* （中心 X=50 が、駅ノードの中心 X=50 と100%完全一致） */}
           {/* 左: 緑線（JR東北本線・常磐線） */}
           <line
             x1="47.9"
@@ -92,7 +91,6 @@ export const RouteMap: React.FC<RouteMapProps> = ({
           />
 
           {/* 3. 仙台空港アクセス線（青）: 仙台〜名取〜仙台空港まで完全一本の連続レール */}
-          {/* 仙台〜名取(Y=50〜438)はX=52.1で緑線と並走、名取駅ノード裏(Y=438〜452)でスムーズに中央X=50へ合流、名取〜空港はX=50で直通 */}
           <path
             d="M 52.1 50 L 52.1 438 C 52.1 445, 50 447, 50 452 L 50 750"
             fill="none"
@@ -101,7 +99,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             vectorEffect="non-scaling-stroke"
           />
 
-          {/* 4. 名取〜仙台空港間の単独区間（太さ強調の青レールオーバーレイ: X=50） */}
+          {/* 4. 名取〜仙台空港間の単独区間 */}
           <line
             x1="50"
             y1="452"
@@ -116,20 +114,29 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         {/* ================= 下り列車（仙台方面）オーバーレイレーン ================= */}
         <div className="absolute left-[66px] top-0 bottom-0 w-[58px] pointer-events-none z-20">
           {downTrains.map((train) => (
-            <TrainBadge key={train.id} train={train} onClick={() => handleTrainClick(train)} />
+            <TrainBadge
+              key={train.id}
+              train={train}
+              onClick={() => handleTrainClick(train)}
+            />
           ))}
         </div>
 
         {/* ================= 上り列車（空港・白石方面）オーバーレイレーン ================= */}
         <div className="absolute left-[124px] top-0 bottom-0 w-[58px] pointer-events-none z-20">
           {upTrains.map((train) => (
-            <TrainBadge key={train.id} train={train} onClick={() => handleTrainClick(train)} />
+            <TrainBadge
+              key={train.id}
+              train={train}
+              onClick={() => handleTrainClick(train)}
+            />
           ))}
         </div>
 
+        {/* ================= 各駅ノード ＆ 駅名ボタン行（全8駅・1画面完全均等フィット） ================= */}
         {STATIONS.map((station) => {
           const isSelected = selectedStationId === station.id;
-          const isNatori = station.id === 'natori'; // 名取（JR分岐）
+          const isNatori = station.id === 'natori';
 
           return (
             <div
@@ -138,7 +145,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
             >
               {/* ================= 1. 駅シンボルノード（線の中心 X=50px と100%完全一致） ================= */}
               <div className="relative w-[66px] shrink-0 flex items-center">
-                {/* 名取駅の分岐ラベル（本線・カーブ線・ノードと一切被らない左側クリアスペースに配置） */}
+                {/* 名取駅の分岐ラベル */}
                 {isNatori && (
                   <div
                     className="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col items-end pr-1 pointer-events-none z-20"
@@ -155,7 +162,17 @@ export const RouteMap: React.FC<RouteMapProps> = ({
 
                 {/* 駅シンボルノード（全8駅すべて完全に統一された白丸） */}
                 <div className="absolute left-[50px] -translate-x-1/2 z-10 flex items-center justify-center">
-                  <div className="w-3.5 h-3.5 rounded-full border-2 border-[#2A5CAA] bg-white shadow-xs" />
+                  <div
+                    className={`w-3.5 h-3.5 rounded-full border-2 border-[#2A5CAA] bg-white dark:bg-[#1a1b1e] shadow-xs transition-transform duration-150 ${
+                      isSelected ? 'scale-115 ring-2 ring-[#2A5CAA]/40' : ''
+                    }`}
+                  >
+                    <div
+                      className={`w-1 h-1 mx-auto my-[3px] rounded-full transition-colors ${
+                        isSelected ? 'bg-[#2A5CAA]' : 'bg-transparent'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -163,8 +180,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               <div className="relative w-[58px] shrink-0 flex items-center justify-center px-1">
                 {/* 走行ガイドライン（背景薄線） */}
                 <div
-                  className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[1px] pointer-events-none"
-                  style={{ backgroundColor: 'var(--mantine-color-default-border)', opacity: 0.6 }}
+                  className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[1px] pointer-events-none bg-border opacity-70"
                 />
               </div>
 
@@ -172,67 +188,57 @@ export const RouteMap: React.FC<RouteMapProps> = ({
               <div className="relative w-[58px] shrink-0 flex items-center justify-center px-1">
                 {/* 走行ガイドライン（背景薄線） */}
                 <div
-                  className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[1px] pointer-events-none"
-                  style={{ backgroundColor: 'var(--mantine-color-default-border)', opacity: 0.6 }}
+                  className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-[1px] pointer-events-none bg-border opacity-70"
                 />
               </div>
 
-              {/* ================= 4. 駅名 ＆ 接続情報ボタン（Mantine Paper / UnstyledButton） ================= */}
-              <Paper
-                component="button"
+              {/* ================= 4. 駅名 ＆ 接続情報ボタン ================= */}
+              <button
                 type="button"
                 onClick={() => onSelectStation(station)}
-                withBorder
-                radius="md"
-                px={10}
-                py={2}
-                ml={4}
-                className="flex-1 min-h-0 flex items-center justify-between text-left"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  color: 'var(--mantine-color-text)',
-                  backgroundColor: isSelected ? 'var(--mantine-color-saal-light)' : undefined,
-                  borderColor: isSelected ? 'var(--mantine-color-saal-filled)' : undefined,
-                }}
+                className={`flex-1 min-h-0 flex items-center justify-between text-left px-2.5 py-1 ml-1 rounded-xl border transition-all pointer-events-auto select-none cursor-pointer ${
+                  isSelected
+                    ? 'border-[#2A5CAA] bg-[#2A5CAA]/12 dark:bg-[#2A5CAA]/25 shadow-xs'
+                    : 'border-border bg-surface hover:bg-surface-secondary shadow-2xs'
+                }`}
               >
                 {/* 駅名 */}
                 <div className="min-w-0 pr-1">
-                  <Group gap={6} wrap="nowrap" align="baseline">
-                    <Text component="span" fw={800} fz={15} className="tracking-tight shrink-0">
+                  <div className="flex items-baseline gap-1.5 flex-nowrap">
+                    <span className="font-extrabold text-[15px] tracking-tight shrink-0 text-foreground">
                       {station.name}
-                    </Text>
-                    <Text component="span" fz={10} c="dimmed" className="font-english hidden xs:inline truncate">
+                    </span>
+                    <span className="text-[10px] text-muted font-english hidden xs:inline truncate">
                       {station.nameEn}
-                    </Text>
-                  </Group>
+                    </span>
+                  </div>
 
                   {/* 特徴タグ（新幹線・地下鉄の乗り換えのみ表示・JISピクトグラム付き） */}
                   {station.id === 'sendai' && (
-                    <Badge
-                      mt={2}
-                      size="xs"
-                      radius="sm"
-                      variant="light"
-                      color="gray"
-                      leftSection={<JisTrain size={10} />}
+                    <Chip
+                      size="sm"
+                      variant="soft"
+                      color="default"
+                      className="mt-0.5 text-[9.5px] font-bold h-4 px-1.5 gap-1 shrink-0 inline-flex items-center justify-center"
                     >
-                      新幹線・地下鉄
-                    </Badge>
+                      <span className="inline-flex items-center justify-center gap-1 leading-none">
+                        <JisTrain size={10} data-slot="custom-icon" className="shrink-0" />
+                        <span className="leading-none pt-[0.5px]">新幹線・地下鉄</span>
+                      </span>
+                    </Chip>
                   )}
                   {station.id === 'nagamachi' && (
-                    <Badge
-                      mt={2}
-                      size="xs"
-                      radius="sm"
-                      variant="light"
-                      color="green"
-                      leftSection={<JisSubway size={10} />}
+                    <Chip
+                      size="sm"
+                      variant="soft"
+                      color="default"
+                      className="mt-0.5 text-[9.5px] font-bold h-4 px-1.5 gap-1 shrink-0 inline-flex items-center justify-center"
                     >
-                      地下鉄
-                    </Badge>
+                      <span className="inline-flex items-center justify-center gap-1 leading-none">
+                        <JisSubway size={10} data-slot="custom-icon" className="shrink-0" />
+                        <span className="leading-none pt-[0.5px]">地下鉄</span>
+                      </span>
+                    </Chip>
                   )}
                 </div>
 
@@ -240,31 +246,36 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                 <Icon
                   name="chevron_right"
                   size={16}
-                  className="shrink-0 text-slate-400"
+                  className={`shrink-0 transition-transform duration-200 ${
+                    isSelected ? 'text-[#2A5CAA] translate-x-0.5' : 'text-muted'
+                  }`}
                 />
-              </Paper>
+              </button>
             </div>
           );
         })}
       </div>
-
     </div>
   );
 };
 
-/** 在線列車バッジ（四角形4辺ボーダー ＋ 進行方向接続ノーズ） */
+/**
+ * 路線図上の在線列車バッジ（TrainBadge）
+ * 進行方向ノーズ一体型シルエット（進行方向に三角ノーズが突き出す構造）
+ */
 const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> = ({ train, onClick }) => {
   const topPercent = ((train.positionRatio + 0.5) / 8) * 100;
   const lineColor = getLineColor(train.line);
-  const mantineColor = getMantineLineColor(train.line);
   const isDown = train.direction === 'down';
   const isCompact = !!train.isCompact;
   const noseH = isCompact ? 4.5 : 5;
   const overlap = 2.5;
 
   return (
-    <UnstyledButton
+    <button
+      type="button"
       onClick={onClick}
+      className="border-none bg-transparent p-0 m-0 outline-none cursor-pointer"
       style={{
         position: 'absolute',
         top: `${topPercent}%`,
@@ -279,10 +290,10 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
     >
       {/* 下り（仙台方面）: 上向き三角ノーズ */}
       {isDown && (
-        <Box
-          w="100%"
-          h={noseH + overlap}
+        <div
           style={{
+            width: '100%',
+            height: noseH + overlap,
             backgroundColor: lineColor,
             clipPath: `polygon(50% 0px, 100% ${noseH}px, 100% 100%, 0% 100%, 0% ${noseH}px)`,
             marginBottom: -overlap,
@@ -293,22 +304,18 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
         />
       )}
 
-      {/* 4辺ボーダー付き本体四角形（w="100%" border-box により上のBoxと外枠幅が100%一致） */}
-      <Paper
-        w="100%"
-        withBorder
-        shadow="none"
-        px={2.5}
-        py={isCompact ? 1.5 : 2}
-        radius={0}
-        className="bg-[#f1f3f5] dark:bg-[#25262b]"
+      {/* 4辺ボーダー付き本体四角形 */}
+      <div
         style={{
+          width: '100%',
           boxSizing: 'border-box',
           position: 'relative',
           zIndex: 0,
           borderColor: lineColor,
           borderWidth: 1.5,
-          backgroundColor: 'var(--train-badge-bg)',
+          borderStyle: 'solid',
+          backgroundColor: 'var(--train-badge-bg, var(--surface))',
+          padding: isCompact ? '1.5px 2.5px' : '2px 2.5px',
           display: isCompact ? 'flex' : undefined,
           alignItems: isCompact ? 'center' : undefined,
           justifyContent: isCompact ? 'center' : undefined,
@@ -322,12 +329,8 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
         }}
       >
         {isCompact ? (
-          <Text
-            component="div"
-            ta="center"
-            fw={800}
-            fz={10}
-            lh={1.15}
+          <div
+            className="text-center font-extrabold text-[10px] leading-[1.15] text-foreground"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -338,44 +341,30 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
             }}
           >
             {train.destination}
-          </Text>
+          </div>
         ) : (
-          <Stack gap={1.5} align="stretch">
+          <div className="flex flex-col gap-[1.5px] items-stretch">
             {/* 1段目: 種別 + 両数 */}
-            <Group justify="space-between" align="center" gap={1} wrap="nowrap">
-              <Badge
-                size="xs"
-                variant="light"
-                color={mantineColor}
-                radius="xs"
-                px={2}
-                tt="none"
-                styles={{
-                  root: { height: 11, flexShrink: 0, border: 'none', display: 'flex', alignItems: 'center' },
-                  label: { fontSize: 8, fontWeight: 800, lineHeight: 1 },
+            <div className="flex justify-between items-center gap-[1px] flex-nowrap">
+              <span
+                className="h-[11px] px-[2px] font-extrabold text-[8px] leading-none rounded-[2px] flex items-center justify-center shrink-0 text-white"
+                style={{
+                  backgroundColor: lineColor,
                 }}
               >
                 {train.trainType}
-              </Badge>
-              <Text
-                component="span"
-                fw={700}
-                fz={8}
-                lh={1}
-                c="dimmed"
+              </span>
+              <span
+                className="font-bold text-[8px] leading-none text-muted"
                 style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center' }}
               >
                 {train.cars}両
-              </Text>
-            </Group>
+              </span>
+            </div>
 
             {/* 2段目: 行先 */}
-            <Text
-              component="div"
-              ta="center"
-              fw={800}
-              fz={10}
-              lh={1.15}
+            <div
+              className="text-center font-extrabold text-[10px] leading-[1.15] text-foreground"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -386,17 +375,17 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
               }}
             >
               {train.destination}
-            </Text>
-          </Stack>
+            </div>
+          </div>
         )}
-      </Paper>
+      </div>
 
       {/* 上り（空港・白石方面）: 下向き三角ノーズ */}
       {!isDown && (
-        <Box
-          w="100%"
-          h={noseH + overlap}
+        <div
           style={{
+            width: '100%',
+            height: noseH + overlap,
             backgroundColor: lineColor,
             clipPath: `polygon(0% 0px, 100% 0px, 100% ${overlap}px, 50% 100%, 0% ${overlap}px)`,
             marginTop: -overlap,
@@ -406,6 +395,8 @@ const TrainBadge: React.FC<{ train: RealtimeMovingTrain; onClick: () => void }> 
           }}
         />
       )}
-    </UnstyledButton>
+    </button>
   );
 };
+
+export default RouteMap;

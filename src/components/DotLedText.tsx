@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import dotFonts from '../data/dotFonts.json';
 import stationLedData from '../data/stationLedData.json';
 
 export type DigitFontScope = 'nagamachi' | 'sendai' | 'minami-sendai' | 'sat';
@@ -92,17 +91,6 @@ export function getStationDigitFont(stationId?: string): FontDefinition | null {
     };
   }
 
-  // 2. 従来データ dotFonts.json からフォールバック
-  const data = dotFonts as Record<string, any>;
-  const fontObj = data[scope];
-  if (
-    fontObj &&
-    fontObj.characters &&
-    typeof fontObj.characters === 'object' &&
-    Object.keys(fontObj.characters).length > 0
-  ) {
-    return fontObj as FontDefinition;
-  }
   return null;
 }
 

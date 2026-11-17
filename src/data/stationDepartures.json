@@ -3786,7 +3786,7 @@
         "track": "1",
         "cars": 4,
         "status": "normal",
-        "calendar": "all"
+        "calendar": "weekday"
       },
       {
         "id": "573M-nagamachi-down",
@@ -7236,7 +7236,7 @@
         "track": "1",
         "cars": 4,
         "status": "normal",
-        "calendar": "all"
+        "calendar": "weekday"
       },
       {
         "id": "573M-taishido-down",
@@ -10686,7 +10686,7 @@
         "track": "2",
         "cars": 4,
         "status": "normal",
-        "calendar": "all"
+        "calendar": "weekday"
       },
       {
         "id": "573M-minami-sendai-down",
@@ -14136,7 +14136,7 @@
         "track": "3",
         "cars": 4,
         "status": "normal",
-        "calendar": "all"
+        "calendar": "weekday"
       },
       {
         "id": "573M-natori-down",
