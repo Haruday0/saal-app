@@ -1,7 +1,7 @@
 import { getHolidaysSet, isWeekendHolidayOrYearEnd } from './calendar';
 import { getCurrentRailwaySeconds } from './trainPosition';
 
-const API_BASE = 'https://busmap.haruday0.live/api';
+const API_BASE = 'https://busmap.haruday0.com/api';
 
 export const API_BASE_URL = API_BASE;
 export const SENDAI_BUS_COLOR = '#00703c';

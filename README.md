@@ -44,7 +44,7 @@ npm run build
 - 運賃表: 仙台空港鉄道 運賃情報（<https://www.senat.co.jp/fare/>）をもとに作成
 - 仙台市地下鉄の時刻表: 仙台市地下鉄のダイヤCSV（令和5年7月1日改正、<https://www.city.sendai.jp/joho-kikaku/shise/security/kokai/opendata_example.html>）
 - なとりん号の時刻表と運賃: 名取市コミュニティバス「なとりん号」のGTFSデータ（2025年4月15日版、<https://miyagi.dataeye.jp/resources/32285>）
-- 仙台市営バスの発車時刻: 本アプリ作者が開発した Sendai Bus Map V2（<https://busmap.haruday0.live/>）のAPIから取得
+- 仙台市営バスの発車時刻: 本アプリ作者が開発した Sendai Bus Map V2（<https://busmap.haruday0.com/>）のAPIから取得
 - 案内用図記号: JIS Z 8210（案内用図記号）の形状に準拠した独自のSVGコンポーネント（参考: 交通エコロジー・モビリティ財団 <https://www.ecomo.or.jp/>）
 
 表示される運賃や時刻は参考情報です。正確な運賃と運行情報は、仙台空港鉄道やJR東日本などの公式サイトでご確認ください。
