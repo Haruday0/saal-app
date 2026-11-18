@@ -275,15 +275,15 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
           >
             <Tabs.ListContainer>
               <Tabs.List aria-label="のりば切り替え" className="w-full">
-                <Tabs.Tab id="tohoku" className="flex-1 h-7 text-xs font-bold px-2">
+                <Tabs.Tab id="tohoku" className="w-auto flex-auto whitespace-nowrap h-7 text-xs font-bold px-1.5 sm:px-2">
                   東北本線 上り
                   <Tabs.Indicator />
                 </Tabs.Tab>
-                <Tabs.Tab id="joban" className="flex-1 h-7 text-xs font-bold px-2">
+                <Tabs.Tab id="joban" className="w-auto flex-auto whitespace-nowrap h-7 text-xs font-bold px-1.5 sm:px-2">
                   常磐線
                   <Tabs.Indicator />
                 </Tabs.Tab>
-                <Tabs.Tab id="saal" className="flex-1 h-7 text-xs font-bold px-2">
+                <Tabs.Tab id="saal" className="w-auto flex-auto whitespace-nowrap h-7 text-xs font-bold px-1.5 sm:px-2">
                   仙台空港アクセス線
                   <Tabs.Indicator />
                 </Tabs.Tab>
@@ -295,7 +295,7 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
           <Tabs key={`tabs-morisekinoshita-${stationId}`} selectedKey="1" className="w-full">
             <Tabs.ListContainer>
               <Tabs.List aria-label="のりば" className="w-full">
-                <Tabs.Tab id="1" className="flex-1 h-7 text-xs font-bold">
+                <Tabs.Tab id="1" className="flex-1 h-7 text-xs font-bold whitespace-nowrap">
                   1番線
                   <Tabs.Indicator />
                 </Tabs.Tab>
@@ -312,11 +312,11 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
           >
             <Tabs.ListContainer>
               <Tabs.List aria-label="のりば切り替え" className="w-full">
-                <Tabs.Tab id="1" className="flex-1 h-7 text-xs font-bold px-2">
+                <Tabs.Tab id="1" className="flex-1 h-7 text-xs font-bold px-2 whitespace-nowrap">
                   1番線
                   <Tabs.Indicator />
                 </Tabs.Tab>
-                <Tabs.Tab id="2" className="flex-1 h-7 text-xs font-bold px-2">
+                <Tabs.Tab id="2" className="flex-1 h-7 text-xs font-bold px-2 whitespace-nowrap">
                   2番線
                   <Tabs.Indicator />
                 </Tabs.Tab>
@@ -334,7 +334,7 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
             <Tabs.ListContainer>
               <Tabs.List aria-label="のりば切り替え" className="w-full">
                 {(['1', '2', '3'] as const).map((trackNum) => (
-                  <Tabs.Tab key={trackNum} id={trackNum} className="flex-1 h-7 text-xs font-bold px-2">
+                  <Tabs.Tab key={trackNum} id={trackNum} className="flex-1 h-7 text-xs font-bold px-2 whitespace-nowrap">
                     {trackNum}番線
                     <Tabs.Indicator />
                   </Tabs.Tab>
@@ -352,11 +352,11 @@ export const LedDepartureBoard: React.FC<LedDepartureBoardProps> = ({
           >
             <Tabs.ListContainer>
               <Tabs.List aria-label="のりば切り替え" className="w-full">
-                <Tabs.Tab id="down" className="flex-1 h-7 text-xs font-bold px-2">
+                <Tabs.Tab id="down" className="flex-1 h-7 text-xs font-bold px-2 whitespace-nowrap">
                   1番線
                   <Tabs.Indicator />
                 </Tabs.Tab>
-                <Tabs.Tab id="up" className="flex-1 h-7 text-xs font-bold px-2">
+                <Tabs.Tab id="up" className="flex-1 h-7 text-xs font-bold px-2 whitespace-nowrap">
                   2番線
                   <Tabs.Indicator />
                 </Tabs.Tab>
