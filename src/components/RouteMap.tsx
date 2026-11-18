@@ -163,7 +163,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
                 {/* 駅シンボルノード（全8駅すべて完全に統一された白丸） */}
                 <div className="absolute left-[50px] -translate-x-1/2 z-10 flex items-center justify-center">
                   <div
-                    className={`w-3.5 h-3.5 rounded-full border-2 border-[#2A5CAA] bg-white dark:bg-[#1a1b1e] shadow-xs transition-transform duration-150 ${
+                    className={`w-3.5 h-3.5 rounded-full border-2 border-[#2A5CAA] bg-white shadow-xs transition-transform duration-150 ${
                       isSelected ? 'scale-115 ring-2 ring-[#2A5CAA]/40' : ''
                     }`}
                   >

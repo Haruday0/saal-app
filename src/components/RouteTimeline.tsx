@@ -140,7 +140,7 @@ export function RouteTimeline<T>({
                     />
                   ) : (
                     <div
-                      className={`w-3 h-3 rounded-full shrink-0 border-[2.5px] bg-white dark:bg-surface ${
+                      className={`w-3 h-3 rounded-full shrink-0 border-[2.5px] bg-white ${
                         passed ? 'border-border' : ''
                       }`}
                       style={!passed ? { borderColor: lineColor } : undefined}
