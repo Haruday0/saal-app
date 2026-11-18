@@ -118,15 +118,11 @@
   --train-badge-bg: var(--surface);
 }
 
+html,
 body,
 #root {
   background-color: var(--background);
   color: var(--foreground);
-}
-
-html,
-body,
-#root {
   font-family: var(--font-sans);
   height: 100%;
   width: 100%;
@@ -135,8 +131,6 @@ body,
   overflow: hidden;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
-  background-color: #ffffff;
-  color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

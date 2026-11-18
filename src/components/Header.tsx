@@ -3,10 +3,23 @@ import { Button, Link } from '@heroui/react';
 import { Icon } from './Icon';
 import { LINE_COLORS } from '../config/trainLineRules';
 import { useDebug } from '../context/DebugContext';
-import { useTheme } from '../context/ThemeContext';
+import { type ThemePreference, useTheme } from '../context/ThemeContext';
+
+const getThemeIcon = (themePreference: ThemePreference, isDark: boolean): string => {
+  if (themePreference === 'system') {
+    return isDark ? 'night_sight_auto' : 'light_mode_auto';
+  }
+  return themePreference === 'dark' ? 'dark_mode' : 'light_mode';
+};
+
+const THEME_LABEL: Record<ThemePreference, string> = {
+  system: '端末の設定',
+  light: 'ライト',
+  dark: 'ダーク',
+};
 
 export const Header: React.FC = () => {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, themePreference, toggleTheme } = useTheme();
   const { isDebugMode, isHeaderPanelOpen, setIsHeaderPanelOpen, isTimeOverridden } = useDebug();
 
   return (
@@ -44,17 +57,22 @@ export const Header: React.FC = () => {
             </Button>
           )}
 
-          {/* ライト / ダーク テーマ切り替え */}
-          <Button
-            isIconOnly
-            variant="tertiary"
-            size="sm"
-            className="rounded-full w-8 h-8 min-w-8 p-0 text-foreground"
-            onPress={toggleTheme}
-            aria-label="テーマ切り替え"
+          {/* テーマ切り替え (端末の設定 -> ライト -> ダーク) */}
+          <span
+            className="inline-flex"
+            title={`テーマ切り替え（現在: ${THEME_LABEL[themePreference]}）`}
           >
-            <Icon name={isDark ? 'light_mode' : 'dark_mode'} size={16} />
-          </Button>
+            <Button
+              isIconOnly
+              variant="tertiary"
+              size="sm"
+              className="rounded-full w-8 h-8 min-w-8 p-0 text-foreground"
+              onPress={toggleTheme}
+              aria-label={`テーマ切り替え（現在: ${THEME_LABEL[themePreference]}）`}
+            >
+              <Icon name={getThemeIcon(themePreference, isDark)} size={16} />
+            </Button>
+          </span>
 
           {/* JR東日本「どこトレ」スマートフォン版 外部リンク（HeroUI Link） */}
           <Link

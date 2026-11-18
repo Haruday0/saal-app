@@ -1,30 +1,39 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react';
 
+export type ThemePreference = 'system' | 'light' | 'dark';
 type ColorScheme = 'light' | 'dark';
 
 interface ThemeContextValue {
   isDark: boolean;
   colorScheme: ColorScheme;
+  themePreference: ThemePreference;
+  setThemePreference: (preference: ThemePreference) => void;
   toggleTheme: () => void;
   setColorScheme: (scheme: ColorScheme) => void;
 }
 
+const STORAGE_KEY = 'saal-theme';
+
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const getInitialColorScheme = (): ColorScheme => {
-  if (typeof window === 'undefined') return 'light';
+const getInitialThemePreference = (): ThemePreference => {
+  if (typeof window === 'undefined') return 'system';
   try {
-    const saved = localStorage.getItem('saal-theme');
-    if (saved === 'dark' || saved === 'light') {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'light' || saved === 'dark') {
       return saved;
     }
   } catch {
     // localStorageアクセス制限等の例外を無視
   }
-  if (typeof window.matchMedia === 'function') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return 'system';
+};
+
+const getSystemIsDark = (): boolean => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
   }
-  return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
 };
 
 const applyThemeToDOM = (scheme: ColorScheme) => {
@@ -41,60 +50,83 @@ const applyThemeToDOM = (scheme: ColorScheme) => {
     root.setAttribute('data-theme', 'light');
     root.setAttribute('data-mantine-color-scheme', 'light');
   }
-  try {
-    localStorage.setItem('saal-theme', scheme);
-  } catch {
-    // localStorageアクセス制限等の例外を無視
-  }
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(getInitialColorScheme);
-
-  useEffect(() => {
-    applyThemeToDOM(colorScheme);
-  }, [colorScheme]);
+  const [themePreference, setThemePreferenceState] = useState<ThemePreference>(getInitialThemePreference);
+  const [systemIsDark, setSystemIsDark] = useState<boolean>(getSystemIsDark);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
     const media = window.matchMedia('(prefers-color-scheme: dark)');
+    setSystemIsDark(media.matches);
+
     const listener = (e: MediaQueryListEvent) => {
-      try {
-        const saved = localStorage.getItem('saal-theme');
-        if (!saved) {
-          setColorSchemeState(e.matches ? 'dark' : 'light');
-        }
-      } catch {
-        setColorSchemeState(e.matches ? 'dark' : 'light');
-      }
+      setSystemIsDark(e.matches);
     };
-    media.addEventListener('change', listener);
-    return () => media.removeEventListener('change', listener);
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', listener);
+      return () => media.removeEventListener('change', listener);
+    }
+
+    media.addListener(listener);
+    return () => media.removeListener(listener);
   }, []);
 
+  useEffect(() => {
+    try {
+      if (themePreference === 'system') {
+        localStorage.removeItem(STORAGE_KEY);
+      } else {
+        localStorage.setItem(STORAGE_KEY, themePreference);
+      }
+    } catch {
+      // localStorageアクセス制限等の例外を無視
+    }
+  }, [themePreference]);
+
+  const colorScheme: ColorScheme =
+    themePreference === 'system' ? (systemIsDark ? 'dark' : 'light') : themePreference;
+  const isDark = colorScheme === 'dark';
+
+  useLayoutEffect(() => {
+    applyThemeToDOM(colorScheme);
+  }, [colorScheme]);
+
+  const setThemePreference = (preference: ThemePreference) => {
+    setThemePreferenceState(preference);
+  };
+
   const toggleTheme = () => {
-    setColorSchemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setThemePreferenceState((prev) => {
+      if (prev === 'system') return 'light';
+      if (prev === 'light') return 'dark';
+      return 'system';
+    });
   };
 
   const setColorScheme = (scheme: ColorScheme) => {
-    setColorSchemeState(scheme);
+    setThemePreferenceState(scheme);
   };
 
-  const isDark = colorScheme === 'dark';
-
   return (
-    <ThemeContext.Provider value={{ isDark, colorScheme, toggleTheme, setColorScheme }}>
+    <ThemeContext.Provider
+      value={{
+        isDark,
+        colorScheme,
+        themePreference,
+        setThemePreference,
+        toggleTheme,
+        setColorScheme,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );
 };
 
-export const useTheme = (): {
-  isDark: boolean;
-  colorScheme: 'light' | 'dark';
-  toggleTheme: () => void;
-  setColorScheme: (scheme: 'light' | 'dark') => void;
-} => {
+export const useTheme = (): ThemeContextValue => {
   const context = useContext(ThemeContext);
   if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider');
